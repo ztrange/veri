@@ -5,7 +5,7 @@
 #
 # Usage:   step-tick.sh <n>
 # Exit:    0 every call clean, its last line next=draft-pr or next=cycle; 2 bad arguments, a missing preflight file or
-#          ledger, a ⟦diff-checked⟧ step's missing .tdd/pin-recheck-ok receipt, no open step, or an open step neither
+#          ledger, no open step, or an open step neither
 #          ⟦diff-checked⟧ nor ⟦go-red⟧, before any commit; 1 a change outside .tdd/ (tree-check), before the tick; otherwise the stopping call's
 #          own code when neither 0 nor 3, else 1
 . "$(dirname "$0")/lib/shim-python.sh"

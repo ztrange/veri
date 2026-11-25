@@ -5,9 +5,7 @@ what changed after each run, and has the guard put a changed tree back before re
 The guard returns values and prints nothing; the refusal lines are `verify`'s.
 
 Interface:
-- `snapshot(record=None, root=None)` -> `Guard`, or `Unreadable` / `ConfigUnreadable` when the before-state
-  cannot be read. `record` is the absolute path of a pin's own mutation record, the one file the leaf may
-  append to; `root` is what that record's path and the commands it records are resolved against.
+- `snapshot()` -> `Guard`, or `Unreadable` / `ConfigUnreadable` when the before-state cannot be read.
 - `Guard.tree`: the before tree's sha, "" when none was taken (not a repository, git missing, a failing
   `add`): then no tree, HEAD or untracked check is made.
 - `Guard.changes()` -> the first finding, in this order: `Unreadable(detail)` (the tree after cannot be
@@ -27,7 +25,6 @@ Semantics:
 | config | the bytes of `$HOME/.gitconfig`, None when absent; any other read error is `ConfigUnreadable` |
 | changed paths | `git diff-tree -r -z --name-only --no-commit-id <before> <after>`, then `HEAD` when it moved |
 | mode flip | a path whose only change is 100644 <-> 100755 (`git diff --raw -z --no-renames`) is chmod-ed back on the spot and not reported |
-| own record | when the only changed path is the record, it was a regular file or absent before and its new bytes start with its old ones, the append is no change unless it records a command reaching outside `root`: each such command is reported as `command <line>` |
 | unreadable after | a non-empty before tree and an empty after tree |
 | restore (changed) | `read-tree -u --reset <before>` in a temporary index (after `add -A` into it), then `git update-ref HEAD <head-before>` when HEAD moved |
 | restore (unreadable) | `read-tree <before>` and `checkout-index -a -f` in a temporary index, read the complaint, then remove each path untracked now but not before |
@@ -35,7 +32,6 @@ Semantics:
 """
 import contextlib
 import os
-import re
 import shutil
 import subprocess
 import tempfile
@@ -145,45 +141,6 @@ def changed_paths(tree_before, head_before):
     return paths, head_after, tree_after
 
 
-def file_bytes(path):
-    """A regular file's bytes; None for anything else — absent, a symlink, a directory, unreadable."""
-    if os.path.islink(path) or not os.path.isfile(path):
-        return None
-    try:
-        with open(path, "rb") as f:
-            return f.read()
-    except OSError:
-        return None
-
-
-def appended(before, after):
-    return after is not None and after.startswith(before or b"")
-
-
-SYSTEM_PREFIXES = ("/bin/", "/usr/", "/dev/")
-
-
-def outside_commands(added, root):
-    lines = added.decode("utf-8", "replace").split("\n")
-    root = os.path.realpath(root)
-
-    def escapes(word):
-        word = re.sub(r"^\d*[<>]+&?", "", word).strip("\"'")
-        if "=" in word and not word.startswith(("/", "~")) and escapes(word.split("=", 1)[1]):
-            return True
-        if word.startswith("~"):
-            return True
-        if "/" not in word:
-            return False
-        if os.path.isabs(word) and os.path.normpath(word).startswith(SYSTEM_PREFIXES):
-            return False  # /bin/sh, /usr/bin/env, /dev/null replay on every machine
-        resolved = os.path.realpath(os.path.join(root, word))
-        return os.path.commonpath([root, resolved]) != root
-
-    return [lines[i + 1] for i, line in enumerate(lines[:-1]) if re.fullmatch(r"command \d+", line)
-            and any(escapes(word) for word in lines[i + 1].split())]
-
-
 def gitconfig_snapshot(path):
     try:
         with open(path, "rb") as config:
@@ -195,20 +152,15 @@ def gitconfig_snapshot(path):
 class Guard:
     """The before-state of one leaf; see the module docstring."""
 
-    def __init__(self, tree, head, untracked, config, config_before, record, root):
+    def __init__(self, tree, head, untracked, config, config_before):
         self.tree, self.head, self.untracked = tree, head, untracked
         self.config, self.config_before = config, config_before
-        self.record, self.root = record, root
-        if record is not None:
-            self.own = os.path.relpath(record, root)
-            self.record_before = file_bytes(record)
-            self.record_irregular = self.record_before is None and os.path.lexists(record)
 
     def changes(self):
         paths, head_after, tree_after = changed_paths(self.tree, self.head)
         if self.tree and not tree_after:
             return Unreadable()
-        if paths and not self.only_appended(paths):
+        if paths:
             return Changed(paths, self.tree, tree_after, head_after)
         try:
             config_after = gitconfig_snapshot(self.config)
@@ -217,18 +169,6 @@ class Guard:
         if config_after != self.config_before:
             return ConfigChanged(self.config)
         return None
-
-    def only_appended(self, paths):
-        """A pin's verifier records the mutations it watched fail; appending to that record alone is not a
-        tree change (#2741). Deleting or rewriting it would disarm earlier pins, so that still refuses; so
-        does an append recording a command that reaches outside the root, each added to `paths`."""
-        if self.record is None or paths != [self.own] or self.record_irregular:
-            return False
-        after = file_bytes(self.record)
-        if not appended(self.record_before, after):
-            return False
-        paths += ["command " + c for c in outside_commands(after[len(self.record_before or b""):], self.root)]
-        return paths == [self.own]
 
     def restore(self, changed):
         in_temp_index("read-tree", "-u", "--reset", self.tree)
@@ -244,7 +184,7 @@ class Guard:
         return unreadable
 
 
-def snapshot(record=None, root=None):
+def snapshot():
     tree = in_temp_index("write-tree")
     if not tree:
         unreadable = unreadable_file_in_tree()
@@ -257,4 +197,4 @@ def snapshot(record=None, root=None):
         config_before = gitconfig_snapshot(config)
     except OSError as error:
         return ConfigUnreadable(config, error.strerror)
-    return Guard(tree, head, untracked, config, config_before, record, root)
+    return Guard(tree, head, untracked, config, config_before)

@@ -4,7 +4,7 @@ import sys
 
 import entry
 import issue_body
-from ledger import REPIN_STEP, handed_out, ledger_steps, next_phase, read_ledger_stdin, trailing_markers, carries_mark
+from ledger import handed_out, ledger_steps, next_phase, read_ledger_stdin, trailing_markers, carries_mark
 
 VERBS = {
     "current": "current",
@@ -42,17 +42,6 @@ def current_record(records):
 
 def current(records):
     return answer(current_record(records))
-
-
-def open_record(records):
-    """The step a run works on now, as fused_step.open_step takes it: the open re-pin step directly after the first
-    refactor-pending step, else the current step; None when none (#4734)."""
-    current_step = current_record(records)
-    if current_step is not None and current_step.state == "done":
-        after = records[records.index(current_step) + 1:][:1]
-        if after and after[0].state == "open" and after[0].text.startswith(REPIN_STEP):
-            return after[0]
-    return current_step
 
 
 def last_done_record(records):
@@ -106,7 +95,8 @@ def main(argv):
     if verb == "current":
         return current(records)
     if verb == "open":
-        return answer(open_record(records))
+        # The step a run works on now, as fused_step.open_step takes it: the current step (#4734).
+        return current(records)
     if verb == "last-done":
         return last_done(records)
     if verb == "current-or-last-done":

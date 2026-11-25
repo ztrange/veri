@@ -7,7 +7,7 @@ a call `setattr(<subprocess>, "run" | "Popen" | "check_output" | "check_call" | 
 (`setattr("subprocess.run", <fake>)`, `setattr("status.subprocess.run", <fake>)`, an f-string `f"subprocess.{name}"`);
 a setattr of `subprocess` whose attribute name is not a literal (a loop over names); `mock.patch` and `patch.object` of the
 same targets; and a plain assignment `subprocess.run = <fake>`.
-A fake that only replaces a module's OWN function (`update_veri.git`, `plan_reverify.git`, `pin_recheck.run_captured`)
+A fake that only replaces a module's OWN function (`update_veri.git`, `plan_reverify.git`, `status.run_captured`)
 starts no process and is not a process fake: those files are not listed, however their fake is named. A function named
 `fake_run` that no subprocess install uses does not count either. Not detected (a documented blind spot): an alias of the
 module (`sp = subprocess`) and a `from subprocess import run` name patched on the importer. `conftest.py` holds the
@@ -77,7 +77,7 @@ def test_a_replacement_installed_on_subprocess_is_a_local_process_fake(source):
 
 @pytest.mark.parametrize("source", [
     'def fake_git(*args): return args\nmonkeypatch.setattr(update_veri, "git", fake_git)',
-    'def fake_run(argv): return 0\nmonkeypatch.setattr(pin_recheck, "run_captured", fake_run)',
+    'def fake_run(argv): return 0\nmonkeypatch.setattr(status, "run_captured", fake_run)',
     'monkeypatch.setattr(subprocess.Popen, "__init__", checked)',
     'monkeypatch.setattr(subprocess, "CompletedProcess", fake)',
     'monkeypatch.setattr("subprocess.PIPE", None)',

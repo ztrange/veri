@@ -9,8 +9,6 @@ import pytest
 STEP = "one thing works ⟦criterion 1⟧"
 LEDGER = "# Plan for #12\n\n- [x] %s ⟂ refactor pending\n- [ ] two ⟦criterion 2⟧\n"
 GREEN_SHA = "d" * 40
-BASE_SHA = "c" * 40
-BRANCH_BASE = "b" * 40
 VERDICT_LOG = "FLAGS: none\nVERDICT: PASS\n"
 REFACTOR_HALF = ("step=%s\ngreen_sha=" + GREEN_SHA + "\ncount=1\nbudget=5\nstopped=nothing-left\n"
                  "verdict_log=" + hashlib.sha256(VERDICT_LOG.encode()).hexdigest() + "\n"
@@ -23,8 +21,8 @@ class Fake:
     """A run_script stand-in: records (basename, args, cwd, env, kw) and answers from <answers>, keyed by
     (basename, first argument or None) -> (code, stdout)."""
 
-    def __init__(self, answers=None, porcelain="", pins=""):
-        self.answers, self.calls, self.porcelain, self.pins = dict(answers or {}), [], porcelain, pins
+    def __init__(self, answers=None, porcelain=""):
+        self.answers, self.calls, self.porcelain = dict(answers or {}), [], porcelain
 
     def __call__(self, name, *args, cwd=None, env=None, **kw):
         base = os.path.basename(name)
@@ -34,12 +32,8 @@ class Fake:
                 return code, out, ""
         if base == "git" and args[:2] == ("log", "-1"):
             return 0, GREEN_SHA + "\n", ""
-        if base == "git" and args[:1] == ("rev-parse",):
-            return 0, BASE_SHA + "\n", ""
         if base == "git" and args[:2] == ("status", "--porcelain"):
             return 0, self.porcelain, ""
-        if base == "pin-recheck.sh":
-            return 0, self.pins, ""
         if base == "ledger-steps.sh" and args[:1] == ("last-done",):
             return 0, STEP + "\n", ""
         if base == "ledger-steps.sh" and args[:1] == ("criterion",):
@@ -62,7 +56,7 @@ class Fake:
 @pytest.fixture
 def close(monkeypatch, run_cli, tmp_path):
     """close(answers=None, fake=None, missing=(), step=STEP, half=None, argv=None) runs step-close for issue 12 from
-    the main tree, the run's worktree at .tdd/wt/12 and its branch-base record in the main tree's .tdd/; returns
+    the main tree, the run's worktree at .tdd/wt/12; returns
     (code, stdout, stderr, fake)."""
     fused = importlib.import_module("veri.fused")
     step_close = importlib.import_module("veri.step_close")
@@ -75,8 +69,7 @@ def close(monkeypatch, run_cli, tmp_path):
                  "ledger": (wt / ".tdd" / "issue-12.md", ledger or LEDGER % step),
                  "refactor-half": (wt / ".tdd" / "issue-12-refactor-half", half or REFACTOR_HALF % step),
                  "stage": (wt / ".tdd" / "stage-rl.t", "100\n"),
-                 "verdict": (wt / ".tdd" / "verify-refactor.log", VERDICT_LOG),
-                 "branch-base": (wt.parent.parent / "issue-12-branch-base", BRANCH_BASE + "\n")}
+                 "verdict": (wt / ".tdd" / "verify-refactor.log", VERDICT_LOG)}
         for key, (path, text) in files.items():
             if key not in missing and not path.exists():
                 path.write_text(text)
@@ -155,16 +148,13 @@ def _named(fake):
     return [(c[0], c[1][:1]) for c in fake.calls]
 
 
-def test_4029_it_checks_graded_units_and_pins_rerecords_checks_the_tree_clears_commits_and_pushes_in_order(close):
+def test_4029_it_checks_graded_units_and_rerecords_checks_the_tree_clears_commits_and_pushes_in_order(close):
     code, out, err, fake = close()
 
-    assert _named(fake)[:12] == [
-        ("git", ("log",)), ("graded-changed.sh", (GREEN_SHA,)), ("git", ("rev-parse",)), ("pin-recheck.sh", ("--branch-base",)),
-        ("tests-frozen.sh", ("rerecord-refactored",)), ("git", ("status",)),
+    assert _named(fake)[:10] == [
+        ("git", ("log",)), ("graded-changed.sh", (GREEN_SHA,)), ("tests-frozen.sh", ("rerecord-refactored",)), ("git", ("status",)),
         ("clear-refactor-pending.sh", (".tdd/issue-12.md",)), ("git", ("add",)), ("git", ("commit",)),
         ("push-branch.sh", ()), ("event.sh", ("stage-end",)), ("stop-requested.sh", ())]
-    assert fake.call("git", "rev-parse")[1] == ("rev-parse", GREEN_SHA + "~1")
-    assert fake.call("pin-recheck.sh")[1] == ("--branch-base", BRANCH_BASE, BASE_SHA)
     assert fake.call("tests-frozen.sh")[1] == ("rerecord-refactored", ".tdd/issue-12.md", GREEN_SHA)
     assert fake.call("clear-refactor-pending.sh")[1] == (".tdd/issue-12.md", STEP)
     assert fake.call("git", "add")[1] == ("add", "-A")
@@ -199,7 +189,6 @@ def test_4510_a_later_commit_adding_only_a_re_pin_step_leaves_the_step_green_com
     code, out, err, fake = close(fake=fake, ledger=repinned)
 
     assert fake.call("graded-changed.sh")[1] == (GREEN_SHA,)
-    assert fake.call("git", "rev-parse")[1] == ("rev-parse", GREEN_SHA + "~1")
     assert fake.call("tests-frozen.sh")[1] == ("rerecord-refactored", ".tdd/issue-12.md", GREEN_SHA)
 
 
@@ -224,18 +213,6 @@ def test_4510_no_commit_that_changed_the_refactor_pending_line_stops_it_at_6_wit
     assert "graded-changed.sh" not in fake.names()
 
 
-@pytest.mark.parametrize("record", [None, "", "HEAD\n", "abc12\n", BRANCH_BASE.upper() + "\n", "b" * 41 + "\n"])
-def test_4376_a_branch_base_record_missing_or_not_hex_stops_it_at_6_with_exit_2_naming_the_record_and_runs_no_pin_recheck(
-        close, record):
-    path = close.wt.parent.parent / "issue-12-branch-base"
-    if record is not None:
-        path.write_text(record)
-    code, out, err, fake = close(missing=("branch-base",))
-
-    assert (code, out.splitlines()[-1], "pin-recheck.sh" in fake.names()) == (
-        2, "stopped at 6 branch-base record %s" % path, False)
-
-
 def test_4029_the_stage_ends_with_status_0_after_the_push_and_before_the_stop_ask(close, monkeypatch):
     monkeypatch.setattr("time.time", lambda: 160.0)
     code, out, err, fake = close()
@@ -252,8 +229,7 @@ def test_4029_an_unreadable_stage_start_time_stops_it_with_exit_2_after_the_push
 
 
 @pytest.mark.parametrize("script, first, inner", [
-    ("graded-changed.sh", None, 1), ("graded-changed.sh", None, 2), ("pin-recheck.sh", None, 1),
-    ("pin-recheck.sh", None, 2), ("tests-frozen.sh", None, 1), ("tests-frozen.sh", None, 2),
+    ("graded-changed.sh", None, 1), ("graded-changed.sh", None, 2), ("tests-frozen.sh", None, 1), ("tests-frozen.sh", None, 2),
     ("tests-frozen.sh", None, 3), ("clear-refactor-pending.sh", None, 2), ("git", "commit", 1),
     ("push-branch.sh", None, 1), ("push-branch.sh", None, 2)])
 def test_4029_a_check_clear_commit_or_push_that_is_not_clean_stops_it_with_its_code_and_runs_nothing_later(
@@ -391,17 +367,7 @@ def test_4029_an_unaffordable_or_unanswered_next_step_stops_it_settling_nothing(
     assert "comment.sh" in fake.names() and not [c for c in fake.calls if c[0] == "comment.sh" and c[1][1] != "step-done"]
 
 
-def test_4029_the_pins_needing_a_look_are_settled_as_owed_pin_lines_and_printed_last(close):
-    pins = "needs a look: a.mut (old text gone)\nstale: r.mut a.py\nneeds a look: 2 pins b.mut (base run failed)\n"
-    code, out, err, fake = close(fake=Fake(pins=pins))
-
-    settled = "next=cycle\nowed_pin=needs a look: a.mut (old text gone)\nowed_pin=needs a look: 2 pins b.mut (base run failed)\n"
-    assert code == 0
-    assert out.endswith(settled)
-    assert (close.wt / ".tdd" / "issue-12-step-close").read_text() == settled
-
-
-READ = ("git", "pin-recheck.sh", "ledger-steps.sh", "gh")  # stdout read as a value
+READ = ("git", "ledger-steps.sh", "gh")  # stdout read as a value
 
 
 def test_4029_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_stderr(close):
@@ -435,7 +401,7 @@ def test_4029_every_inner_call_in_the_ordered_list_is_a_script_the_refactor_loop
     skill = (Path(step_close.__file__).resolve().parents[2] / "SKILL.md").read_text()
     section = skill[skill.index("#### Refactor loop — one leaf"):skill.index("#### A `⟦diff-checked⟧` step")]
 
-    expected = ["graded-changed.sh", "pin-recheck.sh", "tests-frozen.sh", "clear-refactor-pending.sh", "push-branch.sh",
+    expected = ["graded-changed.sh", "tests-frozen.sh", "clear-refactor-pending.sh", "push-branch.sh",
                 "event.sh", "stop-requested.sh", "comment.sh", "criterion-finished.sh", "ledger-steps.sh",
                 "tick-issue-criterion.sh", "next-unchecked.sh", "run-affordable.sh"]
 

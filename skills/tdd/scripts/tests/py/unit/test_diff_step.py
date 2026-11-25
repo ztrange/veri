@@ -98,7 +98,7 @@ def _clean(diff, step=STEP, **kw):
 def test_4435_a_diff_checked_step_runs_its_clean_path_in_order_over_three_sliced_calls_ending_on_step_ticks_next(
         diff, step):
     """DST1, DST2, DST5: the step base from the ledger's last commit, the develop-diff leaf, suite-reported.sh,
-    diff-leaf-deviation.sh, the verdict-diff verifier, pin-recheck.sh, then step-tick.sh; each wait sliced."""
+    diff-leaf-deviation.sh, the verdict-diff verifier, then step-tick.sh; each wait sliced."""
     first, second, third = _clean(diff, step)
 
     assert (first[0], first[1].splitlines()[-1]) == (3, "waiting on develop-diff")
@@ -124,9 +124,7 @@ def test_4435_a_diff_checked_step_runs_its_clean_path_in_order_over_three_sliced
 
     assert third[0] == 0, third[2]
     calls = [(c[0], _short(c[1])) for c in third[3].calls]
-    assert calls == [("wait-leaf.sh", ("verdict-diff",)),
-                     ("pin-recheck.sh", ("--branch-base", BRANCH_BASE, STEP_BASE)),
-                     ("step-tick.sh", ("12",))]
+    assert calls == [("wait-leaf.sh", ("verdict-diff",)), ("step-tick.sh", ("12",))]
     scripts = os.path.dirname(os.path.dirname(os.path.realpath(importlib.import_module("veri.fused").__file__)))
     assert third[3].paths[-1] == os.path.join(scripts, "step-tick.sh")
     assert third[1].splitlines()[-1] == "next=cycle"
@@ -136,7 +134,7 @@ def test_4435_a_diff_checked_step_runs_its_clean_path_in_order_over_three_sliced
 
 
 def test_4435_with_diff_switched_off_it_launches_no_verifier_marks_the_skip_writes_skipped_and_goes_on(diff):
-    """DST4: ADR-0033's skip, then pin-recheck.sh and the tick in the same call."""
+    """DST4: ADR-0033's skip, then the tick in the same call."""
     diff(skip="diff", answers={("wait-leaf.sh", "develop-diff"): (3, "")})
     code, out, err, fake = diff(skip="diff")
 
@@ -147,8 +145,7 @@ def test_4435_with_diff_switched_off_it_launches_no_verifier_marks_the_skip_writ
         ("verify-diff-skipped", "reason=switched-off"), "conductor", STEP)
     assert (diff.wt / ".tdd" / "verdict-diff.exit").read_text() == "skipped\n"
     names = fake.names()
-    assert names.index("diff-leaf-deviation.sh") < names.index("event.sh") < names.index("pin-recheck.sh") < names.index(
-        "step-tick.sh")
+    assert names.index("diff-leaf-deviation.sh") < names.index("event.sh") < names.index("step-tick.sh")
 
 
 ONE = "make test TESTS=\"$1\"\n"
@@ -163,7 +160,7 @@ def _verified(diff, step=QUALITY, **kw):
     return diff(step=step, **kw)
 
 
-def test_4435_a_test_quality_step_probes_its_flip_line_after_the_pass_and_before_pin_recheck(diff):
+def test_4435_a_test_quality_step_probes_its_flip_line_after_the_pass_and_before_the_tick(diff):
     """DST3: the last FLIP: line of the leaf's report, probed with the `veri: one test file:` command."""
     code, out, err, fake = _verified(diff, report="SUITE: ok\n" + FLIP)
 
@@ -173,7 +170,7 @@ def test_4435_a_test_quality_step_probes_its_flip_line_after_the_pass_and_before
     assert (fake.call("mutation-probe.sh")[0], _short(fake.call("mutation-probe.sh")[1])) == PROBE
     assert fake.call("mutation-probe.sh")[4]["out"] == ".tdd/flip-probe.out"
     assert "VERI_MUTATION_RECORD" not in (fake.call("mutation-probe.sh")[3] or {})
-    assert names.index("wait-leaf.sh") < names.index("mutation-probe.sh") < names.index("pin-recheck.sh")
+    assert names.index("wait-leaf.sh") < names.index("mutation-probe.sh") < names.index("step-tick.sh")
 
 
 def test_4435_with_no_one_test_file_command_the_probe_runs_the_all_tier_command(diff):
@@ -203,14 +200,14 @@ def test_4435_with_no_one_test_file_command_the_probe_runs_the_all_tier_command(
      "REJECT: flipping assert x == 1→assert x == 2 in tests/test_a.py left tests/test_a.py green\n"),
     ("SUITE: ok\n", {}, "REJECT: the report of develop-diff carries no FLIP: line\n"),
 ])
-def test_4435_a_flip_that_stays_green_or_no_flip_line_is_a_verify_diff_reject_exit_1_before_pin_recheck(
+def test_4435_a_flip_that_stays_green_or_no_flip_line_is_a_verify_diff_reject_exit_1_before_the_tick(
         diff, report, answers, reason):
-    """DST3: the reason written to .tdd/verify-diff.reason; no pin-recheck.sh, no tick."""
+    """DST3: the reason written to .tdd/verify-diff.reason; no tick."""
     code, out, err, fake = _verified(diff, report=report, answers=answers)
 
     assert code == 1, err
     assert (diff.wt / ".tdd" / "verify-diff.reason").read_text() == reason
-    assert not {"pin-recheck.sh", "step-tick.sh"} & set(fake.names())
+    assert "step-tick.sh" not in fake.names()
 
 
 @pytest.mark.parametrize("answers", [{("mutation-probe.sh", None): (2, "")},
@@ -220,7 +217,7 @@ def test_4435_a_probe_or_detect_test_command_exit_2_is_exit_2(diff, answers):
     code, out, err, fake = _verified(diff, report=FLIP, answers=answers)
 
     assert code == 2
-    assert not {"pin-recheck.sh", "step-tick.sh"} & set(fake.names())
+    assert "step-tick.sh" not in fake.names()
     assert not (diff.wt / ".tdd" / "issue-12-diff-step-rejected-wait").exists()
 
 
@@ -232,9 +229,8 @@ def _rejected(diff):
 @pytest.mark.parametrize("step, answers, report", [
     (STEP, {("wait-leaf.sh", "verdict-diff"): (1, "")}, None),
     (QUALITY, {("mutation-probe.sh", None): (1, "")}, FLIP),
-    (STEP, {("pin-recheck.sh", None): (1, "kept green: tests/test_a.py\n")}, None),
 ])
-def test_4435_a_verify_flip_or_pin_recheck_reject_leaves_the_steps_rejected_record_for_revise_and_exits_1(
+def test_4435_a_verify_or_flip_reject_leaves_the_steps_rejected_record_for_revise_and_exits_1(
         diff, step, answers, report):
     """DST7: each REJECT hands the step to revise.sh <n> diff through the rejected record, which names the step and
     carries the original step base, so the re-verify judges the diff the rejection was about."""
@@ -246,24 +242,6 @@ def test_4435_a_verify_flip_or_pin_recheck_reject_leaves_the_steps_rejected_reco
     record = _rejected(diff)
     assert (record["step"], record["at"], record["values"]["step_base"]) == (step, "verdict-diff", STEP_BASE)
     assert "step-tick.sh" not in fake.names()
-
-
-def test_4435_a_pin_recheck_reject_writes_its_report_as_the_reason(diff):
-    """DST7: the pins pin-recheck.sh printed are what the revise leaf is told."""
-    diff(answers={("wait-leaf.sh", "develop-diff"): (3, "")})
-    diff(answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
-    diff(answers={("pin-recheck.sh", None): (1, "kept green: tests/test_a.py\n")})
-
-    assert (diff.wt / ".tdd" / "verify-diff.reason").read_text() == (
-        "REJECT: pin-recheck.sh found a pin this step disarmed\nkept green: tests/test_a.py\n")
-
-
-def test_4435_a_pin_recheck_exit_2_is_exit_2_with_no_rejected_record(diff):
-    diff(answers={("wait-leaf.sh", "develop-diff"): (3, "")})
-    diff(answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
-    code, out, err, fake = diff(answers={("pin-recheck.sh", None): (2, "")})
-
-    assert (code, _rejected(diff)) == (2, None)
 
 
 def test_4435_a_cycle_step_with_no_diff_checked_mark_is_exit_2_before_any_call(diff):
@@ -298,7 +276,7 @@ def test_4435_a_malformed_flip_line_is_a_reject_and_nothing_is_probed(diff, line
     code, out, err, fake = _verified(diff, report=line)
 
     assert code == 1, err
-    assert not {"mutation-probe.sh", "pin-recheck.sh"} & set(fake.names())
+    assert not {"mutation-probe.sh", "step-tick.sh"} & set(fake.names())
     assert (diff.wt / ".tdd" / "verify-diff.reason").read_text().startswith("REJECT: the report of develop-diff")
 
 
@@ -310,180 +288,6 @@ def test_4435_a_develop_diff_leaf_with_no_suite_line_stops_exit_2_with_no_verifi
     assert (code, out.splitlines()[-1]) == (2, "stopped at develop suite-reported.sh develop-diff 2> "
                                                 ".tdd/suite-reported.err exit 2")
     assert (fake.launched(), "diff-leaf-deviation.sh" in fake.names()) == ([], False)
-
-
-REPIN = ("⟦diff-checked⟧ edit the case of the pin on tests/test_a.py so its recorded mutation turns it red "
-         "⟦added⟧ ⟦criterion 1⟧")
-GREEN = "d" * 40
-GREEN_PARENT = "e" * 40
-
-
-GREEN_TICK = "-- [ ] zero ⟦criterion 1⟧\n+- [x] zero ⟦criterion 1⟧ ⟂ refactor pending\n"
-REPIN_LINE = "⟦diff-checked⟧ edit the case of the pin on tests/test_%s.py so its recorded mutation turns it red ⟦added⟧"
-
-
-class RepinHistory(Fake):
-    """The history of a re-pin step whose base is STEP_BASE: <ledger>, the commits before it that touch the ledger,
-    newest first, each (sha, parent, the ledger lines it changed), the oldest GREEN, the green tick of the step whose
-    pin the re-pin re-arms, whose parent is GREEN_PARENT. pin-recheck.sh finds the disarmed pin (exit 1) only over a
-    range from GREEN_PARENT, and nothing to check (exit 3) from any later base. The step's net diff since STEP_BASE
-    (`git diff --name-only STEP_BASE HEAD`) is <changed>; any other range changes nothing."""
-    ledger = [(GREEN, GREEN_PARENT, GREEN_TICK)]
-    changed = "tests/test_a.py\n"
-
-    def __call__(self, name, *args, cwd=None, env=None, **kw):
-        base = os.path.basename(name)
-        parents = {sha + "~1": parent for sha, parent, _ in self.ledger}
-        if base == "git" and args[:1] == ("log",) and STEP_BASE + "~1" in args:
-            self.calls.append((base, args, cwd, env, kw))
-            if "-1" in args:
-                return 0, self.ledger[0][0] + "\n", ""
-            return 0, "".join("\0%s\n\ndiff --git a/.tdd/issue-12.md b/.tdd/issue-12.md\n--- a/.tdd/issue-12.md\n"
-                              "+++ b/.tdd/issue-12.md\n@@ -3 +3 @@\n%s" % (sha, lines)
-                              for sha, _, lines in self.ledger), ""
-        if base == "git" and args[:1] == ("rev-parse",) and args[-1] in parents:
-            self.calls.append((base, args, cwd, env, kw))
-            return 0, parents[args[-1]] + "\n", ""
-        if base == "git" and args[:2] == ("diff", "--name-only"):
-            self.calls.append((base, args, cwd, env, kw))
-            return 0, self.changed if args[2:] == (STEP_BASE, "HEAD") else "", ""
-        if base == "pin-recheck.sh":
-            self.calls.append((base, args, cwd, env, kw))
-            if args[-1:] == (GREEN_PARENT,):
-                return 1, "pin stayed green under its mutation: tests/test_a.py\n", ""
-            return 3, "", ""
-        return super().__call__(name, *args, cwd=cwd, env=env, **kw)
-
-
-class SecondRepinHistory(RepinHistory):
-    """A step that disarmed two pins: its first re-pin (on tests/test_b.py) was added and ticked before the second's
-    plan commit, so the ledger's last commit before STEP_BASE is that re-pin's tick, not GREEN."""
-    ledger = [("1" * 40, "2" * 40, "-- [ ] %s\n+- [x] %s\n" % (REPIN_LINE % "b", REPIN_LINE % "b")),
-              ("3" * 40, "4" * 40, "+- [ ] %s\n" % (REPIN_LINE % "b")),
-              (GREEN, GREEN_PARENT, GREEN_TICK)]
-
-
-def test_4511_a_repin_step_rechecks_from_the_rearmed_steps_green_parent_so_a_pin_left_green_is_a_reject(diff):
-    """A re-pin step's pin-recheck.sh range starts at <green>~1 of the step whose pin it re-arms, so a re-pin that
-    leaves the pin green under its mutation is a verify-diff REJECT, not a tick."""
-    diff(step=REPIN, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
-    diff(step=REPIN, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
-    code, out, err, fake = diff(step=REPIN, fake=RepinHistory())
-
-    assert code == 1, err
-    assert fake.call("pin-recheck.sh")[1] == ("--branch-base", BRANCH_BASE, GREEN_PARENT)
-    record = _rejected(diff)
-    assert (record["step"], record["at"]) == (REPIN, "verdict-diff")
-    assert "step-tick.sh" not in fake.names()
-
-
-def test_4511_an_added_diff_checked_step_that_is_no_repin_rechecks_from_its_own_step_base(diff):
-    """Only the re-pin line pin-reject-route.sh --recheck writes moves the recheck base: any other ⟦added⟧
-    ⟦diff-checked⟧ step keeps its step base, so a disarmed pin of an earlier step is not charged to it."""
-    step = "rename the helper in tests/test_a.py ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 1⟧"
-    diff(step=step, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
-    diff(step=step, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
-    code, out, err, fake = diff(step=step, fake=RepinHistory())
-
-    assert (code, fake.call("pin-recheck.sh")[1]) == (0, ("--branch-base", BRANCH_BASE, STEP_BASE)), err
-
-
-def test_4511_a_second_repin_of_one_step_rechecks_from_that_steps_green_parent_past_the_first_repins_commits(diff):
-    """A step whose fix disarmed two pins gets a second re-pin once the first ticks: its range still starts at the
-    re-armed step's <green>~1, skipping the first re-pin's plan and tick commits, so a pin it leaves green is a REJECT."""
-    diff(step=REPIN, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
-    diff(step=REPIN, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
-    code, out, err, fake = diff(step=REPIN, fake=SecondRepinHistory())
-
-    assert (code, fake.call("pin-recheck.sh")[1]) == (1, ("--branch-base", BRANCH_BASE, GREEN_PARENT)), err
-    assert "step-tick.sh" not in fake.names()
-
-
-class NoGreenHistory(RepinHistory):
-    """A ledger history before STEP_BASE holding only a re-pin's plan commit: no green tick to range from."""
-    ledger = [("3" * 40, "4" * 40, "+- [ ] %s\n" % (REPIN_LINE % "b"))]
-
-
-def test_4511_a_repin_step_with_no_green_tick_before_its_base_stops_at_pin_exit_2_and_ticks_nothing(diff):
-    """With no ledger commit before the step base but re-pin ones, the re-armed step's green is not found: no answer
-    could be obtained, so exit 2 at `pin`, never a recheck from a guessed base."""
-    diff(step=REPIN, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
-    diff(step=REPIN, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
-    code, out, err, fake = diff(step=REPIN, fake=NoGreenHistory())
-
-    assert (code, out.splitlines()[-1]) == (2, "stopped at pin no green tick of the re-armed step before " + STEP_BASE)
-    assert not {"pin-recheck.sh", "step-tick.sh"} & set(fake.names())
-
-
-class NoTestEditHistory(RepinHistory):
-    """A re-pin step whose commits since STEP_BASE change production only, net: a test file edited then reverted
-    (#4498) is no edit; pin-recheck.sh finds nothing from any base."""
-    changed = "skills/tdd/scripts/veri/mutation_record.py\n"
-
-    def __call__(self, name, *args, **kw):
-        if os.path.basename(name) == "pin-recheck.sh":
-            self.calls.append((os.path.basename(name), args, kw.get("cwd"), kw.get("env"), kw))
-            return 3, "", ""
-        return super().__call__(name, *args, **kw)
-
-
-def test_4512_a_repin_step_whose_commits_change_no_test_file_is_a_verify_diff_reject_naming_the_missing_edit(diff):
-    """A re-pin step's deliverable is the edited case of the pin: with no test file in its net diff since its step
-    base, it is a verify-diff REJECT whose reason names the missing test edit, left for revise; nothing is ticked."""
-    diff(step=REPIN, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
-    diff(step=REPIN, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
-    code, out, err, fake = diff(step=REPIN, fake=NoTestEditHistory())
-
-    assert code == 1, err
-    reason = (diff.wt / ".tdd" / "verify-diff.reason").read_text()
-    assert reason.startswith("REJECT: ") and "change no test file" in reason and STEP_BASE in reason, reason
-    assert "tests/test_a.py" in reason, reason
-    record = _rejected(diff)
-    assert (record["step"], record["at"]) == (REPIN, "verdict-diff")
-    assert "step-tick.sh" not in fake.names()
-
-
-class MixedEditHistory(NoTestEditHistory):
-    """A re-pin step whose net diff since STEP_BASE holds the edited case of the pin beside a non-test path, the
-    mutation record it re-arms; pin-recheck.sh finds nothing from any base."""
-    changed = ".tdd/mutations/tests_test_a.py.json\ntests/test_a.py\nskills/tdd/scripts/veri/mutation_record.py\n"
-
-
-def test_4512_a_repin_step_whose_net_diff_holds_a_test_file_beside_non_test_paths_ticks(diff):
-    """One test file in a re-pin step's net diff is its deliverable: non-test paths beside it, a mutation record or
-    production, do not make it a REJECT, so the step ticks and no reason is left for revise."""
-    diff(step=REPIN, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
-    diff(step=REPIN, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
-    code, out, err, fake = diff(step=REPIN, fake=MixedEditHistory())
-
-    assert code == 0, err
-    assert "step-tick.sh" in fake.names()
-    assert not (diff.wt / ".tdd" / "verify-diff.reason").exists()
-    assert _rejected(diff) is None
-
-
-class FailingDiffHistory(RepinHistory):
-    """A re-pin step whose `git diff --name-only` fails, exit 1: its net diff cannot be read."""
-
-    def __call__(self, name, *args, **kw):
-        if os.path.basename(name) == "git" and args[:2] == ("diff", "--name-only"):
-            self.calls.append(("git", args, kw.get("cwd"), kw.get("env"), kw))
-            return 1, "", "fatal: bad revision\n"
-        return super().__call__(name, *args, **kw)
-
-
-def test_4512_a_failing_git_diff_on_a_repin_step_stops_at_pin_exit_2_and_ticks_nothing(diff):
-    """A re-pin step whose net diff cannot be read is no answer, exit 2 at `pin`, never git's own 1 read as a REJECT:
-    nothing is rechecked or ticked, and no reason or rejected record is left for revise."""
-    diff(step=REPIN, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
-    diff(step=REPIN, answers={("wait-leaf.sh", "verdict-diff"): (3, "")})
-    code, out, err, fake = diff(step=REPIN, fake=FailingDiffHistory())
-
-    assert code == 2, err
-    assert out.splitlines()[-1].startswith("stopped at pin"), out
-    assert not {"pin-recheck.sh", "step-tick.sh"} & set(fake.names())
-    assert not (diff.wt / ".tdd" / "verify-diff.reason").exists()
-    assert _rejected(diff) is None
 
 
 def test_4709_a_step_only_quoting_test_quality_in_its_prose_runs_no_flip(diff):

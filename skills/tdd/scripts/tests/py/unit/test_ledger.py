@@ -40,14 +40,6 @@ def test_ledger_steps_returns_kind_diff_checked_for_an_open_diff_checked_step():
 
 
 
-def test_4709_a_repin_step_leading_with_repin_step_has_kind_diff_checked():
-    ledger = importlib.import_module("veri.ledger")
-
-    line = "- [ ] " + ledger.REPIN_STEP + "a.py so its recorded mutation turns it red ⟦added⟧ ⟦criterion 2⟧\n"
-
-    assert [(step.kind, step.criterion) for step in ledger.ledger_steps(line)] == [("diff-checked", "2")]
-
-
 def test_4472_a_diff_checked_step_verify_branch_appended_keeps_its_kind_past_the_branch_repair_mark():
     ledger = importlib.import_module("veri.ledger")
 
@@ -475,17 +467,17 @@ def test_is_go_red_counts_the_marker_only_among_the_steps_trailing_markers_4443(
     ("a step quoting `⟦ci-repair⟧` in prose ⟦criterion 1⟧", "⟦ci-repair⟧", False),
     ("expand it ⟦phases: expand, migrate⟧ ⟦criterion 1⟧", "⟦phases:", True),
     ("⟦skill-edit⟧ edit `a/b.md` ⟦criterion 1⟧", "⟦skill-edit⟧", True),
-    ("⟦diff-checked⟧ edit the case of the pin on `t.py::c` ⟦criterion 1⟧", "⟦diff-checked⟧", True),
+    ("⟦diff-checked⟧ edit the case of the pin on `t.py::c` ⟦criterion 1⟧", "⟦diff-checked⟧", False),
     ("⟦ci-repair⟧ repair the build ⟦criterion 1⟧", "⟦ci-repair⟧", False),
     ("⟦diff-checked⟧ edit a case ⟦criterion 1⟧", "⟦diff-checked⟧", False),
     ("⟦diff-checked⟧ edit the case of the pin on `t.py::c` ⟦criterion 1⟧", "⟦skill-edit⟧", False),
     ("- [ ] ⟦skill-edit⟧ edit `a/b.md` ⟦criterion 1⟧", "⟦skill-edit⟧", True),
     ("- [x] ⟦skill-edit⟧ edit `a/b.md` ⟦criterion 1⟧", "⟦skill-edit⟧", True),
-    ("- [ ] ⟦diff-checked⟧ edit the case of the pin on `t.py::c` ⟦criterion 1⟧", "⟦diff-checked⟧", True),
+    ("- [ ] ⟦diff-checked⟧ edit the case of the pin on `t.py::c` ⟦criterion 1⟧", "⟦diff-checked⟧", False),
     ("- [ ] ⟦ci-repair⟧ repair the build ⟦criterion 1⟧", "⟦ci-repair⟧", False),
     ("- [ ] repair the build ⟦ci-repair⟧ ⟦criterion 1⟧", "⟦ci-repair⟧", True),
 ])
-def test_4709_has_kind_reads_the_trailing_run_and_exactly_two_leading_forms(step, mark, expected):
+def test_4741_has_kind_reads_the_trailing_run_and_only_the_leading_skill_edit_form(step, mark, expected):
     ledger = importlib.import_module("veri.ledger")
 
     assert ledger.has_kind(step, mark) is expected

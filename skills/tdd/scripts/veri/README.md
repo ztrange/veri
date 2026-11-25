@@ -21,7 +21,7 @@ about twelve lines.
 # Groups
 
 - **Foundations**: What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, starting a process detached, the bash and Python floors, the session environment, JSON/Markdown reading, the reading of a leaf report's `KEY:` lines and the reading of test and requirements sources, and the redaction of secrets from text veri hands GitHub.
-- **Run state and journal**: Where a run lives on disk, its journal of events and its pin files and mutation record, whether it is live, stuck or ended, and how it is stopped.
+- **Run state and journal**: Where a run lives on disk, its journal of events and its pin files, whether it is live, stuck or ended, and how it is stopped.
 - **Ledger and plan**: The ledger of a run: reading its steps and finding the next one to do, growing, dropping and reordering them, the replaces-case steps, and checks of the plan itself. Ticking a step is in Frozen tests and case history (`tick_ledger` imports `tests_frozen`, which this group may not).
 - **Leaf launch and supervision**: How a leaf is launched through the supervisor, detached, waited for and timed, and how its stream log is read.
 - **Prompts and leaf reports**: What a leaf is told (the prompt builders) and what it answers (the `KEY: value` report and the readers of each leaf's report).
@@ -192,7 +192,7 @@ The one reader of `VERI_*` and related environment variables.
 - `read(name, default="", unless_empty=None)`: the value as a string. `read_bytes(name, default=b"")`: as bytes.
 - `TUNABLES`: name to `Tunable(parse, default, refusal=None)`, every tunable once. `TABLE`: the entries that state a `refusal`. `tokens(raw)`: int, ValueError otherwise.
 - Two verbs over the one table. `get(name, unless_empty=False)`: the value, its default when unset (`unless_empty=True` also when set but empty); for readers that refuse in their own words (the budgets, the model knobs, `VERI_LABEL`, `VERI_DISPATCH_RETRY_SLEEP`, `VERI_GH_REFUSAL_RETRIES`, ...). `resolve(name)`: `(value, None)`, or `(None, (raw, refusal))` for a bad value; the `TABLE` entries only (KeyError otherwise). Also `default(name)`, `parses(name, raw)`, `is_set(name)` (in the environment at all, empty included: how a retired name such as the old absolute growth knob is refused), `get_bytes(name, unless_empty=False)` (`get`, as bytes). A reader of any `VERI_*` name passes no literal default: `test_tunable_defaults_audit.py` fails when one does, bar the sites its `EXEMPT` dict names, a reason each; read that dict, this file does not copy it. Its kinds: a name read at two defaults (not in `TUNABLES`) and the run-context fields the conductor exports.
-- `environment()`, `with_values(**values)`, `without(name)`, `pop(name, default="")`: a copy of the environment, with values set or removed; pop mutates it.
+- `environment()`, `with_values(**values)`, `pop(name, default="")`: a copy of the environment, with values set or removed; pop mutates it.
 - `lane_of(opt_in)`: the lane of a label, `None` for a plain one. `taken_label(opt_in)`: `taken:<lane or main>`. `venv_dir()`: `VERI_VENV` or `~/.veri-tools/venv`. `claude_bin()`: `CLAUDE_BIN`, `claude` when unset or empty.
 
 Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after which a reader may compute its own fallback, such as a path under `~`), and what a bad value is told: the entry's `refusal`, or "its readers' own words" when it states none. `tests/py/unit/test_tunables_prose_table.py` fails when this table and `TUNABLES` disagree.
@@ -308,7 +308,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 
 # Run state and journal
 
-Where a run lives on disk, its journal of events and its pin files and mutation record, whether it is live, stuck or ended, and how it is stopped. Builds on Foundations only.
+Where a run lives on disk, its journal of events and its pin files, whether it is live, stuck or ended, and how it is stopped. Builds on Foundations only.
 
 - `bail.sh`: bail a run in one call, `BAIL.md` sub-steps 1–7, printing sub-step 8's report.
 - `classify-bail.sh`: label a bail as a process or a system failure.
@@ -349,14 +349,6 @@ Where a run lives on disk, its journal of events and its pin files and mutation 
 - `EVENTS`, `CONTEXT_KEYS`: the table and the run context's string keys; `keys(event)`, `required(event)`: an event's keys in order and the required subset.
 - `format(event, key)`: `(format, empty allowed)`, the format a `FORMATS` name or a tuple of values; `valid(event, key, value)`: whether a value matches it; `stated(event, key)`: the format in `JOURNAL.md`'s words.
 - `declaring(event, key)`: the table line to write to declare `key` for `event` (`event` None: the `CONTEXT` line).
-
-## mutation_record
-The mutation record `.tdd/issue-<n>-mutations.md`: its name and its entry format (`<name> <size>\n<value>\n` fields, a blank line closing each entry, `old`/`new`/`context` base64-encoded under `<name>-b64`).
-- `path(run, issue)`: the record of an issue. `of_ledger(ledger_path)`: the record beside a ledger file. `is_record(name)`: whether a basename is `issue-<digits>-mutations.md`. `number(record_path)`: the issue number in its name.
-- `paths(run="")`: the records present, sorted, relative when `run` is empty. `snapshot(run="")`: `{path: bytes}` of them.
-- `format_record(fields)`: the text of one entry from (name, value) pairs. `append(record_path, fields)`: add one entry to a record.
-- `records(text)`: `[{name: value}]`, text fields decoded. `chunks(text)`: `[(raw, fields)]`, each entry's exact text with the blank lines after it and its undecoded fields; raises `MalformedRecord` (a `ValueError` whose `header` is the bad line).
-- `stale_pins(run, issue)`: `[(file, first line of old)]` per unretired entry of `<run>`'s record whose `old` text its file under `<run>` no longer holds; a missing record or file adds nothing (`run_finished`, `queued_merge`).
 
 ## pid_file
 - `number_in(file)`: the number on a pid file's first line, `None` when missing or malformed.
@@ -450,16 +442,15 @@ A heading matches when it equals the heading once stripped (CRLF and trailing wh
 
 ## next_pending_refactor
 - `refactor_pending(record)`: the ledger record `next-pending-refactor.sh` prints, a checked step still carrying ` ⟂ refactor pending`.
-- `repin_next(wt, n)`: the open re-pin step `pin-reject-route.sh --recheck` inserted directly after the first refactor-pending step, or `None` (#4510).
 
 ## ledger
 The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase marks.
-- Reading: `read_ledger(path)`, `read_ledger_stdin()` (text; OSError), `decode_ledger(data)`, `ledger_items(text)`, `ledger_steps(text)` (one `Step` per step line, a named tuple `(number, state, kind, pending, added, criterion, text)`: `number` the 1-based position as a string, `state` `open` or `done`, `kind` the trailing ⟦full-suite⟧ / ⟦human-owed⟧ / ⟦diff-checked⟧ mark, `diff-checked` also for a step starting `REPIN_STEP`, else `human-owed` or `step`, `pending` `"1"` or `"0"`), `items_at(rev, path)` (OSError when git cannot show it).
+- Reading: `read_ledger(path)`, `read_ledger_stdin()` (text; OSError), `decode_ledger(data)`, `ledger_items(text)`, `ledger_steps(text)` (one `Step` per step line, a named tuple `(number, state, kind, pending, added, criterion, text)`: `number` the 1-based position as a string, `state` `open` or `done`, `kind` the trailing ⟦full-suite⟧ / ⟦human-owed⟧ / ⟦diff-checked⟧ mark, else `human-owed` or `step`, `pending` `"1"` or `"0"`), `items_at(rev, path)` (OSError when git cannot show it).
 - Writing: `replace_ledger(path, data)` (OSError), `rewrite_ledger(path, text)` (None on success), `ledger_tick(text, matcher, pending=False)`, `ledger_mark_phase(text, matcher, phase, owed=False)` (ValueError when the step lacks the phase), `ledger_mark_surround_short(text, matcher)` (`(None, text)` once the step carries ` ⟂ surround short`; ValueError when `surround` is not its next phase), `ledger_clear_pending(text, matcher)`, `tick_line(match)` (a `STEP_RE` match with its box ticked): the first three return `(changed, text)`.
-- A step: `listed_phases`, `next_phase`, `unphased`, `trailing_markers`, `unit_of` (str/list/None), `carries_mark(text, name)`, `body(step)` (the text before its first ` ⟂ `), `is_added`, `is_human_owed`, `has_kind(step, mark)` (a kind mark in the trailing marker run, a leading ⟦skill-edit⟧, or ⟦diff-checked⟧ on a step starting `REPIN_STEP`; a mark quoted elsewhere is none), `is_skill_edit`, `is_go_red`, `go_red_probe(step)` (`(file, old, new, case)` of a ⟦go-red⟧ step's probe, `None` without one), `is_retired(text)`, `handed_out(record)`: predicates and parts of its text. `same_step(one, other)`: two step texts name one step, equal once each drops its `⟦…⟧` marks and its trailing ` ⟂ ` suffix (PRD 038.1 SC3); the one comparison a fused stage makes of its record's step.
+- A step: `listed_phases`, `next_phase`, `unphased`, `trailing_markers`, `unit_of` (str/list/None), `carries_mark(text, name)`, `body(step)` (the text before its first ` ⟂ `), `is_added`, `is_human_owed`, `has_kind(step, mark)` (a kind mark in the trailing marker run or a leading ⟦skill-edit⟧; a mark quoted elsewhere is none), `is_skill_edit`, `is_go_red`, `go_red_probe(step)` (`(file, old, new, case)` of a ⟦go-red⟧ step's probe, `None` without one), `is_retired(text)`, `handed_out(record)`: predicates and parts of its text. `same_step(one, other)`: two step texts name one step, equal once each drops its `⟦…⟧` marks and its trailing ` ⟂ ` suffix (PRD 038.1 SC3); the one comparison a fused stage makes of its record's step.
 - Resolving a reference: `step_at(steps, reference, *, text_matches=same_text, by_index=False)` is the `Step` a step number or a step's text names, `None` for "no such step". By default digits are a 1-based position (`"01"` is step 1, never looked up as text); `by_index=True` takes only a step's own `number` string and then falls back to text; `text_matches(reference, text)` is the text rule (equal, the first match wins). `supervise` (equal text, and prefix text for `⟦ci-repair⟧`) and `preserve_attempt` (`by_index`, text or text without its criterion tag) call it.
 - Building and checking: `new_step(text, criterion)`, `open_step_line(text)`, `retire_mark(reason)`, `multi_tag_refusal(steps)` (`""` if fine), `ledger_path(run_dir, issue)` (a delegate of `run_dir.ledger`; only `wrong_test_route` calls it, deleted once PR #3792 lands), `added_file(path)` (the sibling `-added.md` path of a ledger file).
-- Constants: `BEFORE_STATE_GREEN` (compiled pattern: a clause of a pin's reason that calls the before-state green; tick-ledger, pin-reject-route and the develop prompt read it), `REPIN_STEP` (the text a re-pin step opens with: pin-reject-route writes it, diff-step matches it to recheck from the re-armed step's `<green>~1`), `STEP_RE`, `ITEM_RE`, `KIND_RE`, `CRITERION_RE`, `CRITERION_TAG`, `ADDED_MARK`, `PENDING_MARK`, `OPEN_STEP`, `TICKED_STEP`, `GO_RED_MARK`, `INTERFACE_PHASES` (the phases of an interface change: `expand`, `cover-new`, `migrate`, `contract-a`, `contract-b`).
+- Constants: `BEFORE_STATE_GREEN` (compiled pattern: a clause of a pin's reason that calls the before-state green; tick-ledger, pin-reject-route and the develop prompt read it), `STEP_RE`, `ITEM_RE`, `KIND_RE`, `CRITERION_RE`, `CRITERION_TAG`, `ADDED_MARK`, `PENDING_MARK`, `OPEN_STEP`, `TICKED_STEP`, `GO_RED_MARK`, `GO_RED_PROBE_RE` (a ⟦go-red⟧ step's probe: go_red_step and tick_ledger read it), `INTERFACE_PHASES` (the phases of an interface change: `expand`, `cover-new`, `migrate`, `contract-a`, `contract-b`).
 
 ## ledger_steps
 - `current_record(records)`: the current step of `ledger.ledger_steps` records (the first done step whose refactor is pending, else the first open step), `None` when there is none.
@@ -674,7 +665,6 @@ The tests-frozen rule: recording and checking that a step's tests are not change
 
 - `case_identity`: when a case in the tree is the same case as a recorded one (moves, renames, refactors) and the digest of the helpers it calls; tests_frozen decides, this module only identifies.
 - `case_history`: the git history queries tests_frozen's record policy asks; it decides, this module only looks.
-- `pin-recheck.sh`: re-run the recorded pin mutations a range touches.
 - `pin-reject-route.sh`: route a rejected pin to a ledger step.
 - `production-frozen.sh`: whether production code changed in a range.
 - `restore-production.sh`: restore production files changed against the frozen record.
@@ -921,11 +911,11 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `watch-runs.sh`: watch the runs of a queue.
 
 ## fused_step
-- `inputs(name, n, *files)`: the settled preflight values and worktree once every input exists, else `None`, each missing one on stderr (FC15). `first_step(wt, n, chosen)`: the first ledger step a predicate takes. `open_step(wt, n)`: the step a run works on now, the one rule `run-step.sh` and `revise.sh` share: `repin_next`'s re-pin step, else the refactor-pending step, else the first unchecked one (#4734).
+- `inputs(name, n, *files)`: the settled preflight values and worktree once every input exists, else `None`, each missing one on stderr (FC15). `first_step(wt, n, chosen)`: the first ledger step a predicate takes. `open_step(wt, n)`: the step a run works on now, the one rule `run-step.sh` and `revise.sh` share: the refactor-pending step, else the first unchecked one (#4734).
 - `cost_check(wt, step)`: *The step's cost check*, stopping at `cost-check`. `verify_switched_off(wt, n, phase)`: the run's pinned `VERI_SKIP_VERIFY` names the phase.
 - `summary(step)`: the step's ledger text without its trailing markers, as a commit subject reads it (the #431/#437 rule).
 - `branch_base(where, wt, n)`: the run's branch base as the conductor recorded it in the main working tree above `wt` (`run_pins`), each verdict launch's `--branch-base`; a record missing or unreadable is a `Stop` with exit 2 naming it (#4375).
-- `green_tick(where, wt, n, rev)`: the newest ledger commit reachable from `rev` that changes a line other than a re-pin step's (`ledger.REPIN_STEP`), or `None`: the green tick of the step its re-pins re-arm, which `diff-step.sh`'s recheck base (#4511), `refactor-half.sh`'s touched files (#4510) and verify-refactor's `--step-green`, the bounds of its check 8 (#4544), read.
+- `green_tick(where, wt, n, rev)`: the newest ledger commit reachable from `rev` that changes a ledger line, or `None`: the step's green tick, which `refactor-half.sh`'s touched files (#4510) and verify-refactor's `--step-green`, the bounds of its check 8 (#4544), read.
 - `red_test_id(test_path, target)`: the Red case's id, `<target>` when it holds `::`, else `<test_path>::<target>`.
 - `refresh(stage, wt, n, record, facts)`: `.tdd/issue-<n>-<record>` rewritten so each key of `facts` holds its committed source's value, one `record-refreshed` event of `stage` per rewritten key.
 - `gain(stage, wt, n, record, key, values, step)`: one `<key>=<value>` line added to `.tdd/issue-<n>-<record>` per value it lacks, for a key a record may hold more than once (step-close's `uncovered_spec`, #4029), one `record-refreshed` event each.

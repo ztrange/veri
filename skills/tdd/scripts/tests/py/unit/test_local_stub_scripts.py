@@ -28,7 +28,6 @@ FILES_WITH_AN_INLINE_STUB = {
     "test_park_issue_process.py": "inline stubs, not yet on write_stub",
     "test_parked_issues_process.py": "inline stubs, not yet on write_stub",
     "test_pin_fast_tier_process.py": "inline stubs, not yet on write_stub",
-    "test_pin_recheck_process.py": "inline stubs, not yet on write_stub",
     "test_pinned_scripts_process.py": "inline stubs, not yet on write_stub",
     "test_pr_ready_process.py": "inline stubs, not yet on write_stub",
     "test_profile.py": "inline stubs, not yet on write_stub",

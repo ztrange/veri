@@ -10,7 +10,6 @@ import fused
 import fused_step
 import plan_publish
 import run_dir
-import run_pins
 import tunables
 from ledger import PENDING_MARK
 from next_pending_refactor import refactor_pending
@@ -22,7 +21,7 @@ REFACTOR_HALF = ".tdd/issue-%s-refactor-half"
 
 # The $S/ scripts this call makes, in the order each is first made (git and gh aside); unit/test_step_close.py fails
 # when one is a script SKILL.md's Refactor loop section does not name (FC19).
-CALLS = ("graded-changed.sh", "pin-recheck.sh", "tests-frozen.sh", "clear-refactor-pending.sh", "push-branch.sh",
+CALLS = ("graded-changed.sh", "tests-frozen.sh", "clear-refactor-pending.sh", "push-branch.sh",
          "event.sh", "stop-requested.sh", "comment.sh", "criterion-finished.sh", "ledger-steps.sh",
          "tick-issue-criterion.sh", "next-unchecked.sh", "run-affordable.sh")
 
@@ -51,18 +50,18 @@ def run(n):
     for uncovered in read_half(wt, n).get("uncovered_spec", []):
         raise fused.Stop("6", "uncovered_spec=" + uncovered, 1)
     # The step's green commit is the last that changed its refactor-pending line's count: a later plan commit that
-    # only inserted a re-pin step after it leaves that count alone (#4510). The checkbox's "] " anchors the text, so a
+    # only inserted a step after it leaves that count alone (#4510). The checkbox's "] " anchors the text, so a
     # step whose text ends in this one's is not matched.
     line = "] " + step + PENDING_MARK
     green_sha = fused.checked("6", "git", "log", "-1", "--format=%H", "-S", line, "--", LEDGER % n, cwd=wt).strip()
     if not green_sha:
         raise fused.Stop("6", "no green commit for %s in %s" % (step, LEDGER % n), 2)
     fused_step.refresh(NAME, wt, n, "refactor-half", {"green_sha": green_sha})
-    pins = [line for line in checks(wt, n, green_sha).splitlines() if line.startswith("needs a look")]
+    checks(wt, n, green_sha)
     try:
         commit(wt, n, step)
         mirror(wt, n, step)
-        return fused.settle(wt, n, NAME, ["next=" + next_stop(wt, n)] + ["owed_pin=" + pin for pin in pins])
+        return fused.settle(wt, n, NAME, ["next=" + next_stop(wt, n)])
     except (fused.Stop, fused.Waiting):
         raise
     except Exception as error:
@@ -110,28 +109,9 @@ def asked(name, *args, **kw):
 
 
 def checks(wt, n, green_sha):
-    """6's checks before the clear (CO2, CO3): graded units, the pins over the step's range, the refactored re-record.
-    The `needs a look` pins pin-recheck.sh printed."""
+    """6's checks before the clear (CO2, CO3): graded units, the refactored re-record."""
     fused.checked("6", fused.script("graded-changed.sh"), green_sha, cwd=wt)
-    base = fused.checked("6", "git", "rev-parse", green_sha + "~1", cwd=wt).strip()
-    said = fused.checked("6", fused.script("pin-recheck.sh"), "--branch-base", branch_base(wt, n), base, cwd=wt,
-                         ok=(0, 3))
     fused.checked("6", fused.script("tests-frozen.sh"), "rerecord-refactored", LEDGER % n, green_sha, cwd=wt)
-    return said
-
-
-def branch_base(wt, n):
-    """The run's recorded branch base in the main tree's .tdd/; missing, unreadable or not hex stops it at 6, exit 2."""
-    path = None
-    try:
-        main = run_dir.main_tree_from_files(wt)
-        path = run_dir.issue_file(main, n, run_pins.BRANCH_BASE)
-        sha = run_pins.branch_base(n, main)
-    except OSError:
-        sha = ""
-    if not re.fullmatch(r"[0-9a-f]{7,40}", sha):
-        raise fused.Stop("6", "branch-base record %s" % path, 2)
-    return sha
 
 
 def commit(wt, n, step):

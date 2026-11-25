@@ -47,7 +47,7 @@ USAGE = [
     ("1042169812 59", "run-leaf.sh", []),
     ("4252593059 50", "supervise.sh", []),
     ("3650033748 63", "tick-issue-criterion.sh", []),
-    ("2409820604 312", "tick-ledger.sh", []),
+    ("4052121053 209", "tick-ledger.sh", []),
     ("1826447128 65", "timed-test-run.sh", []),
     ("3094254233 81", "transform-touches-tests.sh", []),
     ("584227798 267", "verify.sh", []),

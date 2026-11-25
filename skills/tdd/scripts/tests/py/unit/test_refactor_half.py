@@ -226,58 +226,6 @@ def test_4577_near_duplicates_exit_2_stops_refactor_half_with_exit_2_before_any_
     assert "build-develop-prompt.sh" not in fake.names()
 
 
-REPIN_TICK = "e" * 40
-REPIN_LINE = importlib.import_module("veri.ledger").REPIN_STEP + "src/a.py so its recorded mutation turns it red ⟦added⟧"
-
-
-def test_4510_after_a_repin_step_ticked_it_bounds_the_refactor_by_the_steps_own_green_tick_not_the_repins(tidy):
-    """A re-pin step pin-reject-route.sh --recheck inserted and ticked after the step's green tick is the ledger's
-    last commit; the refactor leaf still tidies the files the step's own green tick touched, its span still starting
-    past the re-pin's commits."""
-    log = "".join("\0%s\n\ndiff --git a/.tdd/issue-12.md b/.tdd/issue-12.md\n@@ -4 +4 @@\n%s" % entry for entry in (
-        (REPIN_TICK, "-- [ ] %s\n+- [x] %s\n" % (REPIN_LINE, REPIN_LINE)), ("f" * 40, "+- [ ] %s\n" % REPIN_LINE),
-        (GREEN_SHA, "-- [ ] %s\n+- [x] %s ⟂ refactor pending\n" % (STEP, STEP))))
-    code, out, err, fake = tidy(fake=Fake({("wait-leaf.sh", "verdict-refactor"): (3, "")}, ledger_log=log,
-                                          last_ledger_commit=REPIN_TICK))
-
-    assert fake.call("refactor-touched.sh")[1] == (GREEN_SHA,), err
-    assert fake.call("git", "rev-list")[1][-1] == REPIN_TICK + "..HEAD"
-
-def test_4577_after_a_repin_the_near_duplicate_detector_runs_on_the_steps_own_green_tick_not_the_repins(tidy):
-    """The pairs the leaf answers are the ones the step's own green tick added: with a re-pin step ticked after
-    it, near-duplicates.sh still gets that tick, not the ledger's last commit."""
-    log = "".join("\0%s\n\ndiff --git a/.tdd/issue-12.md b/.tdd/issue-12.md\n@@ -4 +4 @@\n%s" % entry for entry in (
-        (REPIN_TICK, "-- [ ] %s\n+- [x] %s\n" % (REPIN_LINE, REPIN_LINE)), ("f" * 40, "+- [ ] %s\n" % REPIN_LINE),
-        (GREEN_SHA, "-- [ ] %s\n+- [x] %s ⟂ refactor pending\n" % (STEP, STEP))))
-    code, out, err, fake = tidy(fake=Fake({("wait-leaf.sh", "verdict-refactor"): (3, "")}, ledger_log=log,
-                                          last_ledger_commit=REPIN_TICK))
-
-    assert fake.call("near-duplicates.sh")[1] == (GREEN_SHA,), err
-
-
-def test_4510_a_ledger_with_no_commit_but_repin_ones_stops_at_1_exit_2_before_the_budget(tidy):
-    log = "\0%s\n\ndiff --git a/.tdd/issue-12.md b/.tdd/issue-12.md\n@@ -4 +4 @@\n+- [ ] %s\n" % (REPIN_TICK, REPIN_LINE)
-    code, out, err, fake = tidy(fake=Fake(ledger_log=log, last_ledger_commit=REPIN_TICK))
-
-    assert (code, out.splitlines()[-1]) == (2, "stopped at 1 no green tick in .tdd/issue-12.md")
-    assert "refactor-budget.sh" not in fake.names()
-
-
-def test_4544_after_a_repin_step_ticked_verify_refactor_bounds_files_by_the_steps_green_tick_and_reviews_from_the_repins(
-        tidy):
-    """verify-refactor reads its in-bounds files off `--step-green`, the step's own green tick, and reviews the range
-    from `<base-sha>`, the ledger's last commit: after a re-pin step's tick the two differ, and the re-pin's commits,
-    which edit the pinned test, stay out of the reviewed range."""
-    log = "".join("\0%s\n\ndiff --git a/.tdd/issue-12.md b/.tdd/issue-12.md\n@@ -4 +4 @@\n%s" % entry for entry in (
-        (REPIN_TICK, "-- [ ] %s\n+- [x] %s\n" % (REPIN_LINE, REPIN_LINE)), ("f" * 40, "+- [ ] %s\n" % REPIN_LINE),
-        (GREEN_SHA, "-- [ ] %s\n+- [x] %s ⟂ refactor pending\n" % (STEP, STEP))))
-    code, out, err, fake = tidy(fake=Fake(ledger_log=log, last_ledger_commit=REPIN_TICK))
-
-    launch = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
-    args = launch[1]
-    assert (args[1], args[args.index("--step-green") + 1], args[-1]) == ("verdict-refactor", GREEN_SHA, REPIN_TICK), err
-
-
 def test_4028_a_spent_budget_launches_no_refactor_leaf(tidy):
     code, out, err, fake = tidy(fake=Fake({("refactor-budget.sh", None): (3, "refactor 0/0 — budget spent\n")},
                                           count="0\n", subjects=""))
