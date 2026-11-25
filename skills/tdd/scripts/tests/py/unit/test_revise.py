@@ -967,3 +967,22 @@ def test_4735_after_a_pin_reject_attempt_2_compares_the_prior_red_reason_with_th
 
     assert fake.launched() == ["revise-red-1", "verdict-pin", "revise-red-2"], (code, out, err)
     assert fake.compared == [REASON, pin_reason]
+
+
+def test_4735_after_a_pin_reject_it_routes_the_pin_reason_and_on_route_exit_1_launches_attempt_2(revise):
+    """REVISE.md sub-step 5: a red revise's verify-pin REJECT runs pin-reject-route.sh on the pin's reason, the ledger,
+    the step and develop-red.out's TARGET_TEST before attempt k+1; its exit 1 goes on to revise-red-2."""
+    _red(revise)
+    (revise.wt / ".tdd" / "verify-pin.reason").write_text("VERDICT: REJECT\nthe case pins behaviour the tree has\n")
+    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS", "AGAINST_UNMODIFIED: PASSES")
+    code, out, err, fake = revise(fake=Fake({("wait-leaf.sh", "verdict-pin"): (1, ""),
+                                             ("wait-leaf.sh", "revise-red-2"): (3, ""),
+                                             ("pin-reject-route.sh", None): (1, "")}, report=report),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    routes = [(c[1], c[2]) for c in fake.calls if c[0] == "pin-reject-route.sh"]
+    assert routes == [((".tdd/verify-pin.reason", ".tdd/issue-12.md", STEP, "tests/test_b.py::test_two"),
+                       str(revise.wt))], (code, out, err)
+    assert fake.launched() == ["revise-red-1", "verdict-pin", "revise-red-2"], (code, out, err)
+    second = next(i for i, c in enumerate(fake.calls) if c[0] == "detach-leaf.sh" and c[1][1] == "revise-red-2")
+    assert fake.names().index("pin-reject-route.sh") < second
