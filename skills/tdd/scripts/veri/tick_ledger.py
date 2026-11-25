@@ -139,6 +139,29 @@ def go_red_receipt_refusal(ledger_path, step_line):
     return None
 
 
+def git_answer(*args):
+    """`git <args>`'s stdout as bytes; OSError naming the call on a non-zero exit."""
+    done = git.git(*args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if done.returncode != 0:
+        raise OSError("git %s failed: %s" % (args[0], " ".join(os.fsdecode(done.stderr).split())))
+    return done.stdout
+
+
+def return_tests_to_head():
+    """Return every test file differing from HEAD to HEAD: an untracked one deleted, any other checked out."""
+    root = os.fsdecode(git_answer("rev-parse", "--show-toplevel")).rstrip("\n")
+    untracked = {os.fsdecode(raw) for raw in git_answer(
+        "ls-files", "--others", "--exclude-standard", "--full-name", "-z", ":/").split(b"\0") if raw}
+    tracked = []
+    for name in tests_frozen.differing_tests():
+        if name in untracked:
+            os.remove(os.path.join(root, name))
+        else:
+            tracked.append(name)
+    if tracked:
+        git_answer("-C", root, "checkout", "HEAD", "--", *tracked)
+
+
 def surround_short(ledger_path, matcher):
     """Record a legacy step's one free relaunch of develop-surround as ` ⟂ surround short` on its committed ledger
     line: 0 recorded; 1 the step already carries it (a resumed run's included), ledger untouched; 2 surround is not
@@ -277,6 +300,8 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
     left = ledger.rewrite_ledger(ledger_path, new)
     if left is None:
         tick_added(ledger_path, step_line)
+    if left is None and reason_file and event_name == "unpinnable-step" and not ledger.BEFORE_STATE_GREEN.search(reason_text):
+        return_tests_to_head()
     if left is None and reason_file:
         step = step_line
         reason = next((l[7:].strip() for l in reason_text.splitlines()

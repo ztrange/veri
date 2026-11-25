@@ -10,6 +10,13 @@ def tick_ledger():
     return importlib.import_module("veri.tick_ledger")
 
 
+@pytest.fixture(autouse=True)
+def clean_tree(tick_ledger, monkeypatch):
+    """A retire lists the test files differing from HEAD through git: a work tree with none, unless a case says otherwise."""
+    import subprocess
+    monkeypatch.setattr(tick_ledger.git, "git", lambda *args, **kw: subprocess.CompletedProcess(["git", *args], 0, b"", b""))
+
+
 def test_main_unpinnable_retires_the_matched_step_with_an_unpinnable_step_event_and_no_revise_event_2999(
         tmp_path, run_cli, tick_ledger, monkeypatch):
     ledger = tmp_path / ".tdd" / "issue-42.md"
