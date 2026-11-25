@@ -527,6 +527,20 @@ def test_a_reword_row_differing_from_the_held_row_in_its_cells_is_not_refused_as
     assert "states the full text the unit already holds" not in err, (code, out, err)
 
 
+def test_an_issue_row_not_splitting_into_id_requirement_and_why_exits_2_naming_the_row_id_and_the_cell_count_4752(tmp_path, skill_edit, run_cli):
+    listing = "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n"
+    case = skill_edit(
+        listing=listing,
+        issue="## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n"
+        "| ID | Requirement | Why |\n|---|---|---|\n| SC1 | offers `a|b` here. | why |\n",
+        grade=(0, ""))
+
+    code, out, err = run_cli(case.step, ["--added", "add SC1", str(tmp_path / "issue.md"), "unit.md"])
+
+    assert (code, "SC1" in err and "4" in err) == (2, True), (code, out, err)
+    assert (tmp_path / "REQUIREMENTS.md").read_text() == listing
+
+
 def test_an_added_step_whose_issue_rewords_a_listed_row_on_a_unit_graded_pass_appends_a_skill_edit_no_author_event_naming_the_unit_2997(tmp_path, skill_edit, run_cli):
     case = skill_edit(
         listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is red. | because |\n",
