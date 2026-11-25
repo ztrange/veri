@@ -46,8 +46,10 @@ tells the user to commit or stash.
   say) changed it with the default branch untouched; it also tells the two apart. Exit 2 bails
   `no-verdict`, a system failure (see `<base directory>/BAIL.md`).
 - `requirements-preflight.sh` exit 2 is a preflight refusal, before any leaf is launched. Its cause is
-  one of two defects, all named at once: a `## Requirements` row that clashes with a held ID (it needs
-  `<ID><reword>`), or a `⟦skill-edit⟧` step whose unit has no `### <path>` heading in the issue. Like every
+  one of three defects, all named at once: a `## Requirements` row that clashes with a held ID (it needs
+  `<ID><reword>`), a `## Requirements` row that does not split into ID, Requirement and Why (a wrong
+  cell count, typically an unescaped `|` in a code span, which needs `\|`), or a `⟦skill-edit⟧` step
+  whose unit has no `### <path>` heading in the issue. Like every
   other preflight refusal it writes a `preflight-refused` event and posts one issue comment naming the
   check and its cause (`$S/preflight-refused.sh <n> <check> <cause>`). A `## Requirements` row whose
   Requirement and Why cells the unit's section already holds under another ID is not a clash, so a
