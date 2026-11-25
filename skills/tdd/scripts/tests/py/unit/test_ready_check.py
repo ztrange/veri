@@ -281,7 +281,7 @@ def test_issue_4089_the_actions_read_row_reads_skipped_with_no_workflows_at_the_
     assert verdict is ready_check.SKIPPED
 
 
-RUN_STATE_RULE = (".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-*.md\n!.tdd/issue-*-added.md\n!.tdd/issue-*-mutations.md\n"
+RUN_STATE_RULE = (".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-*.md\n!.tdd/issue-*-added.md\n"
                   "!.tdd/issue-*-refactor-owed.md\n!.tdd/issue-*-metrics.md\n")
 
 
