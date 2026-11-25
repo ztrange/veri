@@ -77,12 +77,10 @@ them.
    left=$(( ${VERI_REFACTOR_BUDGET:-5} - count )); (( left < 0 )) && left=0
    ```
    Two shas, kept apart as the cycle loop keeps them. `$green` is the cycle loop's
-   `<green-sha>`, the ledger's last commit, past any re-pin step's: the span `$count` counts
+   `<green-sha>`, the ledger's last commit: the span `$count` counts
    and verify-refactor's `<base-sha>`, the range it reviews. `$step_green` is `<step-green>`,
    the step's own **green tick**, and verify-refactor's `--step-green`, the commit whose files
-   bound it (#4544): the newest commit whose change to `.tdd/issue-<n>.md` touches a line other than a
-   re-pin step's (`⟦diff-checked⟧ edit the case of the pin on …`), so a re-pin plan or tick
-   committed while the step still carries the mark is passed over (#4510). No script prints
+   bound it (#4544): the newest commit that changes a line of `.tdd/issue-<n>.md`. No script prints
    it (`fused_step.green_tick` computes it inside `refactor-half.sh`): read it off
    `git log -p -- .tdd/issue-<n>.md`. The tick is atomic with the green commit and the clear
    that would follow never happened. So `$touched`
@@ -105,7 +103,7 @@ them.
    launches, and the cycle loop's *Refactor loop* step 5 **Switched off** branch is taken
    instead — the `verify-refactor-skipped reason=switched-off` event with `VERI_STEP` this
    step, `skipped` in `.tdd/verdict-refactor.exit`, the `SKIPPED (switched off)` comment
-   (`$S/comment.sh <n> verify-refactor`), then `pin-recheck.sh`, the pending-mark clear and
+   (`$S/comment.sh <n> verify-refactor`), then the pending-mark clear and
    the cleared-ledger commit — before sub-step 2 is asked again. The pin decides, never
    `VERI_SKIP_VERIFY` at the resume: a resumed run keeps the configuration it started with.
 3. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle

@@ -19,8 +19,7 @@ tier, rejecting the step when either is red, and judges it against the run's rec
 *Launching a leaf* sets out, the leaf as `develop-diff` and the verifier as `verdict-diff`.
 **Switched off:** with `diff` in `.tdd/issue-<n>-skip-verify`, no verifier launches: record
 `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh verify-diff-skipped reason=switched-off`,
-write `skipped` to `.tdd/verdict-diff.exit`, and take the PASS branch below, `pin-recheck.sh`
-first. The leaf, `suite-reported.sh` and `diff-leaf-deviation.sh` still run before it.
+write `skipped` to `.tdd/verdict-diff.exit`, and take the PASS branch below. The leaf, `suite-reported.sh` and `diff-leaf-deviation.sh` still run before it.
 
 A supervisor exit 2 on the `develop-diff` leaf is a `killed-stuck` bail, as for any developer
 leaf (see `<base directory>/BAIL.md`). After its wait exits 0 and before the verifier is launched, run `$S/suite-reported.sh develop-diff 2> .tdd/suite-reported.err`:
@@ -49,18 +48,13 @@ The verifier's verdict closes the `⟦diff-checked⟧` step:
   `alone="$($S/detect-test-command.sh --tier "one test file")"` then `sh -c "$alone" sh <test file>`,
   or, when the repo declares none (that call exits 3), its all-tier command,
   `all="$($S/detect-test-command.sh --tier all)"` then `sh -c "$all"`. Exit **0** (the flipped case
-  went red) goes on to the PASS branch below. The call sets no `VERI_MUTATION_RECORD`, so the probe
-  writes no `.tdd/issue-<n>-mutations.md` record: the flip proves the fix once, and nothing replays it. Exit **1** (it stayed green) is a verify-diff REJECT naming the
+  went red) goes on to the PASS branch below. The probe writes no file: the flip proves the fix once, and
+  nothing replays it. Exit **1** (it stayed green) is a verify-diff REJECT naming the
   test file, spending `REVISE_BUDGET`: write `REJECT: flipping <old>→<new> in <test file> left <test file> green`
   to `.tdd/verify-diff.reason` (`Read` `<base directory>/REVISE.md`); a report with no `FLIP:` line, or one not of that form, is a
   REJECT the same way, its reason saying the line is missing. Exit **2**, or a `detect-test-command.sh` exit 2, bails `no-verdict`, a
   system failure (`Read` `<base directory>/BAIL.md`).
-- **PASS (exit 0):** on a re-pin step only, first list its net diff, `git diff --name-only <step-base-sha> HEAD`: one
-  holding no test file is a verify-diff REJECT of this step that spends `REVISE_BUDGET`, before the recheck below, its
-  reason `REJECT: the re-pin step's commits since <step-base-sha> change no test file; its deliverable is the edited
-  case of the pin on <file>`, since the step's work is that case (#4512). Then run `$S/pin-recheck.sh --branch-base <base> <step-base-sha>` against the step base sha, `<base>` the recorded branch base (on a re-pin step, the one `pin-reject-route.sh --recheck` adds, against `<green>~1` instead, `<green>` the re-armed step's green tick, the ledger's last commit before the step base that changes a line other than a re-pin step's, so the plan and tick commits of that step's earlier re-pins, one per disarmed pin, are passed over, so the range holds the fix that disarmed the pin),
-  its work being committed by now, and read its exit as the Refactor loop's PASS reads it, a
-  pin that stayed green, or a before-state pin this range disarmed (a stale one, green on the base too, is printed `stale: <record file> <test path>`, or `<mutated file>` for a mutation pin, and is no REJECT), being a REJECT of this step that spends `REVISE_BUDGET`; a pin whose own tested file is gone (a before record included, whose named test file the range deletes) or whose mutated file the range deletes is printed as `retired:` and is not a REJECT (exit 3 when every selected pin is retired); a before-state pin's replay path gone before the range is skipped and the pin still runs. The tick below refuses (exit 2) without the receipt that exit 0 or 3 leaves. Then tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
+- **PASS (exit 0):** tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
   `--refactor-pending`, since no refactor loop follows — commit the ledger as `chore: diff-checked — <step summary> (#<n>)` and push it as
   Green does, post `### ✅ Step done` by running `$S/comment.sh <n> step-done`, composing none of it, then tick its criterion in the issue body with `tick-issue-criterion.sh` on
   `criterion-finished.sh` exit 0, ticking nothing on exit 3, exactly as a Refactor loop's
