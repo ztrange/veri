@@ -52,13 +52,13 @@ def main(argv):
         steps = [line.rstrip("\n") for line in f if line.startswith((ledger.OPEN_STEP, ledger.TICKED_STEP))]
     step = next((s for s in steps if s.startswith(ledger.OPEN_STEP)), steps[-1])
     if cause == "tests-frozen-refused":
-        import frozen_record
         import tests_frozen
         name = step.removeprefix(ledger.OPEN_STEP).strip()
         captured = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
-        if os.path.exists(frozen_record.record_path(name)):
+        record = tests_frozen.record_path(name)
+        if os.path.exists(record):
             with contextlib.redirect_stdout(captured):
-                tests_frozen._main(["diff", "--step", name])
+                tests_frozen.diff(record)
             captured.flush()
             rule += captured.buffer.getvalue().decode()
     with open(stderr_file) as f:

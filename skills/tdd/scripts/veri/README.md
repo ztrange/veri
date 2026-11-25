@@ -41,7 +41,7 @@ Directions the tree obeys (checked by the same test; every group states what it 
 - Run state and journal imports only: Foundations
 - Ledger and plan imports only: Foundations; Run state and journal
 - Leaf launch and supervision imports only: Foundations; Run state and journal; Ledger and plan; Target suites and tiers; Veri's own test runner; Frozen tests and case history
-- Prompts and leaf reports imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Target suites and tiers
+- Prompts and leaf reports imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Target suites and tiers; Frozen tests and case history
 - Verdicts and verification imports only: Foundations; Run state and journal; Ledger and plan; Leaf launch and supervision; Prompts and leaf reports; Target suites and tiers
 - Veri's own test runner imports only: Foundations; Run state and journal
 - Target suites and tiers imports only: Foundations; Run state and journal; Veri's own test runner
@@ -510,7 +510,7 @@ How a leaf is launched through the supervisor, detached, waited for and timed, a
 
 # Prompts and leaf reports
 
-What a leaf is told (the prompt builders) and what it answers (the `KEY: value` report and the readers of each leaf's report). Builds on Ledger and plan, Run state and journal, Leaf launch and supervision, Target suites and tiers (the run lines a prompt gives, `run_line`) and Foundations.
+What a leaf is told (the prompt builders) and what it answers (the `KEY: value` report and the readers of each leaf's report). Builds on Ledger and plan, Run state and journal, Leaf launch and supervision, Target suites and tiers (the run lines a prompt gives, `run_line`), Frozen tests and case history (the refused test edit an adjudicator's prompt shows, `diff`) and Foundations.
 
 - `build-adjudicate-prompt.sh`: render the adjudicator leaf's prompt.
 - `build-develop-prompt.sh`: render a developer leaf's prompt (red, green, refactor, revise).
