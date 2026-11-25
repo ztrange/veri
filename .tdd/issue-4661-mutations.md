@@ -1,7 +1,0 @@
-before 40
-7fe4f6960c979441a1612a0c96c59af62ebe4d78
-keep 48
-skills/tdd/scripts/tests/py/unit/test_comment.py
-command 168
-make test TESTS=skills/tdd/scripts/tests/py/unit/test_comment.py::test_stopped_resume_line_keeps_run_conductor_name_and_no_account_when_scripts_dir_is_outside_home_4661
-
