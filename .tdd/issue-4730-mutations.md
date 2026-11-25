@@ -52,3 +52,14 @@ skills/tdd/scripts/tests/py/unit/test_adjudicate.py
 command 168
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_adjudicate.py::test_record_under_tests_frozen_refused_on_deviate_prints_deviate_writes_a_deviate_event_and_exits_4
 
+file 24
+skills/tdd/ADJUDICATE.md
+old-b64 28
+dGVzdHMtZnJvemVuLXJlZnVzZWQ=
+new-b64 28
+dGVzdHMtZnJvemVuLXJlZnVzYWw=
+context-b64 128
+YHRlc3RzLWZyb3plbi1yZWZ1c2VkYCBpcyBqdWRnZWQgYXQgdGhlIHN0ZXAncyBmaXJzdCBmcmVlemUgcmVmdXNhbCBpbiB0aGUgZ3JlZW4gcGhhc2UsIGJlZm9yZQ==
+command 83
+sh -c 'make test TESTS="$1"' sh skills/tdd/scripts/tests/py/unit/test_adjudicate.py
+
