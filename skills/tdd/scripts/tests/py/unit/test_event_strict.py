@@ -192,3 +192,13 @@ def test_4712_strict_event_sh_refuses_a_deviated_event_without_its_rule_and_writ
     named, _ = write("sh", clone, monkeypatch, run_cli, "deviated", ["rule=graded-edit", "step=3", "reason=x"])
 
     assert (missing, named) == (2, 0)
+
+
+def test_4741_strict_event_sh_refuses_a_pin_retired_event_and_the_table_declares_no_mutation_record_restored(
+        clone, tmp_path, monkeypatch, run_cli):
+    from veri import event_table
+    monkeypatch.setenv("VERI_EVENT_STRICT", "1")
+
+    code, _, err = run_cli(event, ["pin-retired", "reason=x"], env={"VERI_ISSUE": "7"}, cwd=clone)
+
+    assert (code, sorted({"pin-retired", "mutation-record-restored"} & set(event_table.EVENTS))) == (2, []), err
