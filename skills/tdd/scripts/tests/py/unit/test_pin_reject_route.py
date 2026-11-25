@@ -703,3 +703,34 @@ def test_main_hand_mutation_stays_green_retire_deletes_an_untracked_test_file_an
             (tests / "test_old.py").read_text()) == (
         0, "retired", "- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable", False,
         "def test_old():\n    assert True\n"), err
+
+
+def red_tree(tmp_path, monkeypatch, pin_reject_route, reason_text):
+    """A ledger, a reason saying <reason_text>, and the Red leaf's uncommitted test edits over a faked git: test_old.py
+    modified from HEAD, test_new.py untracked. Returns (ledger, reason, tests dir, the tree's test files' texts)."""
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("VERDICT: REJECT\nREASON: " + reason_text + "\n")
+    tests = tmp_path / "tests" / "py"
+    tests.mkdir(parents=True)
+    (tests / "test_old.py").write_text("def test_old():\n    assert True\n    assert 1\n")
+    (tests / "test_new.py").write_text("def test_new():\n    assert True\n")
+    monkeypatch.setattr(pin_reject_route.tick_ledger.git, "git",
+                        FakeRepo(tmp_path, {"tests/py/test_old.py": "def test_old():\n    assert True\n",
+                                            "reason.txt": reason.read_text()}))
+    return ledger, reason, tests, {p.name: p.read_text() for p in sorted(tests.iterdir())}
+
+
+def test_main_before_state_green_retire_leaves_every_test_file_as_it_was_4739(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ledger, reason, tests, before = red_tree(tmp_path, monkeypatch, pin_reject_route,
+                                             "the real before-state stays green")
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text().split("\n")[2],
+            {p.name: p.read_text() for p in sorted(tests.iterdir())}) == (
+        0, "retired", "- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable", before), err
