@@ -90,16 +90,21 @@ Every other step takes the verdict as follows:
   it by hand. It prints `retired`
   or `revise`, except that under `--missing-reroute` a reason with a before-state-green clause
   (a clause naming the before-state and green or pass, with no fail, red, not, n't or after in it) prints `unpinnable-missing`, ticks nothing and exits 2: only the
-  added missing case is unpinnable, not the step. A reason with no such clause and no `stays green` retires the step via `--already-holds`. A reason reporting a surviving mutant of the
-  added case (`stays green`, the target red on the before-state) is not that: it is exit 1 and
-  enters the revise loop for red. The routing is the script's decision, never your reading of the reason. On its
-  exit **0** the step is retired: commit the retired ledger, write no `revise` mark, spend no
+  added missing case is unpinnable, not the step. Under `--missing-reroute` a reason with no such clause and no `stays green` retires the step via `--already-holds`. A reason reporting a surviving mutant of the
+  added case (`stays green`, the target red on the before-state) is exit 1 and enters the revise
+  loop for red only under `--missing-reroute`; without it, that reason retires the step. The routing is the script's decision, never your reading of the reason. On its
+  exit **0** the step is retired. A retire whose reason qualified on a surviving mutation alone (no
+  before-state-green clause) has also returned the step's uncommitted Red test changes to HEAD
+  (every test file differing from HEAD: an untracked one deleted, a modified one restored) before
+  you commit the retired ledger, so the test the verifier showed pins nothing is never committed; a
+  retire whose reason has a before-state-green clause keeps the step's test, green on the
+  before-state and still a guard. Commit the retired ledger, write no `revise` mark, spend no
   `REVISE_BUDGET` attempt, post the step's retirement to the thread with `$S/comment.sh <n> retire`, and loop back to
   `next-unchecked.sh` for the next unchecked ledger step; this holds on a step reached by a
   `missing` reroute too, whose green is then not re-run. On its exit **1** enter the revise
   loop as follows (`build-develop-prompt.sh revise red` refuses, exit 2, only a `verify-pin.reason`
-  with a before-state-green clause, not every `stays green` reason, so that reason never
-  reaches it); on its exit **2** printing
+  with a before-state-green clause, so that reason never reaches it; a `stays green` reason
+  reaches it only by `--missing-reroute`, the one route that sends such a reason to revise); on its exit **2** printing
   `unpinnable-missing` (only under `--missing-reroute`) **bail** with `cause=unpinnable-missing`
   as a **process** failure, and on any other (bare) exit **2** **bail** as a
   **system** failure. Exit 2 still means bad arguments (a missing `<target-test>` included) or

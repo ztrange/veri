@@ -7,5 +7,5 @@
 - [x] a hand-mutation reason whose target case fails prints revise, exits 1 and removes no test file ⟦criterion 5⟧
 - [x] a --missing-reroute retire through --already-holds removes no test file ⟦criterion 6⟧
 - [x] a removing retire deletes a test file staged as new but absent from HEAD and leaves it out of the index
-- [ ] PIN.md's REJECT branch states which retires remove the Red test changes and how stays-green reasons route ⟦criterion 9⟧
+- [x] PIN.md's REJECT branch states which retires remove the Red test changes and how stays-green reasons route ⟦criterion 9⟧
 - [ ] SCRIPTS.md's tick-ledger.sh --unpinnable and pin-reject-route.sh entries state the removal ⟦criterion 10⟧
