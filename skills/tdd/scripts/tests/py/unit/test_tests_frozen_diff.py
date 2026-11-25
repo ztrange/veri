@@ -251,3 +251,40 @@ def test_diff_without_step_exits_2_with_the_usage_line_4730(tmp_path, run_cli, t
     assert code == 2
     assert out == ""
     assert tests_frozen.USAGE in err
+
+
+def test_diff_step_diffs_each_of_two_edited_recorded_files_from_its_own_recorded_content_4730(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    other = "tests/test_other.py"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / NEW).parent.mkdir(parents=True)
+    fed_history(("base", "base", {NEW: "one\n", other: "alpha\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    (tmp_path / other).write_text("alpha\nbeta\n")
+    assert run_cli(tests_frozen, ["record", "--step", STEP, NEW, other], cwd=tmp_path)[0] == 0
+
+    (tmp_path / NEW).write_text("one\ntwo, changed\n")
+    (tmp_path / other).write_text("alpha\nbeta, changed\n")
+    code, out, _ = run_cli(tests_frozen, ["diff", "--step", STEP], cwd=tmp_path)
+
+    assert code == 0
+    lines = out.splitlines()
+    assert ["-two", "+two, changed"] == [line for line in lines if line in ("-two", "+two, changed")]
+    assert ["-beta", "+beta, changed"] == [line for line in lines if line in ("-beta", "+beta, changed")]
+    assert not any(line.startswith(("+alpha", "-alpha", "+one", "-one")) for line in lines)
+
+
+def test_diff_step_run_from_a_subdirectory_reads_the_kept_content_beside_the_record_it_named_there_4730(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    sub = tmp_path / "tests"
+    (sub / ".tdd").mkdir(parents=True)
+    fed_history(("base", "base", {NEW: "one\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    assert run_cli(tests_frozen, ["record", "--step", STEP, "test_new.py"], cwd=sub)[0] == 0
+
+    (tmp_path / NEW).write_text("one\ntwo, changed\n")
+    code, out, err = run_cli(tests_frozen, ["diff", "--step", STEP], cwd=sub)
+
+    assert (code, err) == (0, "")
+    lines = out.splitlines()
+    assert "-two" in lines and "+two, changed" in lines
