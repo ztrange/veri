@@ -10,11 +10,11 @@ go red under it. It runs no Red leaf, no Green and no Refactor, and adds no test
 already pinned, and what the step owes is the evidence that it guards. `go-red-step.sh` runs
 `mutation-probe.sh` on that case with the `veri: one test file:` command (a repository without
 that line gets exit 2, never the whole suite, whose red could come from another case), which breaks the file,
-watches the case go red, restores the file and appends the probe to
-`.tdd/issue-<n>-mutations.md`; then `step-tick.sh <n>` ticks the step against that record and
-commits it under `test: go-red — <STEP summary> (#<n>)`. `tick-ledger.sh` exits 2 on a
-`⟦go-red⟧` step unless the record holds an entry of its own probe (the same file, old and new, its
-command naming the case), so no go-red step is ticked without its probe.
+watches the case go red and restores the file, recording nothing. On the probe's exit 0 it writes the
+untracked receipt `.tdd/go-red-probed`, holding the step's probe line and `HEAD`'s sha; then
+`step-tick.sh <n>` ticks the step and commits it under `test: go-red — <STEP summary> (#<n>)`.
+`tick-ledger.sh` exits 2 on a `⟦go-red⟧` step, the ledger byte-identical, unless `.tdd/go-red-probed`
+holds that step's probe line and a sha that resolves, so no go-red step is ticked without its probe.
 
 - **Exit 1** ticks nothing, and its last line says which:
   - `stopped at probe <case> stayed green …`: the case does not catch the break, so the guard is
