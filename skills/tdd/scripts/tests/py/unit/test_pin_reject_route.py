@@ -654,10 +654,11 @@ class FakeRepo:
     """git's answers over a work tree at <root> whose HEAD holds <head> ({path: text}) and whose index also holds the
     paths in <staged> (added, absent from HEAD): the listing of files differing from HEAD (diff, staged ones included,
     and untracked) read off the tree, `checkout HEAD -- <paths>` writing HEAD's text back and failing, as git does, on a
-    path HEAD lacks, `ls-tree` naming the paths HEAD holds, `rm -f` dropping a path from the index and the tree."""
+    path HEAD lacks, `ls-tree` naming the paths HEAD holds, `rm -f` dropping a path from the index and the tree. A
+    subcommand named in <fails> exits 128 with a fatal line and changes nothing."""
 
-    def __init__(self, root, head, staged=()):
-        self.root, self.head, self.staged = root, head, set(staged)
+    def __init__(self, root, head, staged=(), fails=()):
+        self.root, self.head, self.staged, self.fails = root, head, set(staged), set(fails)
 
     def __call__(self, *args, **kwargs):
         import subprocess
@@ -666,6 +667,8 @@ class FakeRepo:
             args = args[2:]
         out = b""
         paths = args[args.index("--") + 1:] if "--" in args else []
+        if args[:1] and args[0] in self.fails:
+            return subprocess.CompletedProcess(["git", *args], 128, b"", b"fatal: faked failure\n")
         if args[:1] == ["diff"] and "--name-only" in args:
             out = b"".join(path.encode() + b"\0" for path, text in self.head.items()
                            if not (self.root / path).exists() or (self.root / path).read_text() != text)
@@ -832,3 +835,45 @@ def test_main_removing_retire_deletes_a_test_file_staged_as_new_and_leaves_it_ou
             (tests / "test_old.py").read_text(), sorted(repo.staged)) == (
         0, "retired", "- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable", ["test_old.py"],
         "def test_old():\n    assert True\n", []), err
+
+
+@pytest.mark.parametrize("failing", ["checkout", "rm", "ls-tree"])
+def test_main_removing_retire_whose_git_call_fails_exits_2_without_retired_4739(
+        tmp_path, run_cli, pin_reject_route, monkeypatch, failing):
+    ledger, reason, tests, _ = red_tree(tmp_path, monkeypatch, pin_reject_route, "the hand mutation stays green")
+    (tests / "test_staged.py").write_text("def test_staged():\n    assert True\n")
+    monkeypatch.setattr(pin_reject_route.tick_ledger.git, "git", FakeRepo(
+        tmp_path, {"tests/py/test_old.py": "def test_old():\n    assert True\n", "reason.txt": reason.read_text()},
+        staged=["tests/py/test_staged.py"], fails=[failing]))
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, "retired" in out, "git %s failed" % failing in err) == (2, False, True), (out, err)
+
+
+def test_main_removing_retire_with_only_untracked_test_files_asks_git_nothing_about_head_4739(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ledger, reason, tests, _ = red_tree(tmp_path, monkeypatch, pin_reject_route, "the hand mutation stays green")
+    (tests / "test_old.py").write_text("def test_old():\n    assert True\n")
+    monkeypatch.setattr(pin_reject_route.tick_ledger.git, "git", FakeRepo(
+        tmp_path, {"tests/py/test_old.py": "def test_old():\n    assert True\n", "reason.txt": reason.read_text()},
+        fails=["ls-tree", "rm", "checkout"]))
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), sorted(p.name for p in tests.iterdir())) == (0, "retired", ["test_old.py"]), err
+
+
+def test_main_removing_retire_whose_ledger_rewrite_fails_exits_2_and_leaves_every_test_file_as_it_was_4739(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ledger, reason, tests, before = red_tree(tmp_path, monkeypatch, pin_reject_route, "the hand mutation stays green")
+    body = ledger.read_text()
+    monkeypatch.setattr(pin_reject_route.tick_ledger.ledger, "rewrite_ledger", lambda path, text: "")
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, "retired" in out, ledger.read_text(), {p.name: p.read_text() for p in sorted(tests.iterdir())}) == (
+        2, False, body, before), err
