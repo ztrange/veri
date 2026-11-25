@@ -156,6 +156,14 @@ def test_4443_a_failing_step_tick_is_never_exit_0_and_leaves_the_step_unticked(g
     assert (go_red.wt / ".tdd" / "issue-12.md").read_text() == LEDGER % STEP
 
 
+def test_4741_a_failing_rev_parse_head_stops_at_receipt_with_exit_2_writing_no_receipt_and_ticking_nothing(go_red):
+    code, out, err, fake = go_red(answers={("git", "rev-parse"): (128, "")})
+
+    assert (code, out.splitlines()[-1], "step-tick.sh" in fake.names()) == (
+        2, "stopped at receipt git rev-parse HEAD exit 128", False)
+    assert not (go_red.wt / ".tdd" / "go-red-probed").exists()
+
+
 @pytest.mark.parametrize("ticked", [1, 3])
 def test_4443_any_step_tick_exit_but_0_is_exit_2_never_1_which_only_a_green_case_answers(go_red, ticked):
     code, out, err, fake = go_red(answers={("step-tick.sh", None): (ticked, "")})
