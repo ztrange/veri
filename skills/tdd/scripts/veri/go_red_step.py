@@ -1,5 +1,5 @@
 """go-red-step.sh's computation, run in-process: a ⟦go-red⟧ step's one stage, a mutation probe on the case the step
-names, recorded in the run's mutation record, then step-tick.sh (#4443)."""
+names, then the receipt the tick reads, then step-tick.sh (#4443, #4741)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import fnmatch
 import os
@@ -16,7 +16,8 @@ from ledger import handed_out
 NAME = "go-red-step"
 USAGE = "usage: go-red-step.sh <n>"
 LEDGER = run_dir.ledger("", "%s")
-RECORD = ".tdd/issue-%s-mutations.md"
+# The untracked receipt a probe exit 0 leaves: line 1 the step's probe clause as the ledger writes it, line 2 HEAD's sha.
+RECEIPT = ".tdd/go-red-probed"
 
 # The $S/ scripts this call makes, in the order each is first made.
 CALLS = ("detect-test-command.sh", "mutation-probe.sh", "step-tick.sh")
@@ -45,13 +46,18 @@ def run(n):
     if before is not None and old.encode() not in before:
         raise fused.Stop("probe", "%s no longer holds `%s`" % (path, old), 1)
     code = fused.call(fused.script("mutation-probe.sh"), path, old, new, "--", *command(wt, committed_case(wt, case)), cwd=wt,
-                      env=tunables.with_values(VERI_MUTATION_RECORD=RECORD % n), out=".tdd/go-red-probe.out")[0]
+                      env=tunables.without("VERI_MUTATION_RECORD"), out=".tdd/go-red-probe.out")[0]
     if code == 1:
         raise fused.Stop("probe", "%s stayed green with %s→%s in %s" % (case, old, new, path), 1)
     if code != 0:
         raise fused.Stop("probe", "mutation-probe.sh exit %d" % code, 2)
     if read_bytes(wt, path) != before:
         raise fused.Stop("restore", "%s differs from its bytes before the probe" % path, 2)
+    code, head, _ = fused.call("git", "rev-parse", "HEAD", cwd=wt)
+    if code != 0:
+        raise fused.Stop("receipt", "git rev-parse HEAD exit %d" % code, 2)
+    with open(os.path.join(wt, RECEIPT), "w") as f:
+        f.write("%s\n%s\n" % (ledger.GO_RED_PROBE_RE.search(step).group(0), head.strip()))
     # Exit 1 is the case staying green, the one real answer this stage gives; a tick that fails is no answer (2).
     code = fused.call(fused.script("step-tick.sh"), n, cwd=wt)[0]
     if code != 0:
