@@ -781,3 +781,16 @@ def test_main_hand_mutation_stays_green_reject_whose_target_case_fails_prints_re
 
     assert (code, out.strip(), ledger.read_text(), {p.name: p.read_text() for p in sorted(tests.iterdir())}) == (
         1, "revise", body, before), err
+
+
+def test_main_missing_reroute_already_holds_retire_removes_no_test_file_4739(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ledger, reason, tests, before = red_tree(tmp_path, monkeypatch, pin_reject_route,
+                                             "the behaviour is already covered by an earlier step")
+
+    code, out, err = run_cli(pin_reject_route, ["--missing-reroute", str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text().split("\n")[2],
+            {p.name: p.read_text() for p in sorted(tests.iterdir())}) == (
+        0, "retired", "- [x] a one ⟦criterion 1⟧ ⟂ retired already holds", before), err
