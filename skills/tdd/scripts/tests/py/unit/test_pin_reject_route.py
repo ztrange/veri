@@ -768,3 +768,16 @@ def test_main_removing_retire_leaves_the_ledger_rewrite_a_tdd_file_and_a_modifie
     assert (code, out.strip(), ledger.read_text().split("\n")[2], (tmp_path / ".tdd" / "notes.md").read_text(),
             (tmp_path / "src" / "prod.py").read_text(), sorted(p.name for p in tests.iterdir())) == (
         0, "retired", "- [x] a one ⟦criterion 1⟧ ⟂ retired unpinnable", "notes now\n", "x = 2\n", ["test_old.py"]), err
+
+
+def test_main_hand_mutation_stays_green_reject_whose_target_case_fails_prints_revise_exits_1_and_removes_no_test_file_4739(
+        tmp_path, run_cli, pin_reject_route, monkeypatch):
+    ledger, reason, tests, before = red_tree(tmp_path, monkeypatch, pin_reject_route, "the hand mutation stays green")
+    body = ledger.read_text()
+    monkeypatch.setattr(pin_reject_route.tick_ledger, "run_case", lambda case, *rest, **kw: (1, "", 1))
+
+    code, out, err = run_cli(pin_reject_route, [str(reason), str(ledger), "a one", TARGET],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    assert (code, out.strip(), ledger.read_text(), {p.name: p.read_text() for p in sorted(tests.iterdir())}) == (
+        1, "revise", body, before), err
