@@ -203,10 +203,10 @@ def test_main_classifies_unpinnable_missing_as_process_with_0_3472(capsys, class
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
 
 
-def test_main_classifies_repin_failed_as_a_process_failure_with_0_3469(capsys, classify_bail):
+def test_main_refuses_repin_failed_as_an_unknown_cause_with_2_4741(capsys, classify_bail):
     code = classify_bail.main(["repin-failed"])
 
-    assert (code, *capsys.readouterr()) == (0, "process\n", "")
+    assert (code, *capsys.readouterr()) == (2, "", "classify-bail: unknown cause: repin-failed\n" + USAGE)
 
 
 def test_main_classifies_skill_edit_refused_as_a_process_failure_with_0_3584(capsys, classify_bail):
