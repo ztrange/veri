@@ -23,7 +23,7 @@ from ledger import ITEM_RE, KIND_RE, carries_mark, trailing_markers
 from case_reader import UnclosedCase, cut_cases, old_cut_cases_all
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> [--red-case <red-test-id>] <test-file>... | "
-         "check <record-file>|--step <step-text> | "
+         "check <record-file>|--step <step-text> | diff --step <step-text> | "
          "check-earlier <ledger> --step <step-text> [--except <case>]... | "
          "rerecord-earlier <ledger> --step <step-text> | "
          "rerecord-refactored <ledger> <green-sha> | "
@@ -744,12 +744,23 @@ def record(record_file, files, step=None):
 def check(record_file, step=None):
     """`check`: the exit code of comparing `record_file`'s files with the tree (0 intact, 1 changed, 2 no answer),
     naming each changed file on stdout; with `step`, also the test files that differ from HEAD and are not recorded."""
+    changed = _changed(record_file, step)
+    if changed is None:
+        return 2
+    for name, _ in changed:
+        write(sys.stdout, name)
+    return 1 if changed else 0
+
+
+def _changed(record_file, step=None):
+    """The files `check` names, each with its record entry (None for a test file outside the record); None when no
+    answer could be obtained, the reason said on stderr. With `step`, it enters the repository root."""
     by_step = step is not None
     if by_step and _refused_outside_repository():
-        return 2
+        return None
     if by_step and not _has_head():
         write(sys.stderr, "tests-frozen.sh: repository has no HEAD commit")
-        return 2
+        return None
     if by_step:
         record_file, _ = _enter_root(record_file, [])
     try:
@@ -757,10 +768,10 @@ def check(record_file, step=None):
             entries = [entry for entry in map(frozen_record.digest_entry, handle) if entry]
     except OSError:
         write(sys.stderr, "tests-frozen.sh: record %s is missing" % record_file)
-        return 2
+        return None
     if not entries or any(len(entry) != 2 for entry in entries):
         write(sys.stderr, "tests-frozen.sh: record %s is malformed" % record_file)
-        return 2
+        return None
     fixture = _FIXTURE_FILE.search(step) if by_step and carries_mark(trailing_markers(step), "fixture-repair") else None
     loose = fixture.group(1) if fixture else None
     subjects = _guard_subjects(step) if by_step else []
@@ -768,16 +779,16 @@ def check(record_file, step=None):
     for expected, name in entries:
         if expected == "deleted":
             if os.path.exists(name):
-                changed.append(name)
+                changed.append((name, expected))
             continue
         try:
             if _digest(name) != expected and not (name == loose and _recorded_cases_intact(record_file, loose)) and name not in subjects:
-                changed.append(name)
+                changed.append((name, expected))
         except OSError:
-            changed.append(name)
+            changed.append((name, expected))
         except UnclosedCase as error:
             write(sys.stderr, "tests-frozen.sh: %s: %s" % (name, error))
-            return 2
+            return None
     if by_step:
         recorded = {name for _, name in entries}
         parsed = _parse_replaces(step)
@@ -788,37 +799,41 @@ def check(record_file, step=None):
         try:
             differing = differing_tests()
         except OSError as error:
-            return _no_answer(error)
-        changed += [name for name in differing
+            _no_answer(error)
+            return None
+        changed += [(name, None) for name in differing
                     if name not in recorded
                     and (name not in exempt
                          or (name in subjects and not os.path.exists(name)))]
-    for name in changed:
-        write(sys.stdout, name)
-    return 1 if changed else 0
+    return changed
 
 
 def _kept_path(record_file, name):
     return os.path.join(record_file + ".content", hashlib.sha256(name.encode()).hexdigest()[:16])
 
 
-def diff(record_file):
-    """`diff --step`: print the unified diff from each recorded file's kept content to its current content."""
-    record_file, _ = _enter_root(record_file, [])
+def diff(record_file, step):
+    """`diff --step`: print the unified diff of each file `check --step` would name, from the content the freeze
+    compares it against (its kept copy when recorded, empty when recorded as deleted, its HEAD content when outside
+    the record) to its current content (empty when deleted); the exit code, 2 where `check` gives no answer or a
+    recorded file's kept content cannot be read."""
+    record_file = os.path.abspath(record_file)
+    changed = _changed(record_file, step)
+    if changed is None:
+        return 2
     try:
-        with open(record_file) as handle:
-            names = [entry[1] for entry in map(frozen_record.digest_entry, handle) if entry]
-        for name in names:
-            with open(_kept_path(record_file, name)) as kept:
-                current = open(name).read().splitlines() if os.path.exists(name) else []
-                for line in difflib.unified_diff(kept.read().splitlines(), current,
-                                                 "recorded/" + name, name, lineterm=""):
-                    write(sys.stdout, line)
-        for name in differing_tests():
-            if name not in names:
-                with open(name) as now:
-                    for line in difflib.unified_diff([], now.read().splitlines(), "recorded/" + name, name, lineterm=""):
-                        write(sys.stdout, line)
+        for name, expected in changed:
+            if expected is None:
+                base = case_history.text_at("HEAD", name, quiet=True)
+            elif expected == "deleted":
+                base = ""
+            else:
+                with open(_kept_path(record_file, name)) as kept:
+                    base = kept.read()
+            current = open(name).read() if os.path.exists(name) else ""
+            for line in difflib.unified_diff(base.splitlines(), current.splitlines(),
+                                             "recorded/" + name, name, lineterm=""):
+                write(sys.stdout, line)
     except OSError as error:
         return _no_answer(error)
     return 0
@@ -861,8 +876,8 @@ def _main(argv):
         return record(record_file, files, step)
     if mode == "check":
         return check(record_file, step)
-    if mode == "diff":
-        return diff(record_file)
+    if mode == "diff" and step is not None:
+        return diff(record_file, step)
     write(sys.stderr, USAGE)
     return 2
 

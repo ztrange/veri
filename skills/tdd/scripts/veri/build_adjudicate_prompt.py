@@ -58,7 +58,7 @@ def main(argv):
         record = tests_frozen.record_path(name)
         if os.path.exists(record):
             with contextlib.redirect_stdout(captured):
-                tests_frozen.diff(record)
+                tests_frozen.diff(record, name)
             captured.flush()
             rule += captured.buffer.getvalue().decode()
     with open(stderr_file) as f:

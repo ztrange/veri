@@ -31,14 +31,33 @@ def test_diff_step_prints_the_unified_diff_from_the_recorded_content_to_the_curr
     assert " one" in lines
 
 
-def test_diff_step_prints_a_unified_diff_from_empty_content_for_an_unrecorded_test_file_that_differs_from_head(
+def test_diff_step_prints_the_unified_diff_from_its_head_content_for_an_unrecorded_tracked_test_file_so_a_removed_line_shows_4730(
         tmp_path, run_cli, tests_frozen, fed_history):
     other = "tests/test_other.py"
     (tmp_path / ".tdd").mkdir()
     (tmp_path / NEW).parent.mkdir(parents=True)
     (tmp_path / NEW).write_text("one\n")
-    (tmp_path / other).write_text("alpha\n")
-    fed_history(("base", "base", {NEW: "one\n", other: "alpha\n"}), root=tmp_path)
+    (tmp_path / other).write_text("alpha\nassert ok\n")
+    fed_history(("base", "base", {NEW: "one\n", other: "alpha\nassert ok\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    assert run_cli(tests_frozen, ["record", "--step", STEP, NEW], cwd=tmp_path)[0] == 0
+
+    (tmp_path / other).write_text("alpha\nbeta\n")
+    code, out, _ = run_cli(tests_frozen, ["diff", "--step", STEP], cwd=tmp_path)
+
+    assert code == 0
+    lines = out.splitlines()
+    assert "-assert ok" in lines and "+beta" in lines and " alpha" in lines
+    assert "+alpha" not in lines
+
+
+def test_diff_step_prints_a_unified_diff_from_empty_content_for_an_untracked_test_file_outside_the_record_4730(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    other = "tests/test_other.py"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / NEW).parent.mkdir(parents=True)
+    (tmp_path / NEW).write_text("one\n")
+    fed_history(("base", "base", {NEW: "one\n"}), root=tmp_path)
     (tmp_path / NEW).write_text("one\ntwo\n")
     assert run_cli(tests_frozen, ["record", "--step", STEP, NEW], cwd=tmp_path)[0] == 0
 
@@ -49,6 +68,84 @@ def test_diff_step_prints_a_unified_diff_from_empty_content_for_an_unrecorded_te
     lines = out.splitlines()
     assert "+alpha" in lines and "+beta" in lines
     assert not any(line.startswith("-") and not line.startswith("---") for line in lines)
+
+
+def test_diff_step_prints_nothing_and_exits_0_when_the_record_holds_a_deleted_test_file_still_deleted_4730(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    gone = "tests/test_gone.py"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / NEW).parent.mkdir(parents=True)
+    (tmp_path / NEW).write_text("one\n")
+    fed_history(("base", "base", {NEW: "one\n", gone: "gone\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    assert run_cli(tests_frozen, ["record", "--step", STEP, NEW], cwd=tmp_path)[0] == 0
+    assert run_cli(tests_frozen, ["check", "--step", STEP], cwd=tmp_path)[0] == 0
+
+    code, out, err = run_cli(tests_frozen, ["diff", "--step", STEP], cwd=tmp_path)
+
+    assert (code, out, err) == (0, "", "")
+
+
+def test_diff_step_prints_a_unified_diff_from_empty_content_for_a_test_file_the_record_holds_as_deleted_that_exists_again_4730(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    gone = "tests/test_gone.py"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / NEW).parent.mkdir(parents=True)
+    (tmp_path / NEW).write_text("one\n")
+    fed_history(("base", "base", {NEW: "one\n", gone: "gone\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    assert run_cli(tests_frozen, ["record", "--step", STEP, NEW], cwd=tmp_path)[0] == 0
+
+    (tmp_path / gone).write_text("back\n")
+    code, out, _ = run_cli(tests_frozen, ["diff", "--step", STEP], cwd=tmp_path)
+
+    assert code == 0
+    lines = out.splitlines()
+    assert "+back" in lines
+    assert not any(line.startswith("-") and not line.startswith("---") for line in lines)
+
+
+def test_diff_step_prints_a_unified_diff_from_its_head_content_to_empty_for_an_unrecorded_tracked_test_file_deleted_since_the_record_4730(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    other = "tests/test_other.py"
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / NEW).parent.mkdir(parents=True)
+    (tmp_path / NEW).write_text("one\n")
+    (tmp_path / other).write_text("alpha\n")
+    fed_history(("base", "base", {NEW: "one\n", other: "alpha\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    assert run_cli(tests_frozen, ["record", "--step", STEP, NEW], cwd=tmp_path)[0] == 0
+
+    (tmp_path / other).unlink()
+    code, out, _ = run_cli(tests_frozen, ["diff", "--step", STEP], cwd=tmp_path)
+
+    assert code == 0
+    lines = out.splitlines()
+    assert "-alpha" in lines
+    assert not any(line.startswith("+") and not line.startswith("+++") for line in lines)
+
+
+def test_diff_step_prints_nothing_on_a_replaces_case_step_when_only_the_suite_it_names_changed_as_check_passes_4730(
+        tmp_path, run_cli, tests_frozen, fed_history):
+    suite = "tests/old.py"
+    step = "⟦replaces-case⟧ replaces 'old case' in %s" % suite
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / NEW).parent.mkdir(parents=True)
+    (tmp_path / NEW).write_text("one\n")
+    (tmp_path / suite).write_text("one\n")
+    fed_history(("base", "base", {NEW: "one\n", suite: "one\n"}), root=tmp_path)
+    (tmp_path / NEW).write_text("one\ntwo\n")
+    assert run_cli(tests_frozen, ["record", "--step", step, NEW], cwd=tmp_path)[0] == 0
+
+    (tmp_path / suite).write_text("case deleted\n")
+    checked = run_cli(tests_frozen, ["check", "--step", step], cwd=tmp_path)[0]
+    code, out, _ = run_cli(tests_frozen, ["diff", "--step", step], cwd=tmp_path)
+
+    assert (checked, code, out) == (0, 0, "")
+
+
+def test_usage_names_diff_step_4730(tests_frozen):
+    assert "diff --step <step-text>" in tests_frozen.USAGE
 
 
 def test_diff_step_prints_an_edited_recorded_file_once_with_no_second_diff_from_empty_content(
