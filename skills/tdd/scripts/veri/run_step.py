@@ -14,7 +14,7 @@ import replaces_case
 import reroute as reroute_stage
 import revise as revise_stage
 import run_dir
-from next_pending_refactor import refactor_pending
+from next_pending_refactor import refactor_pending, repin_next
 
 NAME = "run-step"
 USAGE = "usage: run-step.sh <n> [--from <stage>] [--hand <stage>]…"
@@ -93,16 +93,6 @@ def refused(wt, n):
             return any(REFUSAL.match(line) for line in f)
     except FileNotFoundError:
         return False
-
-
-def repin_next(wt, n):
-    """The open re-pin step pin-reject-route.sh --recheck inserted directly after the first refactor-pending step, or
-    None (#4510)."""
-    records = ledger.ledger_steps(ledger.read_ledger(run_dir.ledger(wt, n)))
-    for before, record in zip(records, records[1:]):
-        if refactor_pending(before):
-            return record.text if record.state == "open" and record.text.startswith(ledger.REPIN_STEP) else None
-    return None
 
 
 def parse(argv):
