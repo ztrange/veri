@@ -21,5 +21,5 @@
 - [x] `tests/py/README.md`, `prompts/develop-diff.md`, `prompts/develop-revise-diff.md` and `skills/vmerge/SKILL.md` name none of them, rows reworded, regraded ⟦criterion 1⟧
 - [x] A `tree_audit` case: no file under `skills/tdd/` but a `REQUIREMENTS.md` or `test_*.py` names `pin-recheck`, `pin-recheck-ok`, `repin-failed`, `--recheck`, `mutation-record` or `issue-<n>-mutations.md` ⟦criterion 15⟧
 - [x] Go-red: the sweep case goes red with one of those names written back into `skills/tdd/SCRIPTS.md`; restored, green ⟦criterion 16⟧
-- [ ] `docs/adr/0038-pins-carry-no-recorded-mutation.md` records D4 and supersedes ADR-0033's `pin-recheck.sh` naming; ADR-0033 links to it ⟦criterion 17⟧
+- [x] `docs/adr/0038-pins-carry-no-recorded-mutation.md` records D4 and supersedes ADR-0033's `pin-recheck.sh` naming; ADR-0033 links to it ⟦criterion 17⟧
 - [ ] Every committed `.tdd/issue-*-mutations.md` is removed with `git rm`, as the branch's last change ⟦criterion 14⟧
