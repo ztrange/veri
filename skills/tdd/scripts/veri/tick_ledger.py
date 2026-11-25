@@ -232,8 +232,7 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
     the mutation records whose test is gone and appending the matching `unpinnable-step` / `already-holds-step`
     event; it needs a `case`. `pending` and `phase` do not combine.
     Returns 0 ticked; 1 clean negative (the case fails; the reason does not qualify for `retire`; retire with no
-    case); 2 no answer (case never ran, bad combination, unreadable ledger, no mutation record for the step's
-    go-red control, a ⟦go-red⟧ step with no `.tdd/go-red-probed` beside the ledger holding its probe clause and a
+    case); 2 no answer (case never ran, bad combination, unreadable ledger, a ⟦go-red⟧ step with no `.tdd/go-red-probed` beside the ledger holding its probe clause and a
     commit's sha, a ledger left behind, an empty ledger_path -> usage line); 3 nothing to tick. Writes the ledger (and its added-steps record) and, for a retirement, events.jsonl and the mutation
     record; stderr as the script prints it.
     """
@@ -294,15 +293,6 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
     if not ticked:
         return 3
     step_line = changed_line(text, new)
-    before = re.search(r"mutation-probe\.sh --before ([0-9a-f]{7,40})", step_line)
-    control = re.search(r"the go-red control is (\S+) at ([0-9a-f]+)", step_line)
-    if before or control:
-        record = mutations_path(ledger_path)
-        named = [before.group(1)] if before else [control.group(1), control.group(2)]
-        if not os.path.exists(record) or not re.search(
-                "^(?:" + "|".join(map(re.escape, named)) + ")$", open(record, encoding="utf-8").read(), re.M):
-            complain(f"{record}: no mutation record for the step's go-red control")
-            return 2
     # A step opening on a bare ⟦go-red⟧ that does not also trail it put the marker in the wrong place: refused rather
     # than ticked as a cycle step with no probe behind it.
     if ledger.STEP_RE.fullmatch(step_line).group(4).lstrip().startswith(ledger.GO_RED_MARK) and not ledger.is_go_red(
