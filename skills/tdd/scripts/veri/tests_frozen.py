@@ -358,8 +358,7 @@ def rerecord_earlier(ledger, step):
         if not rewrite_records(_earlier_records(lines, step), rewrite):
             return 2
     except OSError as error:
-        write(sys.stderr, "tests-frozen.sh: %s" % error)
-        return 2
+        return _no_answer(error)
     return 0
 
 
@@ -638,6 +637,11 @@ def write(stream, text):
     entry.write(stream, text)
 
 
+def _no_answer(error):
+    write(sys.stderr, "tests-frozen.sh: %s" % error)
+    return 2
+
+
 def _log_refusal(code):
     """Journal a refused `record` (exit 1 or 2) as a tests-frozen-refused event: the exit code and the last thing said."""
     reason = " ".join(_said[-1].split()) if _said else ""
@@ -696,8 +700,7 @@ def record(record_file, files, step=None):
         try:
             differing = differing_tests()
         except OSError as error:
-            write(sys.stderr, "tests-frozen.sh: %s" % error)
-            return 2
+            return _no_answer(error)
         for name in differing:
             if name in files or name in deleted:
                 continue
@@ -734,8 +737,7 @@ def record(record_file, files, step=None):
                 with open(name) as source, open(kept_copy, "w") as target:
                     target.write(source.read())
     except (OSError, LookupError) as error:
-        write(sys.stderr, "tests-frozen.sh: %s" % error)
-        return 2
+        return _no_answer(error)
     return 0
 
 
@@ -786,8 +788,7 @@ def check(record_file, step=None):
         try:
             differing = differing_tests()
         except OSError as error:
-            write(sys.stderr, "tests-frozen.sh: %s" % error)
-            return 2
+            return _no_answer(error)
         changed += [name for name in differing
                     if name not in recorded
                     and (name not in exempt
@@ -819,8 +820,7 @@ def diff(record_file):
                     for line in difflib.unified_diff([], now.read().splitlines(), "recorded/" + name, name, lineterm=""):
                         write(sys.stdout, line)
     except OSError as error:
-        write(sys.stderr, "tests-frozen.sh: %s" % error)
-        return 2
+        return _no_answer(error)
     return 0
 
 
