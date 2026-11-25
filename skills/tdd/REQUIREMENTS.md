@@ -1476,7 +1476,7 @@
 | SC637 | The catalogue lists `$S/verify-branch.sh <n>`: the Draft PR step's whole-branch verifier stage, run by `run-pr.sh` after `pr-checks.sh`, its PASS or skip exiting 0, a REJECT with budget left appending one `⟦branch-repair⟧` step, `⟦diff-checked⟧` only when the reason holds no `MISSING_TEST:` line, exit 2 on bad arguments. | A reader of the catalogue finds the verify-branch stage and which route its repair step takes. |
 | SC639 | The catalogue has `$S/cloud-install.sh [repo-root]` and `$S/cloud-setup.sh` entries. The first adds one gated `SessionStart` hook idempotently and exits 2 on an unparseable `.claude/settings.json`. The second does nothing outside a cloud session, installs the venv once per lock with an interpreter at or above `VENV_FLOOR` (exit 2 naming each one tried when none qualifies), and puts `$VERI_VENV/bin` on PATH through `$CLAUDE_ENV_FILE`. | Scripts the catalogue omits are scripts an operator cannot find, and the exits are the API. |
 | SC641 | `$S/ledger-steps.sh open < .tdd/issue-<n>.md` prints the first refactor-pending step with its mark cut, else the first unchecked step, and exits 3 when none is left; the entry says `REVISE.md`'s by-hand steps name the revised step with it, not with `next-unchecked.sh`. (Beside the `next-phase` sentence.) | #4734: `next-unchecked.sh` skips a step whose refactor is pending, so a by-hand revise named the wrong step. |
-| SC642 | The `pin-reject-route.sh` entry has no `--recheck` mode, and says any other `--` argument is rejected as unknown (exit 2). | PRD 044 D4. |
+| SC647 | The `pin-reject-route.sh` entry has no `--recheck` mode, and says any other `--` argument is rejected as unknown (exit 2). | PRD 044 D4. |
 
 ## skills/tdd/SKILL-EDIT.md
 
