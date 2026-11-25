@@ -508,3 +508,13 @@ def test_4741_a_probe_exiting_non_zero_or_a_named_file_left_unrestored_writes_no
 
     assert [code for code, *_ in runs] == [probed, 2]
     assert not (go_red.wt / ".tdd" / "go-red-probed").exists()
+
+
+def test_4741_go_red_step_adds_no_mutation_record_variable_to_the_probes_environment(
+        go_red):
+    seen = []
+    code, _, _, fake = go_red(during_probe=lambda: seen.append(dict(os.environ)))
+
+    env = fake.call("mutation-probe.sh")[3]
+    assert code == 0
+    assert "VERI_MUTATION_RECORD" not in (seen[0] if env is None else env)
