@@ -1,7 +1,0 @@
-before 40
-78ddff85d39da8770ca11bd8e1237d9b79325b72
-keep 51
-skills/tdd/scripts/tests/py/unit/test_green_half.py
-command 187
-make test TESTS=skills/tdd/scripts/tests/py/unit/test_green_half.py::test_4499_check_earlier_excepts_each_case_this_steps_reroutes_named_once_past_an_unreadable_line_and_not_another_steps
-

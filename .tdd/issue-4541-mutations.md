@@ -1,7 +1,0 @@
-before 40
-debf9c7dd05bcc380e9cd893e04d7d5dd485a386
-keep 56
-skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py
-command 184
-make test TESTS=skills/tdd/scripts/tests/py/unit/test_skill_edit_step.py::test_a_step_whose_issue_row_is_a_letter_suffixed_id_reword_of_a_held_row_is_not_refused_as_a_malformed_id_4541
-
