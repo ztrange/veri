@@ -761,6 +761,10 @@
 | PN26 | The same section says a go-red control still forces a verify-pin run, and names no `tick-ledger.sh` check of a record for it. | The control's verify-pin run is the evidence; no record is kept for controls only (PRD 044.1). |
 | PN27 | The opening section's **Switched off** paragraph says that on a skipped pin the `### 📌 Already satisfied — <STEP>` mirror comment carries `verify-pin — SKIPPED (switched off)` where it would carry the verifier's reason. | There is no verifier reason to carry, and the comment must not look verified (PRD 018.5, PN5). |
 | PN28 | REJECT (exit 1) bullet: on `pin-reject-route.sh` exit 0 the conductor posts the step's retirement to the thread through `$S/comment.sh <n> retire`. | The thread shows a retired step under its own heading, and the conductor never composes that comment by hand. |
+| PN29 | The REJECT branch's exit-0 text says a retire whose reason qualified on a surviving mutation alone (no before-state-green clause) also returns the step's uncommitted Red test changes to HEAD, before the retired ledger is committed. | Otherwise a leaf commits a test the verifier showed pins nothing, and it lands on main. |
+| PN30 | The REJECT branch says a retire whose reason has a before-state-green clause keeps the step's test. | The before-state retire keeps a test that is green and a useful guard; removing it would lose coverage. |
+| PN31 | The REJECT branch says a reason reporting a surviving mutant of the added case (`stays green`) is exit 1 and enters the revise loop for red only under `--missing-reroute`; without it, that reason retires the step. | The current wording reads as if every `stays green` reason enters revise, which contradicts the routing the script does. |
+| PN32 | The parenthesis on `build-develop-prompt.sh revise red` refusing only a before-state-green reason names `--missing-reroute` as the only route by which a `stays green` reason reaches revise. | The text otherwise implies a non-missing `stays green` reason can reach revise red. |
 
 ## skills/tdd/STRUCTURAL.md
 
