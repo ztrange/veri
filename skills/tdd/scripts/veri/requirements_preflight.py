@@ -23,6 +23,10 @@ def main(argv):
     clashing = []
     for unit in units:
         rows = skill_edit_step.unit_rows(issue, unit)
+        malformed = skill_edit_step.malformed_row(rows)
+        if malformed:
+            sys.stderr.write(malformed + "\n")
+            return 2
         clashing += [skill_edit_step.row_id(r) for r in skill_edit_step.clashes(rows, requirements.list_path(unit), unit)]
     missing = []
     unitless = []
