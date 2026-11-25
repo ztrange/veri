@@ -6,8 +6,8 @@ import sys
 
 import paths
 
-RULE = (".tdd/*", "!.tdd/issue-*.md", ".tdd/issue-*-*.md", "!.tdd/issue-*-added.md", "!.tdd/issue-*-mutations.md",
-        "!.tdd/issue-*-refactor-owed.md", "!.tdd/issue-*-metrics.md")
+RULE = (".tdd/*", "!.tdd/issue-*.md", ".tdd/issue-*-*.md", "!.tdd/issue-*-added.md", "!.tdd/issue-*-refactor-owed.md",
+        "!.tdd/issue-*-metrics.md")
 
 
 def append_rule(path):
