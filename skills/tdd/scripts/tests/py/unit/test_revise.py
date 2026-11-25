@@ -938,3 +938,32 @@ def test_4732_two_revise_marks_with_no_step_split_after_them_still_count_two_tow
         "".join(json.dumps(e) + "\n" for e in (mark, dict(mark, attempt="2"))))
 
     assert module.spent(str(tmp_path), STEP, "green") == 2
+
+
+class Compares(Fake):
+    """A Fake whose same-reject.sh compares its two reason files' text as they stand at the call: 0 same, 1 not."""
+
+    def __call__(self, name, *args, cwd=None, env=None, **kw):
+        if os.path.basename(name) == "same-reject.sh":
+            self.calls.append(("same-reject.sh", args, cwd, env, kw))
+            self.compared = []
+            for path in args:
+                with open(os.path.join(cwd, path)) as f:
+                    self.compared.append(f.read())
+            return (0 if self.compared[0] == self.compared[1] else 1), "", ""
+        return super().__call__(name, *args, cwd=cwd, env=env, **kw)
+
+
+def test_4735_after_a_pin_reject_attempt_2_compares_the_prior_red_reason_with_the_pins_and_launches(revise):
+    """A red revise re-checked as a pin and REJECTed: same-reject.sh sees the pin verifier's reason, not the stale red
+    one, so a pin reason unlike the prior red reason is no same reject and revise-red-2 is launched."""
+    _red(revise)
+    pin_reason = "VERDICT: REJECT\nthe case pins behaviour the tree already has\n"
+    (revise.wt / ".tdd" / "verify-pin.reason").write_text(pin_reason)
+    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS", "AGAINST_UNMODIFIED: PASSES")
+    code, out, err, fake = revise(fake=Compares({("wait-leaf.sh", "verdict-pin"): (1, ""),
+                                                 ("wait-leaf.sh", "revise-red-2"): (3, "")}, report=report),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert fake.launched() == ["revise-red-1", "verdict-pin", "revise-red-2"], (code, out, err)
+    assert fake.compared == [REASON, pin_reason]
