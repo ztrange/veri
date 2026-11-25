@@ -3,7 +3,7 @@
 - [x] `tick-ledger.sh` ticks a `⟦diff-checked⟧` step with no `.tdd/pin-recheck-ok` in the worktree (exit 0, the ledger changed) ⟦criterion 2⟧
 - [x] `clear-refactor-pending.sh` clears `⟂ refactor pending` with no `.tdd/pin-recheck-ok` in the worktree (exit 0, the ledger changed) ⟦criterion 2⟧
 - [x] `go-red-step.sh` runs `mutation-probe.sh` with no `VERI_MUTATION_RECORD`, writes `.tdd/go-red-probed` (probe line + HEAD sha) after a probe exit 0 then ticks, and writes no receipt on a non-zero probe ⟦criterion 3⟧
-- [ ] `tick-ledger.sh` ticks a `⟦go-red⟧` step on a `.tdd/go-red-probed` holding its probe line and a resolving sha, and exits 2 ledger byte-identical when the receipt is absent, names another step's probe, or holds an unresolvable sha ⟦criterion 4⟧
+- [x] `tick-ledger.sh` ticks a `⟦go-red⟧` step on a `.tdd/go-red-probed` holding its probe line and a resolving sha, and exits 2 ledger byte-identical when the receipt is absent, names another step's probe, or holds an unresolvable sha ⟦criterion 4⟧
 - [ ] Go-red: `veri/tick_ledger.py` broken to skip the `.tdd/go-red-probed` check turns the missing-receipt case red; restored, green ⟦criterion 5⟧
 - [ ] `tick-ledger.sh` ticks a step naming a go-red control with no `.tdd/issue-<n>-mutations.md` present ⟦criterion 6⟧
 - [ ] `pin-reject-route.sh --recheck …` exits 2 as an unknown argument, and no output line is `repin-failed …` or `not-checked …` ⟦criterion 7⟧
