@@ -19,7 +19,7 @@ import run_dir
 import tunables
 import wrong_test_route
 from ledger import handed_out
-from next_pending_refactor import refactor_pending
+from next_pending_refactor import refactor_pending, repin_next
 
 NAME = "revise"
 USAGE = "usage: revise.sh <n> <phase>  (phase: red, green, refactor or diff)"
@@ -59,11 +59,11 @@ def run(n, phase):
     if given is None:
         return 2
     settled, wt = given
-    # A step whose refactor is pending is the open one, as run-step.sh takes it: a red reroute inside its refactor
-    # loop is revised on it, never on the next unchecked step (#4734).
+    # The open step as run-step.sh takes it: the re-pin step after a refactor-pending step (#4510), else that step,
+    # so a red reroute inside its refactor loop is revised on it, never on the next unchecked step (#4734).
     step = fused_step.first_step(wt, n, refactor_pending)
-    if step is None and phase != "refactor":
-        step = fused_step.first_step(wt, n, handed_out)
+    if phase != "refactor":
+        step = repin_next(wt, n) or step or fused_step.first_step(wt, n, handed_out)
     resumed = fused.load_wait(wt, n, NAME)
     if resumed is None:
         k = spent(wt, step, phase) + 1
