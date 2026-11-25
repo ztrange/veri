@@ -20,13 +20,16 @@ def main(argv):
     for heading, line in skill_edit_step.issue_requirements_lines(issue):
         if line.startswith("### ") and heading not in units:
             units.append(heading)
+    malformed = []
     clashing = []
     for unit in units:
-        rows = skill_edit_step.unit_rows(issue, unit)
-        malformed = skill_edit_step.malformed_row(rows)
-        if malformed:
-            sys.stderr.write(malformed + "\n")
-            return 2
+        rows = []
+        for row in skill_edit_step.unit_rows(issue, unit):
+            defect = skill_edit_step.malformed_row([row])
+            if defect:
+                malformed.append(defect)
+            else:
+                rows.append(row)
         clashing += [skill_edit_step.row_id(r) for r in skill_edit_step.clashes(rows, requirements.list_path(unit), unit)]
     missing = []
     unitless = []
@@ -39,13 +42,15 @@ def main(argv):
                 unitless.append(step)
             if unit and not any(skill_edit_step.names_unit(h, unit) for h in units):
                 missing.append(unit)
+    for defect in malformed:
+        sys.stderr.write(defect + "\n")
     for step in unitless:
         sys.stderr.write("no path-shaped unit for skill-edit step: %s\n" % step)
     for unit in missing:
         sys.stderr.write("## Requirements has no ### heading for unit: %s\n" % unit)
     for row_id in clashing:
         sys.stderr.write("Requirement row ID already held with different text: %s\n" % row_id)
-    return 2 if clashing or missing or unitless else 0
+    return 2 if malformed or clashing or missing or unitless else 0
 
 
 if __name__ == "__main__":

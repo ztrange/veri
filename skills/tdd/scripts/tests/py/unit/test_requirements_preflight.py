@@ -268,3 +268,20 @@ def test_an_issue_row_that_does_not_split_into_id_requirement_and_why_exits_2_na
     code, out, err = run_cli(requirements_preflight, [str(issue)], cwd=tmp_path)
 
     assert code == 2 and "SC1" in err, (code, out, err)
+
+
+def test_malformed_rows_and_a_clashing_id_are_all_named_in_one_exit_2_4752(tmp_path, run_cli):
+    requirements_preflight = importlib.import_module("veri.requirements_preflight")
+    (tmp_path / "unit.md").write_text("Unit text.\n")
+    head = "| ID | Requirement | Why |\n|---|---|---|\n"
+    (tmp_path / "REQUIREMENTS.md").write_text("## unit.md\n\n" + head + "| A1 | The widget is blue. | because |\n")
+    issue = tmp_path / "issue.md"
+    issue.write_text(
+        "## Problem\n\nText.\n\n## Requirements\n\n### unit.md\n\n" + head +
+        "| SC1 | offers `a|b` here. | why |\n"
+        "| A1 | The widget is green. | because |\n"
+        "| SC2 | offers `c|d` here. | why |\n")
+
+    code, out, err = run_cli(requirements_preflight, [str(issue)], cwd=tmp_path)
+
+    assert code == 2 and "SC1" in err and "SC2" in err and "A1" in err, (code, out, err)
