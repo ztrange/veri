@@ -1,12 +1,12 @@
 ### 📊 Metrics — issue 4730
 
-Wall time for the issue: 103 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 549 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 15 of 17 planned.
-Outcome: the run bailed — skill-edit-refused, a process failure.
+Outcome: the run bailed — revise-exhausted, a process failure.
 Lane: ready-for-agent
 Cost is every leaf of the run, and the conductor own spending.
-Conductor own spending: $28.65 over 415 turns, in 18 sessions, on opus (estimate).
+Conductor own spending: $30.66 over 436 turns, in 20 sessions, on opus (estimate).
 The Conductor own spending figure is estimated: the output tokens of a session without a result record are not yet known.
 Conductor context: first turn 85092 tokens, largest 115089 tokens
 Conductor context: first turn 85108 tokens, largest 117800 tokens
@@ -38,6 +38,8 @@ Conductor context: first turn 85063 tokens, largest 117721 tokens
 Conductor context: first turn 85147 tokens, largest 108606 tokens
 Conductor context: first turn 109374 tokens, largest 116326 tokens
 Conductor context: first turn 85147 tokens, largest 116725 tokens
+Conductor context: first turn 83867 tokens, largest 93869 tokens
+Conductor context: first turn 83866 tokens, largest 115310 tokens
 The per-turn dollars are estimated: each turn's non-output usage priced, plus a share of the result record's remaining cost.
 
 #### Conductor per turn
@@ -426,23 +428,43 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 | 380 | $0.03 | 56955 |
 | 381 | $0.05 | 59501 |
 | 382 | $0.02 | 60215 |
-| 383 | $0.54 | 85147 |
-| 384 | $0.06 | 90385 |
-| 385 | $0.02 | 90982 |
-| 386 | $0.06 | 96754 |
-| 387 | $0.03 | 97493 |
-| 388 | $0.02 | 97876 |
-| 389 | $0.05 | 101783 |
-| 390 | $0.06 | 107359 |
-| 391 | $0.06 | 112408 |
-| 392 | $0.04 | 114362 |
-| 393 | $0.03 | 114813 |
-| 394 | $0.03 | 115434 |
-| 395 | $0.03 | 116725 |
-| 396 | $0.13 | 34412 |
-| 397 | $0.02 | 36330 |
-| 398 | $0.01 | 36698 |
-| 399 | $0.07 | 44559 |
+| 383 | $0.55 | 85147 |
+| 384 | $0.07 | 90385 |
+| 385 | $0.04 | 90982 |
+| 386 | $0.07 | 96754 |
+| 387 | $0.04 | 97493 |
+| 388 | $0.04 | 97876 |
+| 389 | $0.06 | 101783 |
+| 390 | $0.08 | 107359 |
+| 391 | $0.07 | 112408 |
+| 392 | $0.06 | 114362 |
+| 393 | $0.04 | 114813 |
+| 394 | $0.04 | 115434 |
+| 395 | $0.04 | 116725 |
+| 396 | $0.15 | 34412 |
+| 397 | $0.03 | 36330 |
+| 398 | $0.02 | 36698 |
+| 399 | $0.09 | 44559 |
+| 400 | $0.03 | 45529 |
+| 401 | $0.02 | 46182 |
+| 402 | $0.53 | 83867 |
+| 403 | $0.03 | 84140 |
+| 404 | $0.07 | 90765 |
+| 405 | $0.04 | 92635 |
+| 406 | $0.03 | 93476 |
+| 407 | $0.03 | 93869 |
+| 408 | $0.53 | 83866 |
+| 409 | $0.02 | 84100 |
+| 410 | $0.08 | 91930 |
+| 411 | $0.05 | 95564 |
+| 412 | $0.06 | 101293 |
+| 413 | $0.03 | 102016 |
+| 414 | $0.03 | 103570 |
+| 415 | $0.03 | 105029 |
+| 416 | $0.03 | 105607 |
+| 417 | $0.03 | 106502 |
+| 418 | $0.08 | 113959 |
+| 419 | $0.03 | 115310 |
 
 #### Conductor comments, by family
 
@@ -467,10 +489,10 @@ The per-turn dollars are estimated: each turn's non-output usage priced, plus a 
 
 | phase | turns | $ |
 | --- | ---: | ---: |
-| between | 326 | 25.74 |
-| preflight | 6 | 0.27 |
+| between | 345 | 27.73 |
+| preflight | 7 | 0.29 |
 | plan | 6 | 0.36 |
-| untimed | 16 | 0.00 |
+| untimed | 17 | 0.00 |
 | develop-red | 5 | 0.23 |
 | verify-pin | 3 | 0.07 |
 | verify-green | 29 | 1.17 |
@@ -487,7 +509,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| plan | 17 | 15 | 2 | 0 | 245 | 201 | 19 | 38 | 25196 | 147884 | 823388 | 2.33 |
+| plan | 18 | 16 | 2 | 0 | 257 | 211 | 20 | 40 | 26555 | 147884 | 874571 | 2.47 |
 | red | 26 | 11 | 0 | 0 | 1796 | 356 | 131 | 244 | 41006 | 2881309 | 592424 | 2.18 |
 | green | 38 | 7 | 10 | 0 | 10431 | 720 | 247 | 462 | 75431 | 5773930 | 1086711 | 4.55 |
 | refactor | 7 | 0 | 0 | 0 | 58 | 37 | 15 | 30 | 2917 | 224170 | 185861 | 0.52 |
@@ -495,8 +517,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | exhausted | 3 | 0 | 0 | 0 | 143 | 41 | 8 | 16 | 4158 | 124462 | 69997 | 0.46 |
 | red-repair | 3 | 0 | 0 | 0 | 122 | 42 | 11 | 22 | 5726 | 237807 | 73523 | 0.26 |
 | red-missing | 2 | 0 | 0 | 0 | 92 | 66 | 11 | 22 | 5754 | 276780 | 52716 | 0.22 |
-| prose | 4 | 0 | 0 | 0 | 45 | 34 | 4 | 8 | 5996 | 11150 | 20742 | 0.11 |
-| skill-edit | 1 | 0 | 0 | 0 | 12 | 9 | 5 | 8 | 1443 | 65013 | 23264 | 0.08 |
+| prose | 18 | 0 | 0 | 0 | 468 | 424 | 18 | 36 | 69559 | 600943 | 1768899 | 5.18 |
+| skill-edit | 4 | 0 | 0 | 0 | 57 | 46 | 18 | 34 | 4726 | 2462973 | 730352 | 2.12 |
 
 #### REJECT outcomes
 
@@ -509,7 +531,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 53 | 40 | 12 | 0 | 7885 | 689 | 186 | 348 | 75580 | 3532608 | 1664539 | 5.27 |
+| verifier | claude-sonnet-5-5 | 54 | 41 | 12 | 0 | 7897 | 699 | 187 | 350 | 76939 | 3532608 | 1715722 | 5.41 |
 | developer | claude-sonnet-5-5 | 33 | 0 | 0 | 0 | 2204 | 526 | 171 | 330 | 58632 | 3977323 | 862124 | 3.14 |
 | developer | claude-opus-5-5 | 17 | 0 | 0 | 0 | 3078 | 352 | 116 | 218 | 37989 | 2824438 | 510909 | 2.67 |
 
@@ -587,19 +609,19 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | stage | runs | ok | failed | no answer | nothing | unended | wall s |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| preflight | 19 | 18 | 0 | 0 | 1 | 0 | 4009 |
-| baseline | 19 | 18 | 0 | 0 | 1 | 0 | 2500 |
+| preflight | 21 | 19 | 0 | 1 | 1 | 0 | 4288 |
+| baseline | 20 | 19 | 0 | 0 | 1 | 0 | 2608 |
 | plan | 1 | 1 | 0 | 0 | 0 | 0 | 72 |
-| push | 43 | 43 | 0 | 0 | 0 | 0 | 90 |
+| push | 44 | 44 | 0 | 0 | 0 | 0 | 92 |
 | draft-pr | 1 | 1 | 0 | 0 | 0 | 0 | 2 |
-| rebase | 18 | 4 | 2 | 1 | 11 | 0 | 58 |
+| rebase | 20 | 4 | 4 | 1 | 11 | 0 | 75 |
 | refactor-loop | 7 | 7 | 0 | 0 | 0 | 0 | 1005 |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 482 | 912 | 179640 | 10410532 | 3081578 | 39.93 (estimate) |
+| total | 510 | 968 | 247845 | 13398285 | 5588006 | 49.18 (estimate) |
 
 Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.
 
@@ -625,10 +647,10 @@ Green rejects by check: 4 10, unnamed 0
 
 | role | model | leaves | first-turn cache creation | first-turn cache read | first-turn input |
 | --- | --- | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 52 | 1435185 | 312711 | 104 |
+| verifier | claude-sonnet-5-5 | 53 | 1486368 | 312711 | 106 |
 | developer | claude-sonnet-5-5 | 42 | 850627 | 215712 | 84 |
 | developer | claude-opus-5-5 | 8 | 182699 | 11886 | 16 |
-| grader | claude-sonnet-5-5 | 4 | 20742 | 11150 | 8 |
-| author | claude-sonnet-5-5 | 1 | 21172 | 0 | 2 |
+| grader | claude-sonnet-5-5 | 18 | 1768899 | 600943 | 36 |
+| author | claude-sonnet-5-5 | 4 | 723770 | 11978 | 8 |
 
-Gradings: 2, PASS 1, REJECT 1, cost $0.09, efforts default
+Gradings: 6, PASS 1, REJECT 5, cost $2.87, efforts default
