@@ -17,7 +17,6 @@ import event_log
 import full_run_lock
 import harvest_usage
 import leaf_timeout
-import mutation_record
 import pinned_scripts
 import preserve_attempt
 import run_dir
@@ -301,25 +300,6 @@ def mark(role, env, *fields):
     if not role:
         return
     event.mark("", event.context(dict(env, **dict(pair.split("=", 1) for pair in role.split()))), fields[0], fields[1:])
-
-
-def mutation_records():
-    return mutation_record.snapshot()
-
-
-def restore_mutation_records(before, role, env, name):
-    after = mutation_records()
-    step = re.sub(r"`[^`]*`|\"[^\"]*\"|(?<!\w)'[^']*'(?!\w)", "", tunables.read("VERI_STEP") or "")
-    named = re.findall(r"mutation-record:\s*([^\s,;:)]*[^\s,.;:)])", step)
-    for path in sorted(set(before) | set(after)):
-        if before.get(path) == after.get(path) or path in named:
-            continue
-        if path in before:
-            with open(path, "wb") as f:
-                f.write(before[path])
-        else:
-            os.remove(path)
-        mark(role, env, "mutation-record-restored", f"name={name}", f"file={path}")
 
 
 def production_files():
@@ -764,7 +744,6 @@ def main(argv):
     pidfile = run_dir.run_file("", f"{name}.pid")
     tolerated(name, "write", pidfile, record, pidfile, os.getpid())
     discard(exitfile)
-    records = mutation_records() if name.startswith(("develop-", "revise-")) else None
     production = production_files() if name.startswith(("develop-red", "revise-red")) else None
     holder = LeafHolder()
     preexec = leaf_dispositions(ignored)
@@ -780,8 +759,6 @@ def main(argv):
         tries += 1
         mark(role, leaf_env, "retry", f"cause={reason}", f"name={name}")
         print(f"supervise[{name}]: retry {tries}/{retries} after killed-stuck", file=sys.stderr)
-    if records is not None:
-        restore_mutation_records(records, role, leaf_env, name)
     if production is not None:
         restore_production_files(production, role, leaf_env, name)
     ec = {"success": 0, "failure": 1, "killed-stuck": 2, "killed-external": 2}[status]
