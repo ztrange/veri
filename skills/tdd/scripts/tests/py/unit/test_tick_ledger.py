@@ -1131,6 +1131,21 @@ def test_main_refuses_a_go_red_tick_on_a_receipt_whose_sha_does_not_resolve_leav
     assert (code, "go-red-probed" in capsys.readouterr().err, ledger.read_bytes()) == (2, True, seed)
 
 
+@pytest.mark.parametrize("name", ["HEAD", "main"])
+def test_main_refuses_a_go_red_tick_on_a_receipt_whose_second_line_is_a_ref_name_that_resolves_leaving_the_ledger_byte_identical_4741(
+        tmp_path, capsys, tick_ledger, resolving, name):
+    ledger = tmp_path / "issue-7.md"
+    seed = ("# Plan for #7\n\n" + GO_RED_STEP).encode()
+    ledger.write_bytes(seed)
+    go_red_receipt(tmp_path, sha=name)
+    resolving.add(name)
+
+    code = tick_ledger.main([str(ledger), "Go-red guard"])
+
+    assert (code, f"its sha {name!r} names no commit" in capsys.readouterr().err, ledger.read_bytes()) == (
+        2, True, seed)
+
+
 LEADING_GO_RED_STEP = ("- [ ] ⟦go-red⟧ Go-red guard: the stacked refusal, probe `src/run.py` `if stacked:` → `if False:` on "
                        "`tests/test_run.py::test_refuses_stacked` ⟦criterion 3⟧\n")
 
