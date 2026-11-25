@@ -134,6 +134,31 @@ def test_main_leaves_out_the_pyflakes_gate_case_for_a_range_changing_only_a_shim
         0, "skills/tdd/scripts/tests/py/unit/test_foo_bar.py\n", "")
 
 
+def test_main_leaves_out_the_pyflakes_gate_case_for_a_foreign_trees_range_changing_a_py_file(
+        tmp_path, monkeypatch, capsys, affected, fake_processes):
+    gate = "skills/tdd/scripts/tests/py/test_ruff_tree_audit_process.py"
+    tracked = ["src/foo.py", "tests/test_foo.py", gate]
+
+    def answer(line, **kwargs):  # the base commit has no skills/tdd/scripts/tests/py: a foreign tree (#4263)
+        args = fake.argvs[-1]
+        if list(args[:2]) == ["git", "rev-parse"]:
+            return 0, "abc\n", ""
+        if list(args[:3]) == ["git", "cat-file", "-t"]:
+            return 128, b"", b"fatal: not a valid object name\n"
+        if list(args[:3]) == ["git", "diff", "--name-only"]:
+            return 0, "src/foo.py\n", ""
+        if list(args[:2]) == ["git", "ls-files"]:
+            return 0, "".join(f + "\0" for f in tracked), ""
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    fake = fake_processes.answers({"git": answer})
+    monkeypatch.chdir(tmp_path)
+    for name, text in {"src/foo.py": "x = 1\n", "tests/test_foo.py": "import foo\n", gate: ""}.items():
+        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / name).write_text(text)
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (0, "tests/test_foo.py\n", "")
+
+
 def test_main_maps_a_readme_edit_to_the_suite_files_naming_it_and_not_a_directory_named_like_one(tmp_path, monkeypatch, capsys, affected, fake_processes):
     _install(fake_processes, fake_git(["README.md"]))
     monkeypatch.chdir(tmp_path)
