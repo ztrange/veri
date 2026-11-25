@@ -450,6 +450,7 @@ A heading matches when it equals the heading once stripped (CRLF and trailing wh
 
 ## next_pending_refactor
 - `refactor_pending(record)`: the ledger record `next-pending-refactor.sh` prints, a checked step still carrying ` ⟂ refactor pending`.
+- `repin_next(wt, n)`: the open re-pin step `pin-reject-route.sh --recheck` inserted directly after the first refactor-pending step, or `None` (#4510).
 
 ## ledger
 The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase marks.
@@ -920,7 +921,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `watch-runs.sh`: watch the runs of a queue.
 
 ## fused_step
-- `inputs(name, n, *files)`: the settled preflight values and worktree once every input exists, else `None`, each missing one on stderr (FC15). `first_step(wt, n, chosen)`: the first ledger step a predicate takes.
+- `inputs(name, n, *files)`: the settled preflight values and worktree once every input exists, else `None`, each missing one on stderr (FC15). `first_step(wt, n, chosen)`: the first ledger step a predicate takes. `open_step(wt, n)`: the step a run works on now, the one rule `run-step.sh` and `revise.sh` share: `repin_next`'s re-pin step, else the refactor-pending step, else the first unchecked one (#4734).
 - `cost_check(wt, step)`: *The step's cost check*, stopping at `cost-check`. `verify_switched_off(wt, n, phase)`: the run's pinned `VERI_SKIP_VERIFY` names the phase.
 - `summary(step)`: the step's ledger text without its trailing markers, as a commit subject reads it (the #431/#437 rule).
 - `branch_base(where, wt, n)`: the run's branch base as the conductor recorded it in the main working tree above `wt` (`run_pins`), each verdict launch's `--branch-base`; a record missing or unreadable is a `Stop` with exit 2 naming it (#4375).
