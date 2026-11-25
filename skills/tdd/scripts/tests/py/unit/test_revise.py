@@ -1002,3 +1002,18 @@ def test_4735_after_a_pin_reject_route_exit_0_retires_the_step_launches_no_attem
     assert fake.launched() == ["revise-red-1", "verdict-pin"], (code, out, err)
     assert code == 1
     assert "pin-reject-route.sh" in out.splitlines()[-1] and "retired" in out.splitlines()[-1], out
+
+
+def test_4735_after_a_pin_reject_route_exit_2_launches_no_attempt_2_and_exits_2(revise):
+    """REVISE.md sub-step 5: pin-reject-route.sh exit 2 after a red revise's verify-pin REJECT is no answer; the loop
+    bails there, no revise-red-2, exit 2."""
+    _red(revise)
+    (revise.wt / ".tdd" / "verify-pin.reason").write_text("VERDICT: REJECT\nthe case pins behaviour the tree has\n")
+    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS", "AGAINST_UNMODIFIED: PASSES")
+    code, out, err, fake = revise(fake=Fake({("wait-leaf.sh", "verdict-pin"): (1, ""),
+                                             ("wait-leaf.sh", "revise-red-2"): (3, ""),
+                                             ("pin-reject-route.sh", None): (2, "")}, report=report),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert fake.launched() == ["revise-red-1", "verdict-pin"], (code, out, err)
+    assert code == 2
