@@ -91,8 +91,9 @@ def malformed_row(rows):
     for row in rows:
         cells = requirements.split_cells(row)
         if len(cells) != 5:
-            return "Requirement row %s splits into %d cells, not ID, Requirement and Why: escape an unescaped | as \\|" % (
-                row_id(row), len(cells) - 2)
+            advice = ": escape an unescaped | as \\|" if len(cells) > 5 else ""
+            return "Requirement row %s splits into %d cells, not ID, Requirement and Why%s" % (
+                row_id(row), len(cells) - 2, advice)
     return None
 
 
