@@ -28,8 +28,10 @@ preflight has spent nothing to judge. Any other exit 2 bails as before.
 ### Waivable rules
 
 A few rules may be waived once per run, for one step, when the adjudicator answers `deviate`
-(ADR-0037). A waivable cause is a bail, not an exit 2: `BAIL.md`'s first sub-step sends it
-through the *Procedure* below, and the adjudicator judges whether the refused change is needed
+(ADR-0037). A waivable cause is a bail, not an exit 2. `graded-edit-outside-skill-edit` is
+judged at the bail: `BAIL.md`'s first sub-step sends it through the *Procedure* below.
+`tests-frozen-refused` is judged at the step's first freeze refusal in the green phase, before
+any `REVISE_BUDGET` is spent. The adjudicator judges whether the refused change is needed
 for the criterion and whether the rule's resume action keeps the rule's purpose. This list is read by a script: one bullet per rule, `` - `<rule-id>`: `` then the
 bail cause that names it, backticked, then its purpose and its resume action.
 
@@ -39,6 +41,9 @@ bail cause that names it, backticked, then its purpose and its resume action.
   `graded-changed.sh` printed (it counts against `VERI_STEP_GROWTH_PERCENT`), then go on from
   the refusing step's next sub-step. An `add-ledger-step.sh` refusal bails with the original
   cause.
+- `tests-frozen`: `tests-frozen-refused` — Purpose: green cannot pass by editing the test
+  verify-red judged. Resume action: send the test-only edit to the blind `diff` verifier and,
+  on its PASS, re-record the step's frozen tests and launch verify-green.
 
 A rule absent from this list is never waived, whatever the adjudicator answers. These are never
 waivable: the blind verifier's inputs, a verify-green or verify-refactor REJECT of production
