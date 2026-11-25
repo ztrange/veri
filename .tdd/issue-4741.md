@@ -9,7 +9,7 @@
 - [x] `pin-reject-route.sh --recheck …` exits 2 as an unknown argument, and no output line is `repin-failed …` or `not-checked …` ⟦criterion 7⟧
 - [x] `mutation-probe.sh` writes no `.tdd/issue-<n>-mutations.md`, and `VERI_MUTATION_RECORD` appears in no file under `skills/tdd/scripts/veri/` (a `tree_audit` case) ⟦criterion 8⟧
 - [x] `run-finished.sh <n>` on a done run with a stale mutation record exits 0 and prints no `stale-pin` line; `run_finished` does not import `mutation_record` ⟦criterion 9⟧
-- [ ] `queued-merge.sh` does not refuse a PR whose worktree holds a stale mutation record; `queued_merge` does not import `mutation_record` ⟦criterion 9⟧
+- [x] `queued-merge.sh` does not refuse a PR whose worktree holds a stale mutation record; `queued_merge` does not import `mutation_record` ⟦criterion 9⟧
 - [ ] `supervise.sh` keeps a `develop-*`/`revise-*` leaf's edit to `.tdd/issue-<n>-mutations.md` and emits no `mutation-record-restored` event ⟦criterion 10⟧
 - [ ] `veri/event_table.py` declares no `mutation-record-restored` and no `pin-retired` event (`event.sh pin-retired reason=x` exits 2 under `VERI_EVENT_STRICT=1`) ⟦criterion 11⟧
 - [ ] `veri/classify_bail.py` knows no `repin-failed` cause, and `skills/tdd/JOURNAL.md` names none of `repin-failed`, `not-checked`, `mutation-record-restored`, `pin-retired` ⟦criterion 11⟧

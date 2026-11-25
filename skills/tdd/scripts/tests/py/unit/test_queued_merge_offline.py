@@ -5,7 +5,7 @@ import os
 
 import pytest
 
-from veri import mutation_record, queued_merge
+from veri import queued_merge
 
 PR = "https://github.com/o/r/pull/7"
 BRANCH = "tdd/7-slug"
@@ -425,21 +425,6 @@ def test_an_offline_join_whose_ledger_has_an_unchecked_step_is_exit_1_with_nothi
 
     rebased = [c for c in world.calls if " rebase " in c]
     assert (code, rebased, world.local, "unchecked step" in err) == (1, [], LOCAL_STACK, True), err
-
-
-def test_4513_an_offline_join_of_a_run_whose_mutation_record_pins_old_text_its_file_no_longer_holds_is_exit_1_nothing_rebased(
-        tmp_path, fake_processes, monkeypatch, run_cli):
-    world = Offline(tmp_path).install(fake_processes, monkeypatch)
-    os.makedirs(world.wt + "/lib")
-    with open(world.wt + "/lib/calc.py", "w") as f:
-        f.write("def add(a, b):\n    return a + b\n")
-    with open(world.wt + "/.tdd/issue-7-mutations.md", "w") as f:
-        f.write(mutation_record.format_record([("file", "lib/calc.py"), ("old", "    return a - b\n"), ("new", "0\n")]))
-
-    code, _, err = join(run_cli, world)
-
-    rebased = [c for c in world.calls if " rebase " in c]
-    assert (code, rebased, world.local, "lib/calc.py return a - b" in err) == (1, [], LOCAL_STACK, True), err
 
 
 def test_an_offline_join_whose_worktree_head_does_not_resolve_is_exit_2_with_nothing_rebased(

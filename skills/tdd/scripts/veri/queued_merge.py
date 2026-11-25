@@ -15,7 +15,6 @@ import entry
 import event
 import git
 import merge_common
-import mutation_record
 import paths
 import run_dir
 import run_records
@@ -351,10 +350,6 @@ def _before_merge(pid, repo, pr, worktree, branch, before, head):
             return "could not read the PR body of %s; not merged" % pr, 2
         if not re.search(r"Closes #%s\b" % number.group(1), body):
             return "the PR body of %s lacks the line 'Closes #%s'; not merged" % (pr, number.group(1)), 2
-        stale = mutation_record.stale_pins(worktree, number.group(1))
-        if stale:
-            return ("the mutation record of #%s pins old text its file no longer holds (%s); re-record or retire it; "
-                    "not merged" % (number.group(1), "; ".join("%s %s" % pin for pin in stale)), 1)
     return None
 
 
@@ -470,18 +465,6 @@ def _unchecked_steps(worktree, branch):
     return 0
 
 
-def _stale_record(worktree, branch):
-    """0 when the run's mutation record pins no old text its file no longer holds (`mutation_record.stale_pins`);
-    1 naming each stale pin, so a join never lands a run whose recorded mutants a later edit made unreplayable."""
-    issue = run_dir.branch_issue(branch)
-    stale = mutation_record.stale_pins(worktree, issue) if issue else []
-    if stale:
-        _say("the mutation record of #%s pins old text its file no longer holds (%s); re-record or retire it; nothing"
-             " joined" % (issue, "; ".join("%s %s" % pin for pin in stale)))
-        return 1
-    return 0
-
-
 def _content_differs(worktree, before, onto, base=None):
     """None when the rebased HEAD's tree equals the tree of merging <before> (the run's pre-rebase tip) with <onto> (the
     stack as fetched), from <base> (the run's recorded base sha) when given: complete by construction, since it compares
@@ -538,7 +521,7 @@ def _joined(pid, repo, pr, worktree, branch, stack):
     check the rebased tip, push it to <stack> as a compare-and-swap that can only fast-forward what was fetched (leased to
     the fetched stack, the tip descending from it): a push refused because origin's stack moved, or was rewound, starts
     again from the fetch, at most JOIN_ATTEMPTS times; a stack origin no longer has is exit 2. Returns an exit code."""
-    code = _unchecked_steps(worktree, branch) or _stale_record(worktree, branch)
+    code = _unchecked_steps(worktree, branch)
     if code:
         return code
     lease = _rev(worktree, "HEAD")
@@ -796,14 +779,14 @@ def _local_stack(worktree, stack):
 
 
 def _joined_offline(pr, worktree, branch, stack, skip=None):
-    """The offline join with the lock held: the online join's guards that need no network (an unticked ledger step, a stale mutation record, the
+    """The offline join with the lock held: the online join's guards that need no network (an unticked ledger step, the
     freeze stack-red.sh reads from `.tdd/stack-local-red` (exit 1 while it exits 0, 2 on any exit but 0 and 3), an
     unresolvable HEAD, a merge commit in the run's history, a rebased tip whose content is not the merge), then the
     rebase onto the local <stack>, the fast tier, prose-owed.sh and the full suite, the Veri-Joined amend and a
     fast-forward of the local <stack>. <skip> ("<model-id> <reason>") skips the full suite, recorded as Veri-Suite:
     skipped. A rebased tip that is the stack's own tip is exit 3 when that tip carries this
     run's trailer (joined before), else exit 2: amending it would rewrite the stack. Returns an exit code."""
-    code = _unchecked_steps(worktree, branch) or _stale_record(worktree, branch)
+    code = _unchecked_steps(worktree, branch)
     if code:
         return code
     frozen, said = _stack_red(worktree)
