@@ -45,3 +45,10 @@ ICAgIGVsaWYgYXJndls6Ml0gPT0gWyJjaGVjayIsICItLXN0ZXAiXSBhbmQgY29kZSA9PSAxOg==
 command 189
 make test TESTS=skills/tdd/scripts/tests/py/unit/test_tests_frozen_check_step.py::test_check_step_exit_0_when_no_test_file_changed_since_the_record_writes_no_tests_frozen_refused_event_4730
 
+before 40
+abb93d094d2068e1d8a5ca86555b16e919188af5
+keep 51
+skills/tdd/scripts/tests/py/unit/test_adjudicate.py
+command 168
+make test TESTS=skills/tdd/scripts/tests/py/unit/test_adjudicate.py::test_record_under_tests_frozen_refused_on_deviate_prints_deviate_writes_a_deviate_event_and_exits_4
+
