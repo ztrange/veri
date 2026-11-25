@@ -1,6 +1,7 @@
 """tests-frozen.sh's record and check, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import collections
+import difflib
 import hashlib
 import os
 import re
@@ -724,6 +725,12 @@ def record(record_file, files, step=None):
                     lines += frozen_record.case_lines(name, case, body)
         with open(record_file, "w") as handle:
             handle.writelines(lines)
+        if by_step:
+            for name in files:
+                kept_copy = _kept_path(record_file, name)
+                os.makedirs(os.path.dirname(kept_copy), exist_ok=True)
+                with open(name) as source, open(kept_copy, "w") as target:
+                    target.write(source.read())
     except (OSError, LookupError) as error:
         write(sys.stderr, "tests-frozen.sh: %s" % error)
         return 2
@@ -788,6 +795,27 @@ def check(record_file, step=None):
     return 1 if changed else 0
 
 
+def _kept_path(record_file, name):
+    return os.path.join(record_file + ".content", hashlib.sha256(name.encode()).hexdigest()[:16])
+
+
+def diff(record_file):
+    """`diff --step`: print the unified diff from each recorded file's kept content to its current content."""
+    record_file, _ = _enter_root(record_file, [])
+    try:
+        with open(record_file) as handle:
+            names = [entry[1] for entry in map(frozen_record.digest_entry, handle) if entry]
+        for name in names:
+            with open(_kept_path(record_file, name)) as kept, open(name) as now:
+                for line in difflib.unified_diff(kept.read().splitlines(), now.read().splitlines(),
+                                                 "recorded/" + name, name, lineterm=""):
+                    write(sys.stdout, line)
+    except OSError as error:
+        write(sys.stderr, "tests-frozen.sh: %s" % error)
+        return 2
+    return 0
+
+
 def _main(argv):
     rest = argv[4:]
     if argv[:1] == ["rerecord-earlier"] and len(argv) == 4 and argv[2] == "--step" and argv[3]:
@@ -825,6 +853,8 @@ def _main(argv):
         return record(record_file, files, step)
     if mode == "check":
         return check(record_file, step)
+    if mode == "diff":
+        return diff(record_file)
     write(sys.stderr, USAGE)
     return 2
 
