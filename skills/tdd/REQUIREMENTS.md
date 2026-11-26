@@ -1604,6 +1604,7 @@
 | SM12 | The file lists smells, each with a name, a threshold stated as a number wherever a diff can show one (function length in lines, nesting depth, parameter count), so that two readers of the same diff agree whether it is met, and one or more named refactorings that answer it. | One standard for the developer and the verifier, which today is "up to standard" (PRD 032, D2; SM1). |
 | SM13 | The file states, each as a rule of its own: search for an existing helper before adding one; do not reverse a refactor made earlier in the same run; in test code, expected values stay literal and are never computed by the code under test. | The transform guards and test-code rules a refactor is held to (PRD 032, SM2). |
 | SM14 | The file is at most 60 lines. | It is included in every refactor and structural prompt (PRD 032, SM10). |
+| SM15 | The catalogue has a row *Sibling Asymmetry*: one of a family of sibling functions or stages skips a step the others take; it is answered by Extract Function where behaviour is unchanged, and otherwise reported as an `uncovered-spec` flag, never fixed by a transform. | A refactor may not change behaviour, and a missing step is owed behaviour (PR #4462's missing `fused.save_wait`). |
 
 ## skills/tdd/scripts/tests/py/README.md
 
