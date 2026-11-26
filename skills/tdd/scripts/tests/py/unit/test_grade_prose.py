@@ -149,12 +149,11 @@ def test_a_grades_line_whose_grade_word_is_pass_ish_makes_grade_prose_exit_2_and
         '"BEGIN GRADES\\nA1: PASS-ish — nearly\\nVERDICT: PASS\\nEND GRADES"}\n')
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -249,12 +248,11 @@ def test_a_pass_on_a_nested_unit_records_its_signature_in_the_skills_graded_and_
         '"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "skills/demo/prompts/x.md"], cwd=tmp_path)
 
@@ -282,12 +280,11 @@ def test_a_full_pass_writes_a_graded_line_naming_the_grader_template_after_unit_
         '"BEGIN GRADES\\nA1: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "skills/demo/x.md"], cwd=tmp_path)
 
@@ -313,12 +310,11 @@ def test_a_rejected_unit_exits_1_writes_no_graded_line_and_leaves_a_record_keyed
         '"BEGIN GRADES\\nA1: FAIL - not stated\\nVERDICT: REJECT\\nEND GRADES"}\n')
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
     monkeypatch.chdir(tmp_path)
     sig = grade_prose.signature("REQUIREMENTS.md", "unit.md")
 
@@ -347,13 +343,12 @@ def test_a_pass_on_unchanged_text_after_a_reject_exits_1_names_the_reject_and_wr
     run = ["first"]
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(replies[run[0]])
         return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
     run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
     run[0] = "second"
 
@@ -378,13 +373,12 @@ def test_a_pass_after_a_reject_and_a_change_of_the_text_exits_0_and_signs_the_ne
     run = ["first"]
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(replies[run[0]])
         return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
     monkeypatch.chdir(tmp_path)
     run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
     run[0] = "second"
@@ -614,12 +608,11 @@ def test_a_grades_block_naming_every_id_once_with_two_rows_swapped_out_of_file_o
         '"BEGIN GRADES\\nA1: PASS - ok\\nA3: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -649,13 +642,12 @@ def test_a_grades_block_naming_every_id_once_with_a_fail_row_swapped_out_of_file
                     '"BEGIN GRADES\\nA2: FAIL - not round\\nVERDICT: REJECT\\nEND GRADES"}\n'])
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
         return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -750,12 +742,11 @@ def test_a_grades_block_naming_one_requirement_id_twice_makes_grade_prose_exit_2
         '"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nA2: PASS - ok\\nA3: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}\n')
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         return (0, "", "")
 
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -995,14 +986,13 @@ def test_a_fail_row_in_the_follow_up_reply_makes_the_merged_verdict_reject_with_
                     '"BEGIN GRADES\\nA2: FAIL - not round\\nVERDICT: REJECT\\nEND GRADES"}\n'])
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
         return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1033,14 +1023,13 @@ def test_a_fail_row_in_the_first_reply_makes_the_merged_verdict_reject_when_the_
                     '"BEGIN GRADES\\nA1: FAIL - not blue\\nVERDICT: REJECT\\nEND GRADES"}\n'])
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
         return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1710,14 +1699,13 @@ def test_a_grades_block_grading_every_wanted_id_pass_with_a_reason_line_inside_i
                     'VERDICT: PASS\\nEND GRADES"}\n'])
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
         return (0, "", "")
 
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1772,14 +1760,13 @@ def test_a_grades_block_grading_one_wanted_id_fail_with_a_reason_line_inside_it_
                     'VERDICT: REJECT\\nEND GRADES"}\n'] * 3)
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
         return (0, "", "")
 
     monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
@@ -1802,14 +1789,13 @@ def test_a_grades_block_grading_a_wanted_id_maybe_beside_a_reason_line_inside_it
                     'VERDICT: PASS\\nEND GRADES"}\n'] * 3)
 
     def launch(line, **kwargs):
-        argv = fake.argvs[-1]
         (tmp_path / ".tdd" / "grade-prose.log").write_text(next(replies, ""))
         return (0, "", "")
 
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
-    fake = fake_processes.answers({}, default=launch)
+    fake_processes.answers({}, default=launch)
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
