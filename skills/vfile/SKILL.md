@@ -50,7 +50,7 @@ not chased.
 Headings, in this order, and nothing else at that level: for a bug, `## What happened`,
 `## Expected`, `## Steps to reproduce`, `## Environment`; for a refactor or a feature, `## Problem`
 (and the goal); then in both `## Acceptance criteria` and `## Blocked by`. `capture-spec.sh`
-reads the plan out of these headings.
+reads the plan out of these headings. A draft's body has its own (*Draft mode*).
 
 - **Acceptance criteria.** For a bug: one checkbox per manifestation, the reproduction failing
   on the current code and passing after the fix. For a refactor: **structural predicates**,
@@ -93,6 +93,27 @@ reads the plan out of these headings.
 - **`Test command:`** appears **once, on the last line** of the body, naming the command that
   runs the repo's tests; nothing follows it.
 
+## Draft mode
+
+The draft mode is for a sub-PRD not yet fully defined. A draft is **titled as any child**
+(`PRD <nnn>.<k>: …`, with no title marker), labelled **`draft`** and **`filed-by:<lane>`**, and
+**never opted in**. Create the `draft` label with `gh label create draft` if the repo lacks it.
+
+Its body has these headings, in this order, and nothing else at that level:
+
+- `## Not ready`: what keeps it from being filed in full;
+- `## Outline`;
+- `## Blocked by`.
+
+The parent rule (*Parent*) applies to a draft as to any issue.
+
+**Before filing any child titled `PRD <nnn>.<k>: …`**, read, on the default branch, that
+sub-PRD's section and the sub-PRD table in its spec (the `PRD <nnn>: …` issue points at it).
+When either says the sub-PRD depends on or waits on something not yet done (a measurement to be
+read, an open decision, a sibling not landed, rows on an unmerged PR), **file it in draft mode**
+and name that thing under `## Not ready`. This holds **whoever invoked you and whatever the line
+asked**. A sub-PRD you cannot find in a spec is filed as a draft whose `## Not ready` says so.
+
 ## Before filing
 
 1. **Duplicates and related issues.** Search the repo's issues over REST (`gh api --paginate repos/{owner}/{repo}/issues`,
@@ -131,7 +152,8 @@ fall back to the names below only where it names none.
 - `bug` on a bug (create it with `gh label create bug` if the repo lacks it); none of the kind
   label on a refactor or a feature beyond what the repo uses.
 - **The opt-in label** (`ready-for-agent`, narrowed to `ready-for-agent:<scope>` if a scope was
-  named) is added to every issue filed, unless the human said not to opt it in. A scope is named
+  named) is added to every issue filed, unless the human said not to opt it in; a draft
+  (*Draft mode*) and the veri-defects issue below never get it. A scope is named
   by the human, or by the `vdev` session invoking you: it names its lane when a
   run in that lane turned up the bug, and the issue is filed into that lane.
 - **A bug's cost label**, by what the bug costs each time it occurs: a repeat cost (money, time
@@ -170,4 +192,5 @@ When no parent is found, the issue is still filed; the report says it has no par
 
 Report the **url** of the issue, **its kind** (and, when the kind was inferred from the line
 rather than given, that it was inferred), **its parent** (or that it has none, and why), and **whether it is now solvable** (open, opted in, unblocked,
-unclaimed); if it is not, say which condition is missing. Do not start the run.
+unclaimed); if it is not, say which condition is missing. For a draft, name it a **draft** and
+say it is **not solvable because it carries no opt-in label**. Do not start the run.
