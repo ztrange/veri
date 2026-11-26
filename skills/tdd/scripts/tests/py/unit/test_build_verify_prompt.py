@@ -2290,3 +2290,28 @@ def test_4709_a_step_only_quoting_fixture_repair_in_its_prose_gets_no_fixture_re
                 if l and b"{{" not in l)
 
     assert (code, re.sub(rb"\s+", b" ", line) in re.sub(rb"\s+", b" ", out)) == (0, False)
+
+
+def test_the_green_prompt_fills_discarded_exit_with_the_discarded_exit_script_beside_the_build_script_4758(
+        tmp_path, capsysbinary):
+    scripts = tmp_path / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    (scripts / "veri" / "build_verify_prompt.py").write_bytes(
+        (SCRIPTS / "veri" / "build_verify_prompt.py").read_bytes())
+    (scripts / "prompts").mkdir()
+    (scripts / "prompts" / "verify-green.md").write_bytes(b"{{SHARED}}omissions: {{DISCARDED_EXIT}}\n")
+    (scripts / "prompts" / "_shared.md").write_bytes(b"shared rules\n\n")
+    (scripts / "prompts" / "_verify-output-contract.md").write_bytes(CLOSING)
+    loader = importlib.util.spec_from_file_location("discarded_exit_build_verify_prompt",
+                                                    scripts / "veri" / "build_verify_prompt.py")
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+
+    code = module.main(["--fast-cmd", "make unit", "green", str(spec), "tests/test_a.py", "test_a"])
+    prompt = capsysbinary.readouterr()[0].decode("utf-8", "surrogateescape")
+
+    assert code == 0
+    assert f"omissions: {scripts}/discarded-exit.sh\n" in prompt
+    assert "{{DISCARDED_EXIT}}" not in prompt
