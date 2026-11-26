@@ -926,9 +926,6 @@ def test_3771_x_a_red_full_tier_wait_exit_1_stops_at_3_with_no_later_call_and_no
     assert not (wt / ".tdd" / "issue-12-preflight").exists()
 
 
-import pytest
-
-
 @pytest.mark.parametrize("bad, step, fail_code, only_args, last_line", [
     ("requirements-preflight.sh", 3, 2, None, None),
     ("worktree-setup.sh", 3, 2, None, None),

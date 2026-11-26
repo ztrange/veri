@@ -19,3 +19,10 @@ max-complexity = 46
 [lint.per-file-ignores]
 "skills/tdd/scripts/veri/dispatch.py" = ["F401"]
 "skills/tdd/scripts/veri/wait_ci.py" = ["F401"]
+# E402: the imports left below code must follow a setting.
+# The leg's veri imports follow sys.path[0] = VERI and pycache_prefix.py, which sets sys.pycache_prefix.
+"skills/tdd/scripts/tests/leg/pytest_leg.py" = ["E402"]
+# `from veri import entry` follows the sys.path inserts and the sys.meta_path finder for `veri.<name>`.
+"skills/tdd/scripts/tests/py/conftest.py" = ["E402"]
+# Its later imports follow sys.dont_write_bytecode: the entry-point run writes no bytecode for them.
+"skills/tdd/scripts/veri/run_conductor.py" = ["E402"]

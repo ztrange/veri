@@ -16,25 +16,6 @@ import run_dir as layout
 import test_budget
 import tunables
 import watch_runs
-
-USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)"
-
-
-solvable_issues = watch_runs.solvable_issues
-wait = watch_runs.wait
-live_conductors = watch_runs.live_conductors
-
-
-clock = time.time
-
-
-# The overlap reads one dispatch process has made, emptied as main() starts: issue bodies per issue,
-# PR diffs per (PR url, head sha), and the open run draft PRs with the time they were listed.
-_reads = {}
-
-
-# The names a test patches here (last_comment, clock, _reads, ...) are looked up in this namespace by the moved reads.
-dispatch_reads.bind(globals())
 from dispatch_live import World, lane, launch, now, restart_pending, run_dir, state_file
 from dispatch_reads import (
     PR_URL,
@@ -62,6 +43,25 @@ from dispatch_reads import (
     target_repo,
     transient,
 )
+
+USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)"
+
+
+solvable_issues = watch_runs.solvable_issues
+wait = watch_runs.wait
+live_conductors = watch_runs.live_conductors
+
+
+clock = time.time
+
+
+# The overlap reads one dispatch process has made, emptied as main() starts: issue bodies per issue,
+# PR diffs per (PR url, head sha), and the open run draft PRs with the time they were listed.
+_reads = {}
+
+
+# The names a test patches here (last_comment, clock, _reads, ...) are looked up in this namespace by the moved reads.
+dispatch_reads.bind(globals())
 
 
 def stall_window():

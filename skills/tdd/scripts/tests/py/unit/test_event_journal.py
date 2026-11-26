@@ -1,5 +1,10 @@
 """Cases for the machine-wide run journal under $VERI_HOME."""
 import os
+import re
+
+import pytest
+
+from conftest import ROOT
 
 
 def test_hermetic_environment_points_veri_home_at_the_cases_tmp_path(tmp_path):
@@ -384,12 +389,6 @@ def test_done_records_lane_ready_for_agent_when_veri_label_is_set_to_an_empty_st
     done = json.loads((clone / ".tdd" / "events.jsonl").read_text().splitlines()[-1])
     assert (code, done.get("lane")) == (0, "ready-for-agent")
 
-
-import re
-
-import pytest
-
-from conftest import ROOT
 
 PY_DELETES_OR_COPIES = re.compile(
     r"os\.(remove|unlink|rmdir|removedirs)\b|\.unlink\(|shutil\.(rmtree|copy\w*|move)\b|\.rmdir\(")
