@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 
+import classify_bail
 import event
 import fused
 import grade_prose
@@ -307,8 +308,11 @@ def _trace(unit, rows, sentences):
     wanted = [claim_id for claim_id, _ in rows] + ["S%d" % k for k in range(1, len(sentences) + 1)]
     answered = [words[1] for words in map(str.split, lines)
                 if (words[0] == "NOT-CODE" and len(words) > 1)
-                or (words[0] == "TRACED" and len(words) > 2 and re.fullmatch(r"\S+:\d+", words[2]))]
-    return [] if len(answered) == len(lines) and sorted(answered) == sorted(wanted) else None
+                or (words[0] == "TRACED" and len(words) > 2 and re.fullmatch(r"\S+:\d+", words[2]))
+                or (words[0] == "UNTRACED" and len(words) > 2)]
+    if len(answered) != len(lines) or sorted(answered) != sorted(wanted):
+        return None
+    return [line for line in lines if line.split()[0] == "UNTRACED"]
 
 
 def _grade(path, unit):
@@ -417,6 +421,27 @@ def main(argv):
     def undo():
         _restore(snapshot, path, file, graded_file)
 
+    def traced(sentences):
+        """None when the trace lets the step go on to its grade, else the exit code that ends the step."""
+        answer = _trace(unit, rows, sentences)
+        for _ in range(tunables.tokens(tunables.get("VERI_NO_VERDICT_RETRIES", unless_empty=True))):
+            if answer is not None:
+                break
+            event.mark("", event.context(os.environ), "relaunch", ["cause=no-verdict"])
+            answer = _trace(unit, rows, sentences)
+        if answer is None:
+            print("skill-edit-step.sh: no-verdict: the verify-trace-rows leaf's answer is not one line per claim",
+                  file=sys.stderr)
+            return 2
+        untraced_rows = [line for line in answer if not re.fullmatch(r"S\d+", line.split()[1])]
+        if untraced_rows:
+            print("skill-edit-step.sh: row-untraced: the verify-trace-rows leaf traced no code for a row\n"
+                  + "\n".join(untraced_rows), file=sys.stderr)
+            event.mark("", event.context(os.environ), "bail",
+                       ["cause=row-untraced", "classification=" + classify_bail.CATEGORIES["row-untraced"]])
+            return 1
+        return None
+
     listed = _listed_ids(path, unit)
     texts = listed_texts(path, unit)
     fresh = any(row_id(r) not in listed or _row_text(r) != texts.get(row_id(r))
@@ -431,8 +456,10 @@ def main(argv):
             return 2
         return 3
     if os.path.getsize(file):
-        if added is not None and change is None:
-            _trace(unit, rows, [])
+        stop = traced([]) if added is not None and change is None else None
+        if stop:
+            undo()
+            return stop
         graded, said = _grade(path, unit)
     else:
         graded, said = 1, "FAIL: unit is empty\n"
@@ -471,17 +498,11 @@ def main(argv):
                                               and not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep)))])
         if not graded:
             sentences = _changed_sentences(_unit_text_in(snapshot, unit), _unit_text_in(_read_existing([file]), unit))
-            answer = _trace(unit, rows, sentences)
-            for _ in range(tunables.tokens(tunables.get("VERI_NO_VERDICT_RETRIES", unless_empty=True))):
-                if answer is not None:
-                    break
-                event.mark("", event.context(os.environ), "relaunch", ["cause=no-verdict"])
-                answer = _trace(unit, rows, sentences)
-            if answer is None:
-                print("skill-edit-step.sh: no-verdict: the verify-trace-rows leaf's answer is not one line per claim",
-                      file=sys.stderr)
+            stop = traced(sentences)
+            if stop:
+                _restore(before, *before)
                 undo()
-                return 2
+                return stop
             graded, said = _grade(path, unit)
         if change is not None and graded == 0 and all(_read_existing([f]).get(f) == before.get(f) for f in (file, path)):
             graded, said = 1, "FAIL: the author left the prose and the rows unchanged\n"
