@@ -21,8 +21,9 @@ def run(*argv, cwd=None):
 
 def committed(tmp_path):
     """A clean git worktree at <tmp_path> with one commit, the CI log ignored; its HEAD sha."""
-    git = lambda *args: subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=tmp_path,
-                                       stdin=subprocess.DEVNULL, capture_output=True, text=True, check=True).stdout
+    def git(*args):
+        return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=tmp_path,
+                              stdin=subprocess.DEVNULL, capture_output=True, text=True, check=True).stdout
     git("init", "-q")
     (tmp_path / ".gitignore").write_text("failed.log\n.tdd/\n")
     git("add", ".gitignore")

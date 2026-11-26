@@ -2073,7 +2073,8 @@ def test_the_report_prints_no_unverified_phases_line_for_a_whitespace_only_skip_
 
 
 def test_the_report_counts_refactor_skips_with_reason_switched_off_apart_from_nothing_landed_skips(tmp_path, monkeypatch, capsys, metrics):
-    skip = lambda step, reason: {"event": "verify-refactor-skipped", "step": step, "reason": reason}
+    def skip(step, reason):
+        return {"event": "verify-refactor-skipped", "step": step, "reason": reason}
     write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100}, skip("1", "switched-off"),
                          {"event": "step-done", "step": "1", "ts": 160},
                          {"event": "step-start", "step": "2", "ts": 200}, skip("2", "nothing-landed"),
@@ -2087,7 +2088,8 @@ def test_the_report_counts_refactor_skips_with_reason_switched_off_apart_from_no
 
 def test_the_report_counts_switched_off_pin_skips_as_pin_beside_refactor_on_one_comma_separated_line_3938(
         tmp_path, monkeypatch, capsys, metrics):
-    skip = lambda phase, step: {"event": "verify-%s-skipped" % phase, "step": step, "reason": "switched-off"}
+    def skip(phase, step):
+        return {"event": "verify-%s-skipped" % phase, "step": step, "reason": "switched-off"}
     write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100}, skip("pin", "1"),
                          {"event": "step-done", "step": "1", "ts": 160},
                          {"event": "step-start", "step": "2", "ts": 200}, skip("refactor", "2"),
@@ -2101,7 +2103,8 @@ def test_the_report_counts_switched_off_pin_skips_as_pin_beside_refactor_on_one_
 
 def test_the_report_counts_switched_off_green_skips_as_green_beside_pin_and_refactor_on_one_comma_separated_line_3935(
         tmp_path, monkeypatch, capsys, metrics):
-    skip = lambda phase, step, reason="switched-off": {"event": "verify-%s-skipped" % phase, "step": step, "reason": reason}
+    def skip(phase, step, reason="switched-off"):
+        return {"event": "verify-%s-skipped" % phase, "step": step, "reason": reason}
     write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100}, skip("green", "1"), skip("refactor", "1"),
                          {"event": "step-done", "step": "1", "ts": 160},
                          {"event": "step-start", "step": "2", "ts": 200}, skip("green", "2"), skip("pin", "2"),
@@ -2114,7 +2117,8 @@ def test_the_report_counts_switched_off_green_skips_as_green_beside_pin_and_refa
 
 
 def test_the_report_counts_switched_off_red_skips_as_red_between_pin_and_refactor_3936(tmp_path, monkeypatch, capsys, metrics):
-    skip = lambda phase, step: {"event": "verify-%s-skipped" % phase, "step": step, "reason": "switched-off"}
+    def skip(phase, step):
+        return {"event": "verify-%s-skipped" % phase, "step": step, "reason": "switched-off"}
     write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100}, skip("red", "1"), skip("pin", "1"),
                          {"event": "step-done", "step": "1", "ts": 160},
                          {"event": "step-start", "step": "2", "ts": 200}, skip("red", "2"), skip("refactor", "2"),
@@ -2125,7 +2129,8 @@ def test_the_report_counts_switched_off_red_skips_as_red_between_pin_and_refacto
 
 
 def test_the_report_counts_switched_off_diff_skips_as_diff_first_on_the_line_3937(tmp_path, monkeypatch, capsys, metrics):
-    skip = lambda phase, step: {"event": "verify-%s-skipped" % phase, "step": step, "reason": "switched-off"}
+    def skip(phase, step):
+        return {"event": "verify-%s-skipped" % phase, "step": step, "reason": "switched-off"}
     write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100}, skip("diff", "1"),
                          {"event": "step-done", "step": "1", "ts": 160},
                          {"event": "step-start", "step": "2", "ts": 200}, skip("green", "2"), skip("refactor", "2"),
@@ -2136,7 +2141,8 @@ def test_the_report_counts_switched_off_diff_skips_as_diff_first_on_the_line_393
 
 
 def test_the_report_counts_a_switched_off_verify_branch_skip_as_branch_on_the_line_4472(tmp_path, monkeypatch, capsys, metrics):
-    skip = lambda phase, step: {"event": "verify-%s-skipped" % phase, "step": step, "reason": "switched-off"}
+    def skip(phase, step):
+        return {"event": "verify-%s-skipped" % phase, "step": step, "reason": "switched-off"}
     write_log(tmp_path, [{"event": "step-start", "step": "1", "ts": 100}, skip("refactor", "1"),
                          {"event": "step-done", "step": "1", "ts": 160},
                          {"event": "verify-branch-skipped", "reason": "switched-off"}])

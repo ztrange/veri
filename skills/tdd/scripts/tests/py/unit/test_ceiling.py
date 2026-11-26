@@ -135,7 +135,8 @@ def test_a_timed_out_case_failing_alone_other_than_by_its_timeout_is_exit_2_nami
 def test_the_recorder_writes_only_a_failed_report_and_only_outside_an_xdist_worker(monkeypatch, tmp_path):
     record = tmp_path / "record"
     monkeypatch.setenv("VERI_CEILING_RECORD", str(record))
-    report = lambda nodeid, failed: types.SimpleNamespace(nodeid=nodeid, failed=failed, when="call", longreprtext=TIMEOUT)
+    def report(nodeid, failed):
+        return types.SimpleNamespace(nodeid=nodeid, failed=failed, when="call", longreprtext=TIMEOUT)
 
     ceiling_record.pytest_runtest_logreport(report("a::passed", False))
     with monkeypatch.context() as patch:

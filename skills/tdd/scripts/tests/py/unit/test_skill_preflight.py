@@ -41,7 +41,8 @@ def preflight_and_rest():
         end = next(i for i in range(held[0] + 1, len(lines)) if re.match(r"#{1,3} ", lines[i]))
         lines = lines[:held[0]] + lines[end:]
     preflight, rest = plain(PREFLIGHT_MD.read_text()), plain("\n".join(lines))
-    flat = lambda text: " " + " ".join(text.split()) + " "  # padded, so ^ and $ never match a section edge
+    def flat(text):
+        return " " + " ".join(text.split()) + " "  # padded, so ^ and $ never match a section edge
     return (preflight, flat(preflight)), (rest, flat(rest))
 
 

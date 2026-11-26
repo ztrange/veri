@@ -37,9 +37,11 @@ def skill_edit(tmp_path, monkeypatch):
         if not stubbed:
             return case
         if isinstance(grade, list):
-            answer = lambda *a: grade.pop(0)
+            def answer(*a):
+                return grade.pop(0)
         elif isinstance(grade, tuple):
-            answer = lambda *a: grade
+            def answer(*a):
+                return grade
         else:
             answer = grade
         if grade is not None:

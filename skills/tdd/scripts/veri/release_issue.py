@@ -78,8 +78,10 @@ def release(number):
         return 2
     # The marker comes off last: a write that gets no answer leaves the issue parked or bailed, so a
     # re-run finds it again, and every earlier write is safe to repeat.
-    add_opt_in = lambda: github.gh_issue_add_label(number, opt_in)
-    remove_claim = lambda: github.gh_issue_remove_label(number, taken)
+    def add_opt_in():
+        return github.gh_issue_add_label(number, opt_in)
+    def remove_claim():
+        return github.gh_issue_remove_label(number, taken)
     writes = [lambda: github.gh_label_ensure(opt_in)]
     writes += [add_opt_in, remove_claim] if marked else [remove_claim, add_opt_in]
     writes +=[lambda marker=marker: github.gh_issue_remove_label(number, marker) for marker in MARKERS]

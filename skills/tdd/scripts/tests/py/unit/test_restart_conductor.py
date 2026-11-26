@@ -83,7 +83,8 @@ def test_3223_a_run_with_no_live_conductor_when_it_starts_exits_3_printing_nothi
 def test_3223_a_live_conductor_below_the_growth_threshold_that_exits_with_the_run_not_stopped_relaunches_nothing_and_prints_restarts_0(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(11000)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     alive = iter([True, True, False])
@@ -125,7 +126,8 @@ def test_3223_the_sleep_wrapper_waits_by_handing_the_seconds_to_time_sleep(monke
 def test_3223_a_live_conductor_whose_growth_reaches_85_percent_of_the_default_knob_at_25500_is_stopped_with_mode_at_ledger(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(26500)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     alive = iter([True, True, False])
@@ -144,7 +146,8 @@ def test_3223_a_live_conductor_whose_growth_reaches_85_percent_of_the_default_kn
 def test_3346_a_conductor_log_with_a_leading_plain_text_line_is_measured_from_its_json_records_alone(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text(
         "update-veri.sh: already current\n" + "".join(json.dumps(r) + "\n" for r in records))
@@ -197,7 +200,8 @@ def test_3346_a_conductor_log_that_exists_but_cannot_be_read_exits_2_with_a_stde
 def test_3223_a_live_conductor_whose_growth_is_25499_with_the_default_knob_is_not_stopped(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(26499)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     alive = iter([True, True, False])
@@ -216,7 +220,8 @@ def test_3223_a_live_conductor_whose_growth_is_25499_with_the_default_knob_is_no
 def test_3223_before_it_stops_the_conductor_it_writes_restart_pending_holding_its_own_pid(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     pending = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
@@ -236,7 +241,8 @@ def test_3223_before_it_stops_the_conductor_it_writes_restart_pending_holding_it
 def test_3223_after_the_stop_once_the_conductor_has_exited_and_the_run_is_stopped_it_relaunches_the_conductor_exactly_once(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     alive = iter([True, True, False])
@@ -261,7 +267,8 @@ def test_3223_started_from_a_linked_worktree_it_reads_the_conductor_log_and_writ
     start = main / ".tdd" / "wt" / "7"
     start.mkdir(parents=True)
     (start / ".git").write_text(f"gitdir: {gitdir}\n")
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
     (main / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     pending = main / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
@@ -380,7 +387,8 @@ def test_3223_a_run_is_live_when_pid_files_live_conductor_check_names_a_conducto
 def test_3223_a_relaunch_records_exactly_one_conductor_restart_event_with_the_growth_and_the_knob_in_the_runs_events_log(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     events = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl"
@@ -401,7 +409,8 @@ def test_3223_a_relaunch_records_exactly_one_conductor_restart_event_with_the_gr
 def test_3223_after_the_relaunch_the_restart_pending_file_is_removed(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     pending = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
@@ -420,7 +429,8 @@ def test_3223_after_the_relaunch_the_restart_pending_file_is_removed(tmp_path, r
 def test_3223_after_a_relaunch_it_goes_on_watching_and_when_the_new_launch_ends_with_the_run_not_stopped_it_prints_restarts_7_1_and_exits_0(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     log = tmp_path / ".tdd" / "conductor-7.log"
     log.write_text("".join(json.dumps(r) + "\n" for r in [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]))
     alive = iter([True, True, False, False, False, True, False, False, False])
@@ -446,7 +456,8 @@ def test_3223_after_a_relaunch_it_goes_on_watching_and_when_the_new_launch_ends_
 def test_3223_a_live_conductor_is_stopped_at_85_percent_of_a_knob_the_caller_sets_not_at_the_default_threshold(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(9500)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     alive = iter([True, True, False])
@@ -465,7 +476,8 @@ def test_3223_a_live_conductor_is_stopped_at_85_percent_of_a_knob_the_caller_set
 def test_3223_when_the_conductor_exits_after_its_own_stop_and_the_run_is_not_stopped_it_relaunches_nothing_removes_restart_pending_and_prints_restarts_7_0(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     pending = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "restart-pending"
@@ -485,7 +497,8 @@ def test_3223_when_the_conductor_exits_after_its_own_stop_and_the_run_is_not_sto
 def _relaunch_setup(tmp_path, monkeypatch, alive_script, states):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     alive = iter(alive_script)
@@ -534,7 +547,8 @@ def test_3369_a_relaunched_conductor_whose_own_session_growth_reaches_85_percent
     # initial check, watch, exit, the new conductor, its watch (growth reached), its exit
     restart_conductor, alive = _relaunch_setup(
         tmp_path, monkeypatch, [True, True, False, False, False, True, True, False, False, False], ["stopped", "✅ Done"])
-    usage = lambda n: {"type": "assistant", "message": {"id": f"n{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"n{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     log = tmp_path / ".tdd" / "conductor-7.log"
     calls = []
 
@@ -573,7 +587,8 @@ def test_3389_a_conductor_log_ending_in_an_init_record_after_a_usage_record_keep
 
 def test_3389_once_the_new_sessions_usage_records_land_after_an_init_record_growth_is_computed_again_and_the_conductor_is_stopped_with_mode_at_ledger(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [usage(80000), {"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
@@ -682,7 +697,8 @@ def test_3384_a_conductor_that_never_asked_for_a_stop_and_stays_not_live_for_thr
 def test_3384_a_conductor_asked_to_stop_whose_run_reads_stopped_and_stays_not_live_for_three_consecutive_reads_is_relaunched_exactly_once_after_the_third(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     # arm live, live and asked to stop, three not-live reads, then the new conductor
@@ -1204,7 +1220,8 @@ def _3633_watch_an_unreadable_pid_file(tmp_path, run_cli, monkeypatch, process_i
     restart_conductor = importlib.import_module("veri.restart_conductor")
     pid_file = importlib.import_module("pid_file")
     (tmp_path / ".tdd").mkdir()
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     pid_path = tmp_path / ".tdd" / "wt" / "7" / ".tdd" / "conductor.pid"
@@ -1334,7 +1351,8 @@ def _growth_stop_setup(tmp_path, monkeypatch, alive_script, on_sleep):
     restarter's real at-ledger stop wrapper; `on_sleep(n)` acts on the run's stop file at the watch's n-th wait."""
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd" / "wt" / "7" / ".tdd").mkdir(parents=True)
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     records = [{"type": "system", "subtype": "init"}, usage(1000), usage(60500)]
     (tmp_path / ".tdd" / "conductor-7.log").write_text("".join(json.dumps(r) + "\n" for r in records))
     alive = iter(alive_script)
@@ -1432,7 +1450,8 @@ def test_4331_an_operators_stop_already_pending_when_growth_crosses_the_threshol
 def test_4599_with_the_default_knob_a_one_session_log_rising_from_78446_gets_an_at_ledger_stop_before_its_context_passes_110000(tmp_path, run_cli, monkeypatch):
     restart_conductor = importlib.import_module("veri.restart_conductor")
     (tmp_path / ".tdd" / "wt" / "7" / ".tdd").mkdir(parents=True)
-    usage = lambda n: {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
+    def usage(n):
+        return {"type": "assistant", "message": {"id": f"m{n}", "usage": {"input_tokens": n, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}}
     log = tmp_path / ".tdd" / "conductor-7.log"
     log.write_text("".join(json.dumps(r) + "\n" for r in [{"type": "system", "subtype": "init", "session_id": "s1"}, usage(78446)]))
     rising = [85000, 95000, 104000, 110000]

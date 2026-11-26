@@ -52,7 +52,8 @@ def test_rerecord_approved_re_records_only_the_named_stale_case_and_check_earlie
     after = record.read_text().splitlines()
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[1]], cwd=tmp_path)[:2]
 
-    untouched = lambda lines: [l for l in lines if "\ttest_one\t" not in l]
+    def untouched(lines):
+        return [l for l in lines if "\ttest_one\t" not in l]
     assert (code, untouched(after) == untouched(before), after != before, checked) == (
         0, True, True, (1, "test_two (%s)\n" % STEPS[0]))
 
@@ -79,7 +80,8 @@ def _step_a(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, path, rec
 
 def test_rerecord_approved_re_records_a_case_rerecord_refactored_skipped_for_its_moved_helper_lines_so_check_earlier_passes_4642(
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
-    chk = lambda m: '\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m
+    def chk(m):
+        return '\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m
     inline = 'func TestOne(t *testing.T) {\n\tx := 1\n' + chk("a") + chk("b") + chk("c") + '}\n'
     moved = ('func TestOne(t *testing.T) {\n\tx := 1\n' + chk("b") + '\tcheck(t, x)\n}\n\n'
              'func check(t *testing.T, x int) {\n' + chk("a") + '}\n')
@@ -240,7 +242,8 @@ def test_rerecord_approved_file_double_colon_case_re_records_only_that_files_cas
                    cwd=tmp_path)[0]
     after = record.read_text().splitlines()
 
-    other = lambda lines: [l for l in lines if ": %s\t" % OTHER in l]
+    def other(lines):
+        return [l for l in lines if ": %s\t" % OTHER in l]
     changed = [l for l in after if l not in before]
     assert (code, other(after) == other(before), bool(changed), all(": %s\t" % SUITE in l for l in changed)) == (
         0, True, True, True)

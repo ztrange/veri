@@ -317,8 +317,12 @@ def is_diff_checked(line):
     return bool(kind) and kind.group(1) == "diff-checked"
 
 
-write_record = lambda path, out: frozen_record.write_record(path, out, open)
-rewrite_records = lambda earlier, rewrite: frozen_record.rewrite_records(earlier, rewrite, open)
+def write_record(path, out):
+    return frozen_record.write_record(path, out, open)
+
+
+def rewrite_records(earlier, rewrite):
+    return frozen_record.rewrite_records(earlier, rewrite, open)
 
 
 def rerecord_earlier(ledger, step):

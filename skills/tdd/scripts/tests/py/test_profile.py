@@ -227,7 +227,8 @@ def test_main_ends_the_run_at_a_suite_with_no_counter_still_sorting_the_lines_be
         return 0, kwargs.get("input") or "", ""
 
     fake = fake_processes.answers({"bash": traced_bash, "sort": sort})
-    calls = lambda: [[os.path.basename(str(argv[0])), str(argv[-1])] for argv in fake.argvs]
+    def calls():
+        return [[os.path.basename(str(argv[0])), str(argv[-1])] for argv in fake.argvs]
     code = profile.main(["a.test.sh", "none.test.sh", "c.test.sh"])
     captured = capsys.readouterr()
     assert calls() == [["bash", "a.test.sh"], ["bash", "none.test.sh"], ["sort", "-rn"]]
@@ -304,7 +305,8 @@ def test_the_shim_run_through_a_symlink_from_another_directory_reads_a_relative_
 def test_make_n_profile_names_the_same_suites_as_make_n_test_in_the_same_offline_environment():
     test_code, test_recipe = make_n("test")
     profile_code, profile_recipe = make_n("profile")
-    pytest_files = lambda recipe: sorted(set(re.findall(r"skills/tdd/scripts/tests/py(?= <)", recipe)))
+    def pytest_files(recipe):
+        return sorted(set(re.findall(r"skills/tdd/scripts/tests/py(?= <)", recipe)))
 
     assert (test_code, profile_code) == (0, 0)
     assert suites_named(test_recipe) == [] and suites_named(profile_recipe) == []

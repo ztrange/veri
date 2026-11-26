@@ -153,7 +153,8 @@ def test_main_launch_limits_what_the_harness_loads_and_keeps_the_callers_argumen
     capfd.readouterr()
 
     argv = launches[0]
-    value = lambda flag: argv[argv.index(flag) + 1] if flag in argv else "null"
+    def value(flag):
+        return argv[argv.index(flag) + 1] if flag in argv else "null"
     home = os.environ["HOME"]
     assert (argv[-len(extra):], "--disable-slash-commands" in argv, "--strict-mcp-config" in argv,
             json.loads(value("--mcp-config")), json.loads(value("--settings")),
@@ -508,7 +509,8 @@ def test_main_launches_claude_with_the_bash_tool_timeouts_the_caller_set_unchang
 def _stream_of_what_the_real_claude_loads(argv, home, repo):
     """A stream shaped by the 2026-10-18 observation of the real binary under each flag."""
     import json
-    flag = lambda name: argv[argv.index(name) + 1] if name in argv else None
+    def flag(name):
+        return argv[argv.index(name) + 1] if name in argv else None
     if "--bare" in argv:
         return [{"type": "result", "subtype": "error", "is_error": True, "result": "Not logged in"}]
     settings = json.loads(flag("--settings") or "{}")
@@ -1735,6 +1737,7 @@ def test_cli_run_leaf_sh_under_a_zsh_login_shell_hands_claude_a_shell_that_split
 
     code, _, _ = run_cli(_Launcher, ["prompt.txt"], cwd=work,
                          env={"CLAUDE_BIN": str(stub), "SHELL": "/bin/zsh", "VERI_TEST_OUT_DIR": str(out)})
-    read = lambda suffix: (out.parent / f"seen.{suffix}").read_text() if (out.parent / f"seen.{suffix}").exists() else None
+    def read(suffix):
+        return (out.parent / f"seen.{suffix}").read_text() if (out.parent / f"seen.{suffix}").exists() else None
 
     assert (code, read("count"), read("later")) == (0, "2\n", "later\n")

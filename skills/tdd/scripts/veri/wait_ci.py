@@ -92,7 +92,8 @@ def ci_bound(repo, n=5):
         if run.returncode != 0:
             return fall_back("gh run list could not answer")
         pages += run.stdout.rstrip("\n")
-    at = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").timestamp()
+    def at(s):
+        return datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").timestamp()
     runs = sorted((r for page in documents(pages) for r in page),
                   key=lambda r: r["databaseId"], reverse=True)[:n]
     if len(runs) < n:

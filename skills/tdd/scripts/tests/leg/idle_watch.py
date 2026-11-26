@@ -179,8 +179,9 @@ class Watch:
         if not self.claim("end"):
             return
         last = self.last_case or "none"
-        line = lambda workers: ("pytest leg idle for " + str(idle_for) + " s with no case running (last case seen: "
-                                + last + "); workers " + workers + " ended\n")
+        def line(workers):
+            return ("pytest leg idle for " + str(idle_for) + " s with no case running (last case seen: "
+                    + last + "); workers " + workers + " ended\n")
         try:
             self.dump(file=self.out, all_threads=True)
             for pid in list(self.workers):

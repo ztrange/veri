@@ -454,7 +454,8 @@ def test_main_prints_the_same_report_and_exit_code_over_three_rest_pages_with_re
 
     fake_processes(serve(issue_pages, pull_pages))
     three = run_cli(invisible_work, [])
-    flat = lambda pages: [[item for page in pages for item in page]]
+    def flat(pages):
+        return [[item for page in pages for item in page]]
     fake_processes(serve(flat(issue_pages), flat(pull_pages)))
     one = run_cli(invisible_work, [])
 

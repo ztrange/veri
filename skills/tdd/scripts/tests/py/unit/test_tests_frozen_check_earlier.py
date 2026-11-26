@@ -697,7 +697,8 @@ def test_check_earlier_exits_1_when_the_case_body_is_edited_after_a_successful_r
     step = STEPS[1]
     suite = tmp_path / GO_SUITE
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
-    chk = lambda m: '\tif v != "x" {\n\t\tt.Fatal("%s")\n\t}\n' % m
+    def chk(m):
+        return '\tif v != "x" {\n\t\tt.Fatal("%s")\n\t}\n' % m
     inline = 'func TestOne(t *testing.T) {\n\tv := "x"\n' + chk("a") + chk("b") + '}\n'
     helper = 'func assertRefused(t *testing.T, v string) {\n' + chk("a") + chk("b") + '}\n\n'
     suite.write_text(inline)

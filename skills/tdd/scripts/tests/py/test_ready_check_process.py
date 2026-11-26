@@ -421,7 +421,8 @@ def test_issue_3055_ready_check_where_every_row_holds_leaves_tree_index_and_refs
 
 def _outside_kept_output(state):
     """<state> without the .tdd/ready-<tier>.out files ready-check.sh keeps for a red tier (TR7)."""
-    kept = lambda path: path.startswith(".tdd")
+    def kept(path):
+        return path.startswith(".tdd")
     return {**state, "files": [f for f in state["files"] if not kept(f)],
             "contents": {f: c for f, c in state["contents"].items() if not kept(f)},
             "status": "\n".join(l for l in state["status"].splitlines() if ".tdd/" not in l)}
