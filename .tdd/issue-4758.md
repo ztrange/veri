@@ -2,7 +2,7 @@
 
 - [x] `discarded-exit.sh` (a new `/bin/sh` shim over the new module `skills/tdd/scripts/veri/discarded_exit.py`) given any argument prints `usage: discarded-exit.sh` on stderr and exits 2 (a small `run_cli` case in `skills/tdd/scripts/tests/py/unit/test_discarded_exit.py`) ⟦criterion 2⟧
 - [x] `discarded-exit.sh` run with no argument in a directory that is not a git work tree prints the usage line on stderr and exits 2 (a `process("git")` case in `skills/tdd/scripts/tests/py/test_discarded_exit_process.py`, in a `tmp_path` holding no repository) ⟦criterion 2⟧
-- [ ] a `git diff HEAD` that touches no `.py` file (only a `.md` file changed) makes `discarded-exit.sh` print nothing and exit 3 (unit case faking the one git wrapper) ⟦criterion 2⟧
+- [x] a `git diff HEAD` that touches no `.py` file (only a `.md` file changed) makes `discarded-exit.sh` print nothing and exit 3 (unit case faking the one git wrapper) ⟦criterion 2⟧
 - [ ] an added `.py` line that is a bare expression statement calling `subprocess.run`, `subprocess.call`, `os.system` or `fused.call` is printed as `<file>:<line>` (the path and the line's number in the new file), one line per such statement, exit 1 (unit case) ⟦criterion 11⟧
 - [ ] an added bare expression statement calling any other function (`print("x")`, `os.getcwd()`) prints nothing and exits 0 (unit case) ⟦criterion 11⟧
 - [ ] an added `_, body, _ = fused.call("gh", "api", "x")`, the exit code unpacked into `_`, is printed as `<file>:<line>`, exit 1 (unit case; watched red before the `_` rule exists) ⟦criterion 3⟧
