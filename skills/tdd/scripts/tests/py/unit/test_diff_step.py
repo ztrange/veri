@@ -319,6 +319,21 @@ def test_4760_a_test_quality_step_whose_leaf_reports_a_possible_bug_launches_no_
     assert code == 0, err
 
 
+def test_4760_a_test_quality_step_whose_leaf_reports_a_possible_bug_over_a_commit_stops_exit_2_and_ticks_nothing(diff):
+    """SG2: a POSSIBLE-BUG: line is a claim that the leaf committed nothing; with commits since the step base the claim
+    is false, so the step is neither ticked unjudged nor routed: no answer, exit 2."""
+    diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    code, out, err, fake = diff(step=QUALITY, answers={("git", "diff"): (0, "tests/test_a.py\n")},
+                                report="SUITE: ok\n" + POSSIBLE_BUG)
+
+    assert code == 2, err
+    diffs = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("diff",)]
+    assert diffs == [("diff", "--name-only", STEP_BASE + "..HEAD")]
+    assert ("step-tick.sh" in fake.names(), "add-ledger-step.sh" in fake.names(), fake.launched()) == (
+        False, False, [])
+    assert "⟦quality-repair⟧" not in (diff.wt / ".tdd" / "issue-12.md").read_text()
+
+
 def test_4760_an_ordinary_diff_checked_step_whose_leaf_reports_a_possible_bug_still_launches_verdict_diff(diff):
     """SG2's counter-case: the skip is keyed on the step's own ⟦test-quality⟧ mark, so an ordinary step's POSSIBLE-BUG
     line is judged by verify-diff like any other report, and adds no repair step."""
