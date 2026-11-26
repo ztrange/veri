@@ -13,6 +13,7 @@ import leaf
 import requirements
 import skill_edit_guard
 import tunables
+from extract_result import extract
 from paths import SCRIPTS
 
 USAGE = "usage: skill-edit-step.sh [--change \"<change>\"] [--added \"<step>\"] <issue-body-file> <unit-file> [<pin-file>...]"
@@ -301,7 +302,10 @@ def _trace(unit, rows, sentences):
         f.write(_trace_prompt(rows, sentences))
     fused.launch("trace", ".", name, "run-leaf.sh", prompt, env=None, out=stem + ".out", err=stem + ".err")
     fused.call(fused.script("wait-leaf.sh"), name)
-    return []
+    with open(stem + ".log", encoding="utf-8", errors="replace") as f:
+        lines = [line.strip() for line in extract(f.read()).splitlines() if line.strip()]
+    wanted = [claim_id for claim_id, _ in rows] + ["S%d" % k for k in range(1, len(sentences) + 1)]
+    return [] if sorted(lines) == sorted("NOT-CODE " + claim_id for claim_id in wanted) else None
 
 
 def _grade(path, unit):
@@ -465,6 +469,11 @@ def main(argv):
         if not graded:
             sentences = _changed_sentences(_unit_text_in(snapshot, unit), _unit_text_in(_read_existing([file]), unit))
             answer = _trace(unit, rows, sentences)
+            if answer is None:
+                print("skill-edit-step.sh: no-verdict: the verify-trace-rows leaf's answer is not one line per claim",
+                      file=sys.stderr)
+                undo()
+                return 2
             graded, said = _grade(path, unit)
         if change is not None and graded == 0 and all(_read_existing([f]).get(f) == before.get(f) for f in (file, path)):
             graded, said = 1, "FAIL: the author left the prose and the rows unchanged\n"
