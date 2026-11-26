@@ -182,7 +182,7 @@ def select(label, priority="priority", repo=None):
     except NoAnswer:
         return 2, []
     otherwise = [issue for issue in issues
-                 if is_open(issue) and carries(issue, label) and not taken(issue) and not carries(issue, "parked") and issue["number"] not in claimed
+                 if is_open(issue) and carries(issue, label) and not taken(issue) and not carries(issue, "parked") and not carries(issue, "draft") and issue["number"] not in claimed
                  and not in_flight(main_tree, issue["number"])
                  and all(n not in open_issues for n in blockers[issue["number"]])]
     survivors = [issue for issue in otherwise if author_read(issue, author)]
