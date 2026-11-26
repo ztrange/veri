@@ -13,7 +13,7 @@
 - [x] The garbage-answer case is watched red with its branch removed, probe `skills/tdd/scripts/veri/skill_edit_step.py` `if answer is None:` → `if False:` on `test_a_garbage_trace_answer_exits_2_naming_no_verdict_and_runs_no_grade` ⟦go-red⟧ ⟦criterion 7⟧
 - [x] A trace answer of `TRACED <id> <file>:<line>` lines naming every claim, or a mix of those and `NOT-CODE <id>` lines, goes on to `_grade`; a unit case on the parse ⟦criterion 3⟧
 - [x] With `VERI_NO_VERDICT_RETRIES=1`, a garbage first trace answer relaunches the `verify-trace-rows` leaf once with a `relaunch cause=no-verdict` event, and a parseable second answer goes on to the grade ⟦criterion 4⟧
-- [ ] A trace answer that leaves a claim with no line takes the no-verdict route, exit 2 once the retries are spent, never read as traced ⟦criterion 4⟧
+- [x] A trace answer that leaves a claim with no line takes the no-verdict route, exit 2 once the retries are spent, never read as traced ⟦criterion 4⟧
 - [ ] An empty trace answer (the leaf wrote nothing) takes the no-verdict route, exit 2 once the retries are spent, never read as `UNTRACED` ⟦criterion 4⟧
 - [ ] A `TRACED <id>` line without a `<file>:<line>` is an unparseable line and takes the no-verdict route, exit 2 once the retries are spent ⟦criterion 3⟧
 - [ ] `classify-bail.sh row-untraced` prints `process`, and the bail-cause lists of `veri/event_table.py` and `skills/tdd/JOURNAL.md` carry `row-untraced`, so `VERI_EVENT_STRICT` accepts a `bail` event with that cause ⟦criterion 6⟧
