@@ -275,6 +275,7 @@ def _trace(unit, rows, sentences):
     name = "verify-trace-rows"
     stem = ".tdd/" + name
     prompt = stem + ".prompt"
+    os.makedirs(".tdd", exist_ok=True)
     with open(prompt, "w") as f:
         f.write(_trace_prompt(rows, sentences))
     fused.launch("trace", ".", name, "run-leaf.sh", prompt, env=None, out=stem + ".out", err=stem + ".err")
@@ -401,6 +402,7 @@ def main(argv):
             return 2
         return 3
     if os.path.getsize(file):
+        _trace(unit, [], [])
         graded, said = _grade(path, unit)
     else:
         graded, said = 1, "FAIL: unit is empty\n"

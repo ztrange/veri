@@ -1189,3 +1189,35 @@ def test_the_trace_prompt_reaches_the_stub_after_the_author_prompt_and_before_th
     calls = roles.read_text().split() if roles.exists() else []
     assert [calls[:3], calls.count("trace"), (repo / ".tdd" / "verify-trace-rows.log").exists(), ran.returncode] \
         == [["author", "trace", "grader"], 1, True, 0], (calls, ran.stderr[-700:])
+
+
+@pytest.mark.process("skill-edit-step.sh --added run against a real git repository with a stub claude recording the trace, author and grader calls")
+def test_an_added_step_that_runs_no_author_sends_the_trace_prompt_to_the_stub_before_the_grader_prompt_4759(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1<reword> | The widget is a deep blue. | shade |\n")
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    claude = tmp_path / "claude"
+    claude.write_text(STUB_ROLE_LOG.replace(
+        "\nanswer_trace\n",
+        '\ncase "$prompt" in *"TRACED <id>"*) echo trace >> "$VERI_TEST_CAP/roles" ;; esac\nanswer_trace\n'))
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
+           "VERI_TEST_CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "GIT_COMMITTER_EMAIL": "t@t"}
+
+    ran = subprocess.run([str(STEP), "--added", "reword the widget", "issue.md", "unit.md"], cwd=repo,
+                         capture_output=True, text=True, env=env)
+
+    roles = cap / "roles"
+    calls = roles.read_text().split() if roles.exists() else []
+    assert [calls, ran.returncode] == [["trace", "grader"], 3], (calls, ran.stderr[-700:])
