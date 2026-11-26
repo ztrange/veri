@@ -164,7 +164,7 @@ def test_no_carried_byte_holds_a_path_the_account_name_or_a_host_form_in_any_spe
         return "x " + pick.choice(sensitive) + pick.choice(FOLLOWERS) + " y"
 
     lines = []
-    for n in range(60):
+    for _n in range(60):
         lines.append({"issue": "7", "event": "launch", "cmd": mixed(), mixed(): mixed(),
                       "detail": {"nested": [mixed(), {"deeper": mixed(), mixed(): "v"}]},
                       "tail": pick.choice(sensitive)})

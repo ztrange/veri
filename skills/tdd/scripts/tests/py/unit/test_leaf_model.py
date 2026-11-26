@@ -207,7 +207,7 @@ def test_main_writes_the_value_as_bytes_and_raises_rather_than_returning_when_st
     ]
     monkeypatch.setenv("VERI_MODEL", "sonnet")
     monkeypatch.setattr(sys, "stdout", None)
-    with pytest.raises(Exception):
+    with pytest.raises(AttributeError):
         leaf_model.main(["develop-red"])
 
 

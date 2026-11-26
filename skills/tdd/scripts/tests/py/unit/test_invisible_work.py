@@ -247,14 +247,14 @@ def test_main_keeps_the_report_rules_of_the_embedded_program_and_raises_on_a_mal
         "invariant 1 (not on origin): solo tip dddd 4 commits origin lacks\n")
 
     malformed = [
-        ("not json", "[]"),
-        ('[{"number": 7}]', "[]"),
-        ("[]", '{"headRefName": "zeta", "state": "OPEN"}'),
+        ("not json", "[]", json.JSONDecodeError),
+        ('[{"number": 7}]', "[]", KeyError),
+        ("[]", '{"headRefName": "zeta", "state": "OPEN"}', AttributeError),
     ]
-    for issues, prs in malformed:
+    for issues, prs, error in malformed:
         (tmp_path / "issues.json").write_text(issues)
         (tmp_path / "prs.json").write_text(prs)
-        with pytest.raises(Exception):
+        with pytest.raises(error):
             invisible_work.main([])
 
 

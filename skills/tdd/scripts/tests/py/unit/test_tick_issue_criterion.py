@@ -97,7 +97,9 @@ def test_main_keeps_every_failure_path_inside_0_to_3_and_lets_an_uncaught_except
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
 
-    def run_case(argv, view=(0, AC + "- [ ] alpha\n"), api=(0, json.dumps({"body": AC + "- [ ] alpha"})), patch=0):
+    def run_case(argv, view=(0, AC + "- [ ] alpha\n"), api=None, patch=0):
+        if api is None:
+            api = (0, json.dumps({"body": AC + "- [ ] alpha"}))
         patches = []
 
         def fake_run(line, **kwargs):

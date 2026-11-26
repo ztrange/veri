@@ -55,7 +55,9 @@ def test_small():
 BASH_TRIPWIRE = '#!/bin/sh\nprintf "bash suite\\n" >> "$PLANTED_RAN_LOG"\necho "1 passed, 0 failed"\n'
 
 
-def planted_tree(tmp_path, small=PLANTED_CASES.split("@pytest.mark.process")[0]):
+def planted_tree(tmp_path, small=None):
+    if small is None:
+        small = PLANTED_CASES.split("@pytest.mark.process")[0]
     tree = tmp_path / "tree"
     scripts = tree / "skills" / "tdd" / "scripts"
     scripts.mkdir(parents=True)

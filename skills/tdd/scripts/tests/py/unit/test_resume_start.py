@@ -288,7 +288,7 @@ def test_4389_every_inner_call_prints_one_line_with_its_exit_and_never_the_leafs
     code, out, err, fake = resume(verify_plan="owed")
 
     lines = out.splitlines()
-    for base, args, *_ in fake.calls:
+    for base, _args, *_ in fake.calls:
         assert [line for line in lines if line.startswith(base + " ") and " exit " in line], base
     assert "LEAF-REPORT" not in out
 

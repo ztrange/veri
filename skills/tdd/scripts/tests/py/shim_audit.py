@@ -40,7 +40,7 @@ def entry_bypass_problems(scripts):
     shims = [(script, match) for script, match in shims if match]
     if not shims:
         problems.append("no shim found under %s" % scripts)
-    for script, match in shims:
+    for _script, match in shims:
         module = pathlib.Path(scripts) / match.group(1)
         lines = module.read_text().splitlines()
         for number, line in enumerate(lines, 1):

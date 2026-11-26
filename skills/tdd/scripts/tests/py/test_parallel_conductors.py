@@ -1228,7 +1228,7 @@ def test_a_bad_veri_parallel_veri_max_issues_or_veri_conductor_ctx_budget_is_exi
            ("VERI_CONDUCTOR_CTX_BUDGET", "abc", 0), ("VERI_CONDUCTOR_CTX_BUDGET", "1.5", 0),
            ("VERI_CONDUCTOR_CTX_BUDGET", "-1", 0)]
     seen, applied = [], []
-    for name, value, floor in bad:
+    for name, value, _floor in bad:
         for var in applied:
             monkeypatch.delenv(var, raising=False)
         applied.append(name)

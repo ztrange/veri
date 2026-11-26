@@ -81,7 +81,7 @@ def _fixture(report, own_id):
     for name in _named_cases(report):
         if name.startswith(("test_", "Test")):
             continue
-        for root, file, py_file, go_file, js_file in _test_files():
+        for root, file, py_file, go_file, _js_file in _test_files():
             path = os.path.join(root, file)
             if own_file is not None and os.path.normpath(path) != own_file:
                 continue

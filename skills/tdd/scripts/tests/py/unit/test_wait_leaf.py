@@ -282,7 +282,7 @@ def test_main_counts_an_empty_date_reading_as_0_before_the_loop_and_never_as_the
                 raise RuntimeError("runaway wait: no clock reading left")
             reading = readings.pop(0)
             if reading is None:
-                return empty()
+                return _empty()
             return (0, f"{reading}\n", "")
         return (0, "", "")
 
@@ -292,9 +292,9 @@ def test_main_counts_an_empty_date_reading_as_0_before_the_loop_and_never_as_the
         raise FileNotFoundError(2, "No such file or directory", "date")
 
     waits = {}
-    for how, empty in (("prints nothing", lambda: (0, "", "")),
-                       ("fails", lambda: (1, "", "date: illegal option\n")),
-                       ("missing", missing)):
+    for how, _empty in (("prints nothing", lambda: (0, "", "")),
+                        ("fails", lambda: (1, "", "date: illegal option\n")),
+                        ("missing", missing)):
         calls.clear()
         readings = [None, None, None, 4, 5]
         waits[how] = (wait_leaf.main(["x", "5"]), list(calls))

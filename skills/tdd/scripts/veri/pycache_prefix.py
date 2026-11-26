@@ -44,7 +44,7 @@ def from_source():
         def path_stats(self, path):
             raise OSError("this run never reads veri's bytecode")
 
-    def veri_finder(path, modules=sys.path[0], finder=FileFinder.path_hook((FromSource, SOURCE_SUFFIXES))):
+    def veri_finder(path, modules=sys.path[0], finder=FileFinder.path_hook((FromSource, SOURCE_SUFFIXES))):  # noqa: B008 -- built once, not on every path asked about
         if path != modules:
             raise ImportError("not veri's directory")
         return finder(path)

@@ -39,7 +39,7 @@ def mentions(path, nodes):
 
 
 def files_under(top):
-    for parent, dirs, files in os.walk(top):
+    for parent, _dirs, files in os.walk(top):
         for f in files:
             yield os.path.join(parent, f)
 

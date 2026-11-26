@@ -107,7 +107,7 @@ def test_main_raises_rather_than_returning_0_for_a_name_it_maps_when_stdout_is_c
     err = io.BytesIO()
     monkeypatch.setattr(sys, "stdout", None)
     monkeypatch.setattr(sys, "stderr", io.TextIOWrapper(err, encoding="utf-8"))
-    with pytest.raises(Exception):
+    with pytest.raises(AttributeError):
         leaf_role.main(["develop-red"])
     sys.stderr.flush()
     assert err.getvalue() == b""
