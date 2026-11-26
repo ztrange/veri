@@ -365,7 +365,7 @@ def test_offences_raises_instead_of_returning_an_empty_list_when_its_root_does_n
     guard = importlib.import_module("fast_tier_guard")
     missing = tmp_path / "no-such-tier"
 
-    with pytest.raises(Exception):
+    with pytest.raises(NotADirectoryError):
         guard.offences(missing)
 
 

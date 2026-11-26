@@ -103,7 +103,7 @@ def test_main_echoes_a_non_utf8_byte_in_either_value_as_that_byte(monkeypatch, t
 
 def test_main_raises_rather_than_returning_0_when_stdout_is_closed(monkeypatch, time_budget):
     monkeypatch.setattr(sys, "stdout", None)
-    with pytest.raises(Exception):
+    with pytest.raises(AttributeError):
         time_budget.main([])
 
 

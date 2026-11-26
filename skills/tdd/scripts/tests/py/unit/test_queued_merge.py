@@ -44,9 +44,11 @@ def hanging(fake_processes, line):
     return install
 
 
-def scenario(fake_processes, take=0, ci=(0,), merged=json.dumps({"merged": True, "merge_commit_sha": "fedcba9"}), gh_code=0, fail=(), diverged=False, lease_readable=True, behind=False, dirty=False, tags="v0.10\nv0.9\n"):
+def scenario(fake_processes, take=0, ci=(0,), merged=None, gh_code=0, fail=(), diverged=False, lease_readable=True, behind=False, dirty=False, tags="v0.10\nv0.9\n"):
     """A queued merge's world: the lock, CI's answers in order, GitHub's merged answer, the clone's tags as
     `git tag --sort=-v:refname` lists them, and commands that fail."""
+    if merged is None:
+        merged = json.dumps({"merged": True, "merge_commit_sha": "fedcba9"})
     state = {"rebased": False, "ci": list(ci), "merged": False}
 
     def answer(line, **_):

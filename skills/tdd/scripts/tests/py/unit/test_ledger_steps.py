@@ -285,12 +285,12 @@ def test_main_raises_rather_than_returning_when_stdout_is_closed_or_stdin_cannot
         monkeypatch, ledger_steps):
     fake_stdin(monkeypatch, "- [ ] the cog turns ⟦criterion 1⟧\n".encode())
     monkeypatch.setattr(sys, "stdout", None)
-    with pytest.raises(Exception):
+    with pytest.raises(AttributeError):
         ledger_steps.main([])
 
     monkeypatch.undo()
     monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BufferedReader(UnreadableStdin())))
-    with pytest.raises(Exception):
+    with pytest.raises(IsADirectoryError):
         ledger_steps.main(["current"])
 
 

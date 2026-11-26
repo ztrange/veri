@@ -210,17 +210,17 @@ def test_next_fetches_the_listing_first_from_the_fixture_or_gh_pages_returning_2
         out, err = capsys.readouterr()
         return code, out, err
 
-    def dies(argv):
+    def dies(argv, error):
         requests.clear()
-        with pytest.raises(Exception):
+        with pytest.raises(error):
             workqueue.main(argv)
         capsys.readouterr()
         return list(requests)
 
     monkeypatch.setenv("VERI_GH_JSON", str(fixture))
-    assert dies(["next", "alpha"]) == []
+    assert dies(["next", "alpha"], FileNotFoundError) == []
     (fixture / "issues.json").write_text("not json")
-    assert dies(["next", "alpha"]) == []
+    assert dies(["next", "alpha"], json.JSONDecodeError) == []
 
     monkeypatch.delenv("VERI_GH_JSON")
     pages.update({listing % 1: (0, '[{"number": 12, "state": "OPEN", "body": ""}]\n', ""),
@@ -233,12 +233,12 @@ def test_next_fetches_the_listing_first_from_the_fixture_or_gh_pages_returning_2
     assert requests == [listing % 1, listing % 2]
 
     pages[listing % 2] = (0, "[]\n", "")
-    assert dies(["next"]) == [listing % 1, listing % 2]
+    assert dies(["next"], IndexError) == [listing % 1, listing % 2]
     for line in (b"alpha\t12\n", b"alpha\ttwelve\tqueued\t\n"):
         queue.write_bytes(line)
-        assert dies(["next", "alpha"]) == [listing % 1, listing % 2]
+        assert dies(["next", "alpha"], ValueError) == [listing % 1, listing % 2]
     queue.unlink()
-    assert dies(["next", "alpha"]) == [listing % 1, listing % 2]
+    assert dies(["next", "alpha"], FileNotFoundError) == [listing % 1, listing % 2]
 
 
 def test_start_done_park_and_assign_take_the_lock_directory_polling_it_for_the_wait_times_20_reading_leading_zeros_as_decimal_and_release_it_on_every_path_issue_776(tmp_path, monkeypatch, capsys, workqueue, fake_processes):

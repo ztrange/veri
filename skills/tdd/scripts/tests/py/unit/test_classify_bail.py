@@ -103,7 +103,7 @@ def test_main_echoes_an_unknown_cause_back_byte_for_byte_on_stderr_newline_and_n
 def test_main_raises_rather_than_returning_0_when_stdout_is_closed(monkeypatch, classify_bail):
     monkeypatch.setattr(sys, "stdout", None)
 
-    with pytest.raises(Exception):
+    with pytest.raises(AttributeError):
         classify_bail.main(["killed-stuck"])
 
 
