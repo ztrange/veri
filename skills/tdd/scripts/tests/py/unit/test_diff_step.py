@@ -387,8 +387,8 @@ def test_4760_a_test_quality_steps_possible_bug_appends_one_quality_repair_step_
     diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
     code, out, err, fake = diff(step=QUALITY, report="SUITE: ok\n" + POSSIBLE_BUG)
 
-    steps = [l for l in (diff.wt / ".tdd" / "issue-12.md").read_text().split("\n") if l.startswith("- [")]
-    repairs = [l for l in steps if "⟦quality-repair⟧" in l]
+    steps = [line for line in (diff.wt / ".tdd" / "issue-12.md").read_text().split("\n") if line.startswith("- [")]
+    repairs = [line for line in steps if "⟦quality-repair⟧" in line]
     commits = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
     assert code == 0, err
     assert repairs == [steps[-1]]
@@ -403,11 +403,11 @@ def test_4760_a_test_quality_step_whose_leaf_reports_a_killed_flip_and_no_possib
     ledger = diff.wt / ".tdd" / "issue-12.md"
     code, out, err, fake = _verified(diff, report="SUITE: ok\n" + FLIP)
 
-    steps = [l for l in ledger.read_text().split("\n") if l.startswith("- [")]
+    steps = [line for line in ledger.read_text().split("\n") if line.startswith("- [")]
     commits = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
     assert code == 0, err
     assert "mutation-probe.sh" in fake.names()
-    assert (len(steps), [l for l in steps if "⟦quality-repair⟧" in l]) == (3, [])
+    assert (len(steps), [line for line in steps if "⟦quality-repair⟧" in line]) == (3, [])
     assert [a for a in commits if any(str(x).startswith("plan:") for x in a)] == []
 
 
@@ -432,13 +432,13 @@ def test_4760_a_spent_quality_repair_budget_appends_no_step_makes_no_plan_commit
     monkeypatch.setenv("VERI_QUALITY_REPAIRS", "0")
     ledger = diff.wt / ".tdd" / "issue-12.md"
     diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
-    before = [l for l in ledger.read_text().split("\n") if l.startswith("- [")]
+    before = [line for line in ledger.read_text().split("\n") if line.startswith("- [")]
     code, out, err, fake = diff(step=QUALITY, report="SUITE: ok\n" + POSSIBLE_BUG)
 
-    steps = [l for l in ledger.read_text().split("\n") if l.startswith("- [")]
+    steps = [line for line in ledger.read_text().split("\n") if line.startswith("- [")]
     commits = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
     assert code == 0, err
-    assert (len(steps), [l for l in steps if "⟦quality-repair⟧" in l]) == (len(before), [])
+    assert (len(steps), [line for line in steps if "⟦quality-repair⟧" in line]) == (len(before), [])
     assert commits == []
     assert "step-tick.sh" in fake.names()
 
@@ -453,7 +453,7 @@ def test_4760_a_ledger_already_holding_one_quality_repair_step_gets_no_second_at
     diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
     code, out, err, fake = diff(step=QUALITY, report="SUITE: ok\n" + POSSIBLE_BUG)
 
-    repairs = [l for l in ledger.read_text().split("\n") if l.startswith("- [") and "⟦quality-repair⟧" in l]
+    repairs = [line for line in ledger.read_text().split("\n") if line.startswith("- [") and "⟦quality-repair⟧" in line]
     commits = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
     assert code == 0, err
     assert len(repairs) == 1
@@ -471,8 +471,8 @@ def test_4760_a_quality_repairs_cap_of_2_with_one_quality_repair_step_already_in
     diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
     code, out, err, fake = diff(step=QUALITY, report="SUITE: ok\n" + POSSIBLE_BUG)
 
-    steps = [l for l in ledger.read_text().split("\n") if l.startswith("- [")]
-    repairs = [l for l in steps if "⟦quality-repair⟧" in l]
+    steps = [line for line in ledger.read_text().split("\n") if line.startswith("- [")]
+    repairs = [line for line in steps if "⟦quality-repair⟧" in line]
     commits = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
     assert code == 0, err
     assert (len(repairs), repairs[-1] == steps[-1], POSSIBLE_BUG.strip() in repairs[-1]) == (2, True, True)
