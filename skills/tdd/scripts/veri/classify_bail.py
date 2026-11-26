@@ -16,7 +16,7 @@ CATEGORIES = {
          "fixture-owed", "missing-reroutes-exhausted", "repair-reroutes-exhausted", "graded-edit-outside-skill-edit",
          "unpinnable-missing", "skill-edit-refused", "prep-owed",
          "no-seam", "surround-owed", "unwired", "surround-short", "tidy-first-owed",
-         "branch-rejected"), "process"),
+         "branch-rejected", "row-untraced"), "process"),
 }
 
 

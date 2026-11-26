@@ -264,3 +264,12 @@ def test_4719_main_classifies_go_red_probe_unresolvable_as_a_system_failure_with
     code = classify_bail.main(["go-red-probe-unresolvable"])
 
     assert (code, *capsys.readouterr()) == (0, "system\n", "")
+
+
+def test_4759_main_classifies_row_untraced_as_a_process_failure_and_a_bail_event_accepts_it(capsys, classify_bail):
+    from veri import event_table
+
+    code = classify_bail.main(["row-untraced"])
+
+    assert ((code, *capsys.readouterr()), event_table.valid("bail", "cause", "row-untraced")) == (
+        (0, "process\n", ""), True)
