@@ -47,8 +47,8 @@ def test_snapshot_step_prints_a_commit_git_diff_against_which_shows_the_test_edi
     code, out, err = run_cli(tests_frozen, ["snapshot", "--step", STEP], cwd=red)
 
     assert (code, err) == (0, "")
-    shown = git(red, "diff", out.strip())
-    assert sorted(git(red, "diff", "--name-only", out.strip()).split()) == [OLD, OWN]
+    shown = git(red, "diff", out.strip() + "~1", out.strip())
+    assert sorted(git(red, "diff", "--name-only", out.strip() + "~1", out.strip()).split()) == [OLD, OWN]
     assert "-    assert lib() == 2" in shown and "+    assert lib() in (1, 2)" in shown
     assert "-    assert True" in shown and "+    pass" in shown
     assert "lib.py" not in shown
@@ -62,7 +62,61 @@ def test_snapshot_step_prints_a_commit_with_an_empty_diff_when_check_step_would_
     code, out, err = run_cli(tests_frozen, ["snapshot", "--step", STEP], cwd=red)
 
     assert (code, err) == (0, "")
-    assert git(red, "diff", out.strip()) == ""
+    assert git(red, "diff", out.strip() + "~1", out.strip()) == ""
+
+
+@pytest.mark.process("a real git repository under tmp_path, its real index read before and after")
+def test_snapshot_step_leaves_the_real_index_untouched_so_stash_create_and_a_second_snapshot_still_work_4730(
+        red, run_cli, tests_frozen):
+    assert run_cli(tests_frozen, ["record", "--step", STEP, OWN], cwd=red)[0] == 0
+    (red / OWN).write_text("def test_own():\n    assert lib() in (1, 2)\n")
+    index = (red / ".git" / "index").read_bytes()
+
+    first = run_cli(tests_frozen, ["snapshot", "--step", STEP], cwd=red)
+    after = (red / ".git" / "index").read_bytes()
+    stash = subprocess.run(["git", "stash", "create"], cwd=red, capture_output=True, text=True, timeout=20)
+    second = run_cli(tests_frozen, ["snapshot", "--step", STEP], cwd=red)
+
+    assert (first[0], first[2], after == index, stash.returncode, second[0], second[2]) == (0, "", True, 0, 0, "")
+    shown = git(red, "diff", first[1].strip() + "~1", first[1].strip())
+    assert "-    assert lib() == 2" in shown and "+    assert lib() in (1, 2)" in shown
+
+
+@pytest.mark.process("a real git repository under tmp_path, its objects written and diffed")
+def test_snapshot_step_shows_a_recreated_recorded_deletion_a_staged_new_test_and_a_deleted_test_as_whole_files_4730(
+        red, run_cli, tests_frozen):
+    (red / "tests" / "test_gone.py").write_text("def test_gone():\n    assert True\n")
+    git(red, "add", "tests/test_gone.py")
+    git(red, "commit", "-q", "-m", "gone")
+    head = git(red, "rev-parse", "HEAD").strip()
+    git(red, "rm", "-q", OLD)
+    assert run_cli(tests_frozen, ["record", "--step", STEP, OWN], cwd=red)[0] == 0
+    (red / OLD).write_text("def test_old():\n    pass\n")
+    (red / "tests" / "test_staged.py").write_text("def test_staged():\n    pass\n")
+    git(red, "add", OLD, "tests/test_staged.py")
+    (red / "tests" / "test_gone.py").unlink()
+
+    code, out, err = run_cli(tests_frozen, ["snapshot", "--step", STEP], cwd=red)
+
+    assert (code, err) == (0, "")
+    sha = out.strip()
+    assert sorted(git(red, "diff", "--name-status", sha + "~1", sha).splitlines()) == [
+        "A\t" + OLD, "A\ttests/test_staged.py", "D\ttests/test_gone.py"]
+    assert git(red, "rev-parse", sha + "~2").strip() == head
+    assert not [p.name for p in (red / ".tdd").rglob("*") if p.name.endswith(".snapshot-index")]
+
+
+@pytest.mark.process("a real git repository under tmp_path, its scratch index locked")
+def test_snapshot_step_exits_2_saying_why_when_a_git_call_fails_4730(red, run_cli, tests_frozen):
+    assert run_cli(tests_frozen, ["record", "--step", STEP, OWN], cwd=red)[0] == 0
+    (red / OWN).write_text("def test_own():\n    assert lib() in (1, 2)\n")
+    record = run_cli(tests_frozen, ["path", STEP], cwd=red)[1].strip()
+    (red / (record + ".snapshot-index.lock")).write_text("")
+
+    code, out, err = run_cli(tests_frozen, ["snapshot", "--step", STEP], cwd=red)
+
+    assert (code, out) == (2, "")
+    assert err.startswith("tests-frozen.sh: ") and "GitFailed" not in err and "(at " not in err
 
 
 @pytest.mark.process("the tests-frozen.sh shim, run in a real git repository under tmp_path")

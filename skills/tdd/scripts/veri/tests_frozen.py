@@ -849,11 +849,12 @@ def _base_text(record_file, name, expected, probe_head=False):
 
 
 def snapshot(record_file, step):
-    """`snapshot --step`: print a commit whose tree is the work tree's tracked content (`git stash create`, or HEAD
-    when nothing differs) with each file `check --step` would name returned to the content `diff --step` diffs it
-    from, so `git diff <commit>` shows those files' edits and nothing else, never a production change; a named file
-    on disk that git does not track is first marked intent-to-add (`git add -N`), since `git diff <commit>` shows no
-    untracked file. The exit code, 2 where `diff` gives no answer or a git call fails."""
+    """`snapshot --step`: print a commit pair's tip. Its parent, the base, is HEAD's child whose tree is the work
+    tree's tracked content (`git stash create`, or HEAD when nothing differs) with each file `check --step` would name
+    returned to the content `diff --step` diffs it from; the tip is the base with those files at their content on disk,
+    a file gone from disk removed. So `git diff <commit>~1 <commit>` shows those files' edits and nothing else, never a
+    production change, an untracked test included, and the real index is never written. The exit code, 2 where `diff`
+    gives no answer or a git call fails."""
     record_file = os.path.abspath(record_file)
     changed = _changed(record_file, step)
     if changed is None:
@@ -864,17 +865,11 @@ def snapshot(record_file, step):
         start = git.out("stash", "create") or git.out("rev-parse", "HEAD")
         _git_env(scratch, "read-tree", start)
         for name, expected in changed:
-            base = _base_text(record_file, name, expected, probe_head=True)
-            if base is None:
-                _git_env(scratch, "update-index", "--force-remove", "--", name)
-            else:
-                blob = _git_env(scratch, "hash-object", "-w", "--stdin", stdin=base)
-                mode = (_git_env(scratch, "ls-files", "-s", "--", name).split() or ["100644"])[0]
-                _git_env(scratch, "update-index", "--add", "--cacheinfo", "%s,%s,%s" % (mode, blob, name))
-            if os.path.exists(name) and not git.ok("ls-files", "--error-unmatch", "--", name):
-                git.out("add", "-N", "--", name)
-        tree = _git_env(scratch, "write-tree")
-        commit = _git_env(scratch, "commit-tree", tree, "-p", "HEAD", "-m", "tests-frozen snapshot", stdin="")
+            _stage(scratch, name, _base_text(record_file, name, expected, probe_head=True))
+        base = _commit(scratch, "HEAD", "tests-frozen snapshot base")
+        for name, _expected in changed:
+            _stage(scratch, name, _read_bytes(name) if os.path.exists(name) else None)
+        commit = _commit(scratch, base, "tests-frozen snapshot")
     except (OSError, git.GitFailed) as error:
         return _no_answer(" ".join(((getattr(error, "stderr", "") or "") + " " + str(error)).split()))
     finally:
@@ -882,6 +877,25 @@ def snapshot(record_file, step):
             os.remove(index)
     write(sys.stdout, commit)
     return 0
+
+
+def _stage(env, name, content):
+    """Set `name` in the scratch index `env` names to `content`, or remove it when `content` is None."""
+    if content is None:
+        _git_env(env, "update-index", "--force-remove", "--", name)
+        return
+    blob = _git_env(env, "hash-object", "-w", "--stdin", stdin=content)
+    mode = (_git_env(env, "ls-files", "-s", "--", name).split() or ["100644"])[0]
+    _git_env(env, "update-index", "--add", "--cacheinfo", "%s,%s,%s" % (mode, blob, name))
+
+
+def _read_bytes(name):
+    with open(name, encoding="utf-8", errors="surrogateescape", newline="") as handle:
+        return handle.read()
+
+
+def _commit(env, parent, message):
+    return _git_env(env, "commit-tree", _git_env(env, "write-tree"), "-p", parent, "-m", message, stdin="")
 
 
 def _git_env(env, *args, stdin=None):
