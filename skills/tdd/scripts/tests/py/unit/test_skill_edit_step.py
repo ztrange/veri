@@ -2238,3 +2238,20 @@ def test_a_traced_line_without_a_file_and_line_exits_2_naming_no_verdict_and_run
     code, out, err = run_cli(case.step, ["issue.md", "unit.md"], env={"VERI_NO_VERDICT_RETRIES": "0"})
 
     assert (code, "no-verdict" in err, len(case.graded)) == (2, True, 1), (code, out, err)
+
+
+def test_an_untraced_sentence_sends_the_step_back_to_the_author_with_that_line_among_its_reasons_spending_one_attempt_and_running_no_grade_on_it_4759(tmp_path, monkeypatch, skill_edit, run_cli):
+    answers = [["UNTRACED S1 no code makes the widget round"], []]
+    case = skill_edit(
+        unit="The widget is painted a deep blue.\n",
+        grade=[(1, "A1: FAIL - no\n"), (0, "")],
+        author=lambda *a: (tmp_path / "unit.md").write_text(
+            "The widget is painted a deep blue. It is round.\n") and 0,
+        guard=lambda unit, base, pins: [])
+    monkeypatch.setattr(case.step, "_trace", lambda *a: answers.pop(0))
+
+    code, out, err = run_cli(case.step, ["issue.md", "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "3"})
+
+    reasons = [a[2] for a in case.launched]
+    assert (code, len(case.launched), len(case.graded)) == (0, 2, 2), (code, out, err, reasons)
+    assert "UNTRACED S1 no code makes the widget round" in reasons[1], reasons
