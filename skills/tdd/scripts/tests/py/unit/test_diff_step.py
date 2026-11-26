@@ -367,3 +367,13 @@ def test_4760_a_quality_repair_step_whose_leaf_reports_a_possible_bug_still_laun
     for _, _, _, fake in (second, third):
         assert "add-ledger-step.sh" not in fake.names()
         assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
+
+
+def test_4760_a_test_quality_step_whose_leaf_reports_a_possible_bug_and_no_flip_runs_no_probe_and_ticks(diff):
+    """SG2: the strengthened case was reverted, so there is no flip to probe; the step ticks, exit 0."""
+    diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    code, out, err, fake = diff(step=QUALITY, report="SUITE: ok\n" + POSSIBLE_BUG)
+
+    assert code == 0, err
+    assert "mutation-probe.sh" not in fake.names()
+    assert "step-tick.sh" in fake.names()
