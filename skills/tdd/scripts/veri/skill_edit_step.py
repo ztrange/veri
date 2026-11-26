@@ -6,6 +6,7 @@ import sys
 import tempfile
 
 import event
+import fused
 import grade_prose
 import leaf
 import requirements
@@ -264,6 +265,21 @@ def _author(unit, path, reasons):
         os.unlink(f.name)
 
 
+def _trace_prompt(rows, sentences):
+    with open(os.path.join(SCRIPTS, "prompts", "trace-rows.md")) as f:
+        return f.read()
+
+
+def _trace(unit, rows, sentences):
+    prompt = ".tdd/verify-trace-rows.prompt"
+    with open(prompt, "w") as f:
+        f.write(_trace_prompt(rows, sentences))
+    fused.launch("trace", ".", "verify-trace-rows", "run-leaf.sh", prompt, env=None,
+                 out=".tdd/verify-trace-rows.out", err=".tdd/verify-trace-rows.err")
+    fused.call(fused.script("wait-leaf.sh"), "verify-trace-rows")
+    return []
+
+
 def _grade(path, unit):
     grading = grade_prose.grade_unit(path, unit)
     return grading.code, grading.out
@@ -415,6 +431,8 @@ def main(argv):
                              if n in tree or (os.path.normpath(n) not in present
                                               and not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep)))])
         if not graded:
+            rows, sentences = [], []
+            answer = _trace(unit, rows, sentences)
             graded, said = _grade(path, unit)
         if change is not None and graded == 0 and all(_read_existing([f]).get(f) == before.get(f) for f in (file, path)):
             graded, said = 1, "FAIL: the author left the prose and the rows unchanged\n"
