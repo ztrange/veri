@@ -8,7 +8,7 @@
 - [x] an added `_, body, _ = fused.call("gh", "api", "x")`, the exit code unpacked into `_`, is printed as `<file>:<line>`, exit 1 (unit case; watched red before the `_` rule exists) ⟦criterion 3⟧
 - [x] an added `_ = subprocess.call(["x"])` or `_ = os.system("x")`, the whole exit code assigned to `_`, is printed as `<file>:<line>`, exit 1 (unit case) ⟦criterion 12⟧
 - [x] an added `code, out, err = fused.call("git", "status")` or `rc = os.system("x")` whose bound exit-code name the enclosing function never reads again is printed as `<file>:<line>`, exit 1 (unit case) ⟦criterion 13⟧
-- [ ] an added `read, body, _ = fused.call("gh", "api", "x")` followed in the same function by `if read:` prints nothing and exits 0 (unit case) ⟦criterion 3⟧
+- [x] an added `read, body, _ = fused.call("gh", "api", "x")` followed in the same function by `if read:` prints nothing and exits 0 (unit case) ⟦criterion 3⟧
 - [ ] an added `proc = subprocess.run(["x"])` with no `check=True`, whose `proc.stdout` the function reads and `proc.returncode` it never reads, is printed as `<file>:<line>`, exit 1 (unit case) ⟦criterion 14⟧
 - [ ] an added `proc = subprocess.run(["x"], check=True)` whose `.returncode` is never read prints nothing and exits 0 (unit case) ⟦criterion 14⟧
 - [ ] an added `proc = subprocess.run(["x"])` with no `check=True` followed in the same function by `if proc.returncode:` prints nothing and exits 0 (unit case) ⟦criterion 14⟧
