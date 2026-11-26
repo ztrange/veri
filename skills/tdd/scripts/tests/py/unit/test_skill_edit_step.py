@@ -2185,3 +2185,28 @@ def test_a_trace_answer_that_leaves_a_claim_with_no_line_exits_2_naming_no_verdi
     code, out, err = run_cli(case.step, ["issue.md", "unit.md"], env={"VERI_NO_VERDICT_RETRIES": "0"})
 
     assert (code, "no-verdict" in err, len(case.graded)) == (2, True, 1), (code, out, err)
+
+
+def test_an_empty_trace_answer_exits_2_naming_no_verdict_and_runs_no_grade_4759(tmp_path, monkeypatch, skill_edit, run_cli, fake_processes):
+    trace = importlib.import_module("veri.skill_edit_step")._trace
+
+    def detach(line, **kw):
+        (tmp_path / ".tdd" / "verify-trace-rows.log").write_text("")
+        return 0, "", ""
+
+    case = skill_edit(
+        unit="The widget is painted a deep blue.\n",
+        issue="## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n",
+        grade=[(1, "A2: FAIL - no\n"), (0, "")],
+        author=lambda *a: (tmp_path / "unit.md").write_text(
+            "The widget is painted a deep blue. It is round.\n") and 0,
+        guard=lambda unit, base, pins: [])
+    monkeypatch.setattr(case.step, "_trace", trace)
+    fake_processes.answers({"stop-requested.sh": (3, "", ""), "detach-leaf.sh": detach,
+                            "wait-leaf.sh": (0, "", "")})
+
+    code, out, err = run_cli(case.step, ["issue.md", "unit.md"], env={"VERI_NO_VERDICT_RETRIES": "0"})
+
+    assert (code, "no-verdict" in err, len(case.graded)) == (2, True, 1), (code, out, err)
