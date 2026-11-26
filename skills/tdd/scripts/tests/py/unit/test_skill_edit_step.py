@@ -2069,3 +2069,31 @@ def test_the_trace_prompt_carries_a_claim_line_for_each_sentence_the_units_diff_
 
     claims = [l for p in prompts for l in p.splitlines() if l.startswith("CLAIM S")]
     assert claims == ["CLAIM S1 It has three legs.", "CLAIM S2 It hums."], (code, out, err, prompts)
+
+
+def test_the_trace_prompt_carries_neither_the_step_text_nor_the_author_report(tmp_path, monkeypatch, skill_edit, run_cli, fake_processes):
+    trace = importlib.import_module("veri.skill_edit_step")._trace
+    prompts = []
+
+    def detach(line, **kw):
+        prompts.append((tmp_path / fake.argvs[-1][-1]).read_text())
+        return 0, "", ""
+
+    def author(*a):
+        (tmp_path / "unit.md").write_text("The widget is painted a deep blue. It has three legs.\n")
+        print("AUTHOR-REPORT-QUOKKA: I made the widget three-legged.")
+        return 0
+
+    case = skill_edit(
+        unit="The widget is painted a deep blue. It has four legs.\n",
+        grade=[(0, "")],
+        author=author,
+        guard=lambda unit, base, pins: [])
+    monkeypatch.setattr(case.step, "_trace", trace)
+    fake = fake_processes.answers({"stop-requested.sh": (3, "", ""), "detach-leaf.sh": detach,
+                                   "wait-leaf.sh": (0, "", "")})
+
+    code, out, err = run_cli(case.step, ["--change", "STEP-TEXT-ZEBRA give the widget three legs", "issue.md", "unit.md"])
+
+    assert prompts and "CLAIM S1 It has three legs." in prompts[0], (code, out, err, prompts)
+    assert not [p for p in prompts if "STEP-TEXT-ZEBRA" in p or "AUTHOR-REPORT-QUOKKA" in p], prompts
