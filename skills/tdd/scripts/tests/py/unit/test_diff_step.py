@@ -441,3 +441,21 @@ def test_4760_a_spent_quality_repair_budget_appends_no_step_makes_no_plan_commit
     assert (len(steps), [l for l in steps if "⟦quality-repair⟧" in l]) == (len(before), [])
     assert commits == []
     assert "step-tick.sh" in fake.names()
+
+
+def test_4760_a_ledger_already_holding_one_quality_repair_step_gets_no_second_at_the_default_budget_and_ticks(
+        diff, monkeypatch):
+    """SG5: VERI_QUALITY_REPAIRS counts the run's ⟦quality-repair⟧ steps; at the default 1, with one already in the
+    ledger, a further finding appends no step and makes no plan: commit, and the step ticks, exit 0."""
+    monkeypatch.delenv("VERI_QUALITY_REPAIRS", raising=False)
+    ledger = diff.wt / ".tdd" / "issue-12.md"
+    ledger.write_text((LEDGER % QUALITY) + "- [ ] fix the bug ⟦diff-checked⟧ ⟦quality-repair⟧ ⟦criterion 2⟧\n")
+    diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    code, out, err, fake = diff(step=QUALITY, report="SUITE: ok\n" + POSSIBLE_BUG)
+
+    repairs = [l for l in ledger.read_text().split("\n") if l.startswith("- [") and "⟦quality-repair⟧" in l]
+    commits = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
+    assert code == 0, err
+    assert len(repairs) == 1
+    assert commits == []
+    assert "step-tick.sh" in fake.names()
