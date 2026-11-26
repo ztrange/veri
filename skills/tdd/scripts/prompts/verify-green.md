@@ -46,7 +46,9 @@ A developer agent has written the implementation intended to make the target tes
    first one whose removal leaves every test green: name each such item in REASON:, one
    per line, since the revise leaf fixes only what you name. Production code outside the
    step's criterion is rejected by asking for its removal, never by offering a test for it,
-   and is not named on a `MISSING_TEST:` line. Establish each the way verify-pin
+   and is not named on a `MISSING_TEST:` line. REJECT, too, when your own reason for a PASS
+   would name a guard, argument or clause whose removal turns no case of the fast tier plus
+   the `changed` run red. Establish each the way verify-pin
    establishes a mutation: remove the code through
    `{{MUTATION_PROBE}} <file> <old> <new> -- <one command running {{FAST_CMD}} and the test files affected-suites.sh prints, together>`,
    never those test files or one test file alone, so a branch only a fast-tier case
@@ -58,6 +60,9 @@ A developer agent has written the implementation intended to make the target tes
    `git diff` prints what it printed before the probe — before you report, since a verifier
    that reports first leaves the developer's tree mutated for the next leaf.
 5. {{INCLUDE:_verify-comments-lead.md}} change {{INCLUDE:_verify-comments-allowed.md}} change {{INCLUDE:_verify-comments-never-reject.md}}
+6. **No exit code is discarded.** Run `{{DISCARDED_EXIT}}` in the worktree. REJECT each
+   `<file>:<line>` it prints, naming that line, unless the spec says that call's failure is
+   ignored. Its exit 0 or 3 passes this check; on its exit 2, write no `VERDICT:` line.
 
 When a REJECT's cause is a behaviour no test pins — a line the step needs that every test
 leaves unchecked — put one `MISSING_TEST: <behaviour>` line, naming that behaviour, before
