@@ -494,3 +494,19 @@ def test_4760_a_spent_quality_repair_budget_appends_the_possible_bug_to_the_test
     assert record.read_text() == earlier + (
         "possible-bug | tests/test_a.py::test_split | expects [300, 300, 300], code yields [300, 300, 299];"
         " not fixed: past VERI_QUALITY_REPAIRS\n")
+
+
+def test_4760_a_possible_bug_within_the_default_budget_leaves_the_test_quality_record_byte_for_byte_unchanged(
+        diff, monkeypatch):
+    """SG5's counter-case: at the default VERI_QUALITY_REPAIRS with no ⟦quality-repair⟧ step in the ledger, the finding
+    is repaired by its own step, so .tdd/issue-<n>-test-quality keeps exactly the bytes it held."""
+    monkeypatch.delenv("VERI_QUALITY_REPAIRS", raising=False)
+    record = diff.wt / ".tdd" / "issue-12-test-quality"
+    earlier = b"redundant | tests/test_a.py::test_other | the same as test_split\n"
+    record.write_bytes(earlier)
+    diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    code, out, err, fake = diff(step=QUALITY, report="SUITE: ok\n" + POSSIBLE_BUG)
+
+    assert code == 0, err
+    assert "⟦quality-repair⟧" in (diff.wt / ".tdd" / "issue-12.md").read_text()
+    assert record.read_bytes() == earlier
