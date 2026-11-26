@@ -1,5 +1,5 @@
 """This repository's Python passes ruff under ruff.toml (PRD 039): no unused import, no undefined or redefined name,
-imports in order, no function over the complexity cap (C901), no bugbear finding (B).
+no pycodestyle error (E4, E7, E9), imports in order, no function over the complexity cap (C901), no bugbear finding (B).
 It audits the tree, not a module's logic, and runs ruff from the venv `make install-dev` built from the lock."""
 import subprocess
 import sys
