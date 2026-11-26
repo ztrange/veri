@@ -1,6 +1,5 @@
 """A writer passes only events and keys veri/event_table.py declares (PRD 030.1, ET6)."""
 import pytest
-
 from veri import event_table, journal_schema
 
 

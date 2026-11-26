@@ -2,18 +2,27 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
 import os
-import paths
-import pid_file
 import re
-import run_dir
 import sys
 
 import blocked_by
 import git
+import paths
+import pid_file
+import run_dir
 import stack_branch
 import tunables
-from github import (ISSUE_AUTHOR_ASSOCIATIONS, NoAnswer, author_association, closed_issues, gh_json, gh_json_page,
-                    joined_issues, pulls_in, trusted_author)
+from github import (
+    ISSUE_AUTHOR_ASSOCIATIONS,
+    NoAnswer,
+    author_association,
+    closed_issues,
+    gh_json,
+    gh_json_page,
+    joined_issues,
+    pulls_in,
+    trusted_author,
+)
 from json_documents import items
 
 USAGE = "usage: solvable-issues.sh [--repo owner/name] [--not-running]"

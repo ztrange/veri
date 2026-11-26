@@ -5,7 +5,6 @@ import sys
 from entry import no_arguments, write
 from report import report_read
 
-
 USAGE = "usage: cover-outcome.sh (the cover leaf's report on stdin)"
 
 

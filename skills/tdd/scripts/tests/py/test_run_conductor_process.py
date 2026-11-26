@@ -1,21 +1,20 @@
 """Cases for run-conductor.sh that start a real process."""
+import importlib
+import io
+import json
 import os
+import pathlib
+import re
 import shutil
+import signal
 import subprocess
 import sys
 
 import pytest
 
 from conftest import SCRIPTS
-import importlib
-import io
-import json
-import pathlib
-import re
-import signal
-from test_supervise_process import checked_step
-from test_supervise_process import committed_head
 from repo_builder import origin_head_at
+from test_supervise_process import checked_step, committed_head
 
 
 @pytest.mark.process("run-conductor.sh run as a real shim over veri/run_conductor.py, refusing an empty issue before any fetch")
@@ -5813,6 +5812,7 @@ def test_main_with_well_formed_requirements_rows_beside_other_tables_launches_th
 def test_main_with_an_empty_issue_body_from_gh_writes_only_the_skip_line_on_stderr_and_still_launches_the_conductor_issue_2373(
         tmp_path, monkeypatch, capfdbinary, reaches_issue_body_boundary):
     import types
+
     import github
     past_the_guards(monkeypatch)
     monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
@@ -5842,6 +5842,7 @@ def test_main_with_an_empty_issue_body_from_gh_writes_only_the_skip_line_on_stde
 def test_main_with_a_non_json_issue_body_from_gh_writes_only_the_skip_line_on_stderr_and_still_launches_the_conductor_issue_2373(
         tmp_path, monkeypatch, capfdbinary, reaches_issue_body_boundary):
     import types
+
     import github
     past_the_guards(monkeypatch)
     monkeypatch.delenv("VERI_NEW_SKILL", raising=False)

@@ -1,12 +1,11 @@
 """Cases for add-ledger-step.sh that start the real entry point."""
 import importlib
+import os
+import subprocess
 
 import pytest
 
 from conftest import SCRIPTS
-
-import os
-import subprocess
 
 # add-ledger-step.sh reads the verified plan's size from the newest plan commit, so each repository's seed is one.
 PLAN_SUBJECT = "plan: scope #42 into 3 steps (#42)"
@@ -52,6 +51,7 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_rewri
 @pytest.mark.process("add-ledger-step.sh run against a real git worktree whose conductor.pid names a real live process")
 def test_cli_3618_step_added_while_the_conductor_is_live_is_committed_and_survives_a_reset_hard(tmp_path):
     import os
+
     from veri import pid_file
 
     wt = tmp_path / "wt"
@@ -91,6 +91,7 @@ def test_cli_3618_step_added_while_the_conductor_is_live_is_committed_and_surviv
 @pytest.mark.process("add-ledger-step.sh run against a real git worktree whose conductor.pid names a real live process")
 def test_cli_3618_stdout_states_the_committed_step_is_durable_naming_the_commit(tmp_path):
     import os
+
     from veri import pid_file
 
     wt = tmp_path / "wt"
@@ -126,6 +127,7 @@ def test_cli_3618_stdout_states_the_committed_step_is_durable_naming_the_commit(
 @pytest.mark.process("add-ledger-step.sh run against a real git worktree whose commit hook refuses and conductor.pid names a real live process")
 def test_cli_3618_stderr_says_not_durable_and_makes_no_durable_claim_when_the_commit_fails(tmp_path):
     import os
+
     from veri import pid_file
 
     wt = tmp_path / "wt"
@@ -169,6 +171,7 @@ def test_cli_3618_stderr_says_not_durable_and_makes_no_durable_claim_when_the_co
 @pytest.mark.process("add-ledger-step.sh run as a child of the real live process conductor.pid names, in a real git worktree")
 def test_cli_3618_step_added_by_the_live_conductor_itself_is_left_uncommitted(tmp_path):
     import os
+
     from veri import pid_file
 
     wt = tmp_path / "wt"

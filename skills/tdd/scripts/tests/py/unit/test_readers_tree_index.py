@@ -2,10 +2,10 @@ import ast
 import collections
 
 import pytest
-
 import test_skill_green_readers
-import test_skill_phased_readers
 import test_skill_red_readers
+
+import test_skill_phased_readers
 import test_skill_refactor_readers
 
 

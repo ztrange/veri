@@ -6,7 +6,6 @@ import json
 import os
 
 import pytest
-
 from veri import supervise
 
 HEAD = "git -C"

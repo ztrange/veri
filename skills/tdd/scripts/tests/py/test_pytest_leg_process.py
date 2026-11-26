@@ -6,7 +6,6 @@ import sys
 import pytest
 
 
-
 @pytest.fixture
 def pytest_leg():
     return importlib.import_module("pytest_leg")

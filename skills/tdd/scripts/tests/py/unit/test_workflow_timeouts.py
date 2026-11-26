@@ -1,6 +1,7 @@
 """The workflow files under .github/workflows/, read as text the way GitHub Actions reads them."""
-import pytest
 import re
+
+import pytest
 
 from conftest import ROOT
 

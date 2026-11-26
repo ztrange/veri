@@ -2,7 +2,6 @@
 import importlib
 
 import pytest
-
 from test_metrics import render, write_log
 
 

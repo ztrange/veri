@@ -97,6 +97,7 @@ def test_4024_already_present_commits_nothing(start):
 def test_4338_a_worktree_whose_gitignore_holds_veris_own_4048_rule_commits_nothing_at_1_4(start, fake_processes):
     import contextlib
     import io
+
     from conftest import SCRIPTS
     ensure_run_state_ignored = importlib.import_module("veri.ensure_run_state_ignored")
     main_gitignore = (SCRIPTS.parents[2] / ".gitignore").read_bytes()

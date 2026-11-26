@@ -9,8 +9,8 @@ import os
 import re
 import sys
 
-from entry import no_arguments
 from case_reader import file_defines
+from entry import no_arguments
 from report import report_values
 
 # The ASCII whitespace a marker's value is stripped of, the C locale's: a no-break space is kept.

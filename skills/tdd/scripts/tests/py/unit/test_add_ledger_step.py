@@ -1474,6 +1474,7 @@ def test_stop_reason_and_metrics_read_a_run_log_holding_an_add_ledger_step_inser
 
 def test_main_exits_2_leaving_the_ledger_the_added_file_and_the_events_log_byte_identical_when_the_awake_clock_fails_2322(tmp_path, monkeypatch, run_cli, add_ledger_step):
     from types import SimpleNamespace
+
     from veri import event
 
     ledger = tmp_path / "issue-42.md"

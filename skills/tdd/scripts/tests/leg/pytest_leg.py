@@ -1,5 +1,6 @@
 """The pytest leg's launcher: refuses an interpreter below the Python floor, then runs pytest."""
 import os.path as _path
+
 VERI = _path.join(_path.dirname(_path.dirname(_path.dirname(_path.realpath(__file__)))), "veri")
 if __name__ == "__main__":
     # Run directly, the leg's directory leads sys.path; it holds only the leg and its plugins, so veri/ takes its place
@@ -62,7 +63,6 @@ import test_budget
 import tunables
 from ceiling import cap_path, read_cap, record_path
 from full_run_lock import legs_dir, waiters_dir
-
 
 MANIFEST = "veri-manifest.json"
 # Whether the last main()'s passes ran and were red, set before its teardown, so launch keeps their 1 when the

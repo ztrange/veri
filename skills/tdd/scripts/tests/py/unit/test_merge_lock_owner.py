@@ -2,7 +2,6 @@
 import os
 
 import pytest
-
 from veri import merge_lock
 
 

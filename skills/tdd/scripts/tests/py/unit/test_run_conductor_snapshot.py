@@ -6,7 +6,12 @@ import os
 import pytest
 
 import pinned_scripts
-from test_run_conductor_process import fake_pin, fake_snapshot, past_the_guards, scratch_tmpdir
+from test_run_conductor_process import (
+    fake_pin,
+    fake_snapshot,
+    past_the_guards,
+    scratch_tmpdir,
+)
 
 COMMIT = "1" * 40
 SKILL = {"SKILL.md": "# skill\n", "scripts/status.sh": "echo status\n"}

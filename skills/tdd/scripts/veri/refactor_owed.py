@@ -5,8 +5,9 @@ import sys
 from collections import Counter
 
 import entry
+from candidates import CLASSES, candidate
+from candidates import line as candidate_line
 from case_reader import is_test_path
-from candidates import CLASSES, candidate, line as candidate_line
 from report import report_read
 
 USAGE = ("refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' [<bounds>] < leaf-report.txt\n"

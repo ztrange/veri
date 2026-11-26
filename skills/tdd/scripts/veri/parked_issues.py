@@ -6,8 +6,8 @@ import sys
 
 import github
 import markdown_sections
-from park_decision import own_words
 from json_documents import documents, items
+from park_decision import own_words
 
 USAGE = "usage: parked-issues.sh"
 

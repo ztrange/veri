@@ -4,12 +4,12 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import sys
 
+import event_log
 import fused
 import fused_step
 import ledger
 import plan_publish
 import replaces_case
-import event_log
 import run_dir
 from ledger import handed_out
 

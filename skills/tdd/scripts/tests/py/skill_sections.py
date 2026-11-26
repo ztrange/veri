@@ -2,7 +2,6 @@ import pathlib
 import re
 
 import pytest
-
 from veri.markdown_sections import fenced_lines
 
 ROOT = pathlib.Path(__file__).resolve().parents[5]

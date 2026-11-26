@@ -1,19 +1,18 @@
 """parallel-conductors.sh's launcher, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
-import paths
 import shutil
 import signal
 import subprocess
 import sys
 import tempfile
 import time
-
-import entry
-import tunables
 import traceback
 
+import entry
+import paths
 import run_dir
+import tunables
 from context_budget import START, watch
 from event import toplevel
 from github import NoAnswer, closed_issues, open_pulls_text, pulls_in

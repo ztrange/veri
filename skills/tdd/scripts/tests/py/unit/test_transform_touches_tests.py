@@ -2,8 +2,8 @@
 import importlib
 import subprocess
 import sys
-import pytest
 
+import pytest
 
 USAGE = "usage: transform-touches-tests.sh <base-sha> [<bound>] [--touched <list>]\n"
 

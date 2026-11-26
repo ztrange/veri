@@ -5,7 +5,6 @@ import json
 import os
 import re
 
-
 HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages", "Questions",
             "Unasked questions", "Answered questions"]
 

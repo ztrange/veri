@@ -2,8 +2,8 @@
 import importlib
 import io
 import os
-import sys
 import subprocess
+import sys
 
 import pytest
 

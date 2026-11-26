@@ -10,15 +10,27 @@ import time
 from dataclasses import replace
 from datetime import datetime
 
-import github
-from github import NoAnswer, run_gh, gh_api, gh_rest_list, pull
-from json_documents import documents
-import tunables
 import ci_marks
 import event
 import event_log
-from ci_decision import Crash, Loop, Need, Observation, Options, Record, Sleep, UNREAD_LIMIT, decide, decimal, retry_sleep
+import github
+import tunables
+from ci_decision import (
+    UNREAD_LIMIT,
+    Crash,
+    Loop,
+    Need,
+    Observation,
+    Options,
+    Record,
+    Sleep,
+    decide,
+    decimal,
+    retry_sleep,
+)
 from ci_on_pr import WORKFLOW_SUFFIXES, declared, pull_request_trigger, trigger_lines
+from github import NoAnswer, gh_api, gh_rest_list, pull, run_gh
+from json_documents import documents
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha] | --fresh-window <head-sha>"
 PASSING = ("success", "neutral", "skipped")

@@ -3,8 +3,8 @@ import _io
 import builtins
 import io
 import os
-import posix
 import pathlib
+import posix
 import subprocess
 
 import pytest
@@ -331,6 +331,7 @@ def test_2100_every_case_runs_with_veri_pytest_legs_pointing_into_its_own_tmp_pa
 
 def test_2198_live_conductor_fails_at_setup_when_the_pid_file_attribute_it_patches_does_not_exist(monkeypatch, tmp_path):
     import importlib
+
     import pytest
 
     monkeypatch.delattr(importlib.import_module("pid_file"), "ps_field")

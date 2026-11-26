@@ -8,6 +8,7 @@ import pytest
 
 from conftest import SCRIPTS
 
+
 def is_usage(err):
     return (err.count("\n") == 1 and err.endswith("\n")
             and err.startswith("usage: comment.sh <issue> <kind>") and "--note-file" in err)

@@ -3,7 +3,6 @@ on their first turn, per role and model, in tokens."""
 import importlib
 
 import pytest
-
 from test_metrics import render, table, write_log
 
 

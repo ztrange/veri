@@ -3,7 +3,6 @@ import pathlib
 import types
 
 import pytest
-
 import test_tree_index_guard
 
 PLANTED = '''import ast

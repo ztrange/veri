@@ -4,7 +4,6 @@ import json
 import os
 
 import pytest
-
 from veri import run_dir
 
 PRE = "a" * 40

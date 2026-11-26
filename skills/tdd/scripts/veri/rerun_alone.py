@@ -6,7 +6,6 @@ import sys
 
 import event
 
-
 USAGE = "usage: rerun-alone.sh <alone-cmd> <red-output-file>"
 
 

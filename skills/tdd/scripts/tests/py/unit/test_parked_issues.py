@@ -6,7 +6,6 @@ import subprocess
 
 import pytest
 
-
 # The author fields of a comment github.trusted_comment trusts: veri's own parked comments carry them (#3972).
 OWNER = {"author_association": "OWNER", "user": {"login": "veri-operator"}}
 

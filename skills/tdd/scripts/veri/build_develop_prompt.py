@@ -1,7 +1,6 @@
 """build-develop-prompt.sh's argument checks and rendering, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
-import paths
 import re
 import shlex
 import sys
@@ -9,13 +8,21 @@ import sys
 import entry
 import event
 import event_log
+import paths
 import run_line
 import tidy_first
 import tunables
-from ledger import BEFORE_STATE_GREEN, INTERFACE_PHASES, carries_mark, trailing_markers
-from replaces_case import is_replaces_case_step, parse as parse_replaces_case
 from entry import write
-from prompt_template import IncludeRefused, expand_includes, fill, has_heading, spec_text_of
+from ledger import BEFORE_STATE_GREEN, INTERFACE_PHASES, carries_mark, trailing_markers
+from prompt_template import (
+    IncludeRefused,
+    expand_includes,
+    fill,
+    has_heading,
+    spec_text_of,
+)
+from replaces_case import is_replaces_case_step
+from replaces_case import parse as parse_replaces_case
 
 DEVELOP_INTERFACE_PHASES = INTERFACE_PHASES[:1] + ("beside",) + INTERFACE_PHASES[1:]
 PHASES = ("red", "green", "refactor", "cover", "seam", "break", "surround", "transform", "diff", "structural", "predicate", "revise",

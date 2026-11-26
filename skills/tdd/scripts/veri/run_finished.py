@@ -6,9 +6,9 @@ import os
 import sys
 
 import github
-from ledger import OPEN_STEP, is_human_owed, ledger_steps
 import run_dir as layout
 import status
+from ledger import OPEN_STEP, is_human_owed, ledger_steps
 
 json_document = functools.partial(status.json_document, read_states=False)
 

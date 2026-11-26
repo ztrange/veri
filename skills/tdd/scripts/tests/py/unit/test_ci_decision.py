@@ -2,10 +2,22 @@
 import dataclasses
 
 import pytest
-
+from veri.ci_decision import (
+    Crash,
+    Decision,
+    Exit,
+    Loop,
+    Need,
+    Observation,
+    Options,
+    Record,
+    Remove,
+    Sleep,
+    decide,
+    decimal,
+    retry_sleep,
+)
 from veri.ci_marks import Marks
-from veri.ci_decision import (Crash, Decision, Exit, Loop, Observation, Need, Options, Record, Remove, Sleep,
-                              decide, decimal, retry_sleep)
 
 PR = "https://github.com/o/r/pull/1"
 HEAD = "a" * 40

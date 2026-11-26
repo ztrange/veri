@@ -3,8 +3,9 @@
 Only the knob set and each default are pinned; what an axis says is graded prose, never pinned here."""
 import re
 
-from conftest import ROOT
 from veri.tunables import TUNABLES
+
+from conftest import ROOT
 
 BUDGETS = {
     "VERI_STUCK_RETRIES", "VERI_NO_VERDICT_RETRIES", "REVISE_BUDGET", "VERI_REFACTOR_BUDGET",

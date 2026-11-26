@@ -1,8 +1,8 @@
 """Small cases for veri.status --report: the first line names the local zone once."""
 import calendar
 import datetime
-import json
 import importlib
+import json
 import time
 
 

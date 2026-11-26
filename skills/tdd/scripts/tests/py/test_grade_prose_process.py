@@ -1316,8 +1316,8 @@ def test_2483_convert_resigns_the_listed_unit_under_the_trees_formula_and_leaves
 @pytest.mark.process("grade-prose.sh --convert against a tree whose own grade_prose.py differs only by a comment")
 @pytest.mark.tree_audit("copies the skill's scripts into a scratch tree")
 def test_4336_convert_leaves_the_graded_file_of_a_unit_both_formulas_sign_alike_untouched_bytes_and_mtime(tmp_path):
-    import shutil
     import os
+    import shutil
 
     tree_scripts = tmp_path / "skills" / "tdd" / "scripts"
     shutil.copytree(SCRIPTS, tree_scripts, ignore=shutil.ignore_patterns("tests", "__pycache__", "REQUIREMENTS.md"))

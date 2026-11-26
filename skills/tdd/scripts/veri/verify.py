@@ -20,15 +20,14 @@ import renamed_case
 import replaces_case_survivors
 import run_dir
 import tunables
-
 from case_reader import is_js_test_file
-from js_tests import CALL
-
-from leaf_model import env_value, resolve
 from entry import write
+from js_tests import CALL
+from leaf_model import env_value, resolve
 from leaf_role import leaf_role
 from paths import SCRIPTS
 from run_verdict import takes_a_value
+
 
 def write_ban_command(python, module):
     """The write-ban hook's shell command: `python module`, any non-zero status of it turned into 2, the only status

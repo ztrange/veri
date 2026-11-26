@@ -1,9 +1,9 @@
 """In-process cases for veri/dispatch.py, the module dispatch.sh is a shim over."""
-from datetime import datetime
 import importlib
 import json
 import os
 import sys
+from datetime import datetime
 
 import pytest
 

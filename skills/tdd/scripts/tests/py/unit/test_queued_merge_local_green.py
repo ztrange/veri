@@ -5,7 +5,6 @@ import os
 import re
 
 import pytest
-
 from veri import queued_merge
 
 PID = str(os.getpid())

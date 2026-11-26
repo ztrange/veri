@@ -1,6 +1,7 @@
 """The one reader of VERI_* tunables: no other module under veri/ reads one from the environment."""
 import ast
 import pathlib
+
 import pytest
 
 VERI = pathlib.Path(__file__).resolve().parents[3] / "veri"

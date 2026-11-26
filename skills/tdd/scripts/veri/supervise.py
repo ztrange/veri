@@ -3,7 +3,6 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import errno
 import json
 import os
-import paths
 import re
 import signal
 import subprocess
@@ -17,6 +16,7 @@ import event_log
 import full_run_lock
 import harvest_usage
 import leaf_timeout
+import paths
 import pinned_scripts
 import preserve_attempt
 import run_dir
@@ -24,7 +24,7 @@ import run_pins
 import tunables
 from case_reader import is_test_path
 from extract_result import extract
-from frozen_record import work_tree_hash, pass_marker_current
+from frozen_record import pass_marker_current, work_tree_hash
 from leaf_log import result_records
 from leaf_model import leaf_model
 from leaf_role import leaf_role

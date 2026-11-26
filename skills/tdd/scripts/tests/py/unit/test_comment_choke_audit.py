@@ -3,7 +3,6 @@ import ast
 
 import pytest
 
-
 WRITERS = {"gh_issue_comment", "gh_comment_post", "gh_comment_edit"}
 # github.py's own writer implementations: their body arrives already published from the caller.
 WRITER_IMPLEMENTATIONS = WRITERS | {"issue_comment"}

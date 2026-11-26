@@ -1,7 +1,6 @@
 """add-ledger-step.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
-import pid_file
 import re
 import subprocess
 import sys
@@ -9,15 +8,33 @@ import time
 
 import entry
 import event
-import ledger_growth
 import issue_body
+import ledger_growth
+import pid_file
 import replaces_case
 import requirements
 import tunables
-
 from event_log import read_events
 from git import git
-from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body as step_body, carries_mark, has_kind, is_retired, is_skill_edit, ledger_steps, read_ledger, replace_ledger, multi_tag_refusal, new_step, same_step, trailing_markers, unit_of
+from ledger import (
+    ADDED_MARK,
+    CRITERION_TAG,
+    STEP_RE,
+    added_file,
+    carries_mark,
+    has_kind,
+    is_retired,
+    is_skill_edit,
+    ledger_steps,
+    multi_tag_refusal,
+    new_step,
+    read_ledger,
+    replace_ledger,
+    same_step,
+    trailing_markers,
+    unit_of,
+)
+from ledger import body as step_body
 
 SUITE_REPAIR = "suite-repair"
 REPAIR_MARKS = ("ci-repair", SUITE_REPAIR, "branch-repair")

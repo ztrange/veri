@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 import pytest
+
 from conftest import PROCESS_CASE_TIMEOUT
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -59,6 +60,7 @@ def test_a_detach_leaf_signal_case_passes_in_a_pytest_run_started_with_int_term_
 
 def test_the_detach_leaf_signal_cases_outcome_wait_ends_inside_its_child_sessions_per_case_timeout_3498():
     import re
+
     from test_detach_leaf import SIGNAL_OUTCOME_WAIT
 
     source = pathlib.Path(__file__).read_text()

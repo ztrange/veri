@@ -8,7 +8,6 @@ import pytest
 from conftest import SCRIPTS
 
 
-
 def staged_module(scripts):
     """veri/run_verdict.py copied under <scripts>/veri/ and loaded from there, so the scripts
     directory it computes from its own path is <scripts>."""

@@ -3,8 +3,8 @@ import importlib
 import json
 import os
 import pathlib
-import pytest
 
+import pytest
 
 AC = "## Acceptance criteria\n\n"
 

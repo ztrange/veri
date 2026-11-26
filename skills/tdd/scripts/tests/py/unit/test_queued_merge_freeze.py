@@ -3,10 +3,10 @@ join's world is test_queued_merge_join's, and the stack-red.sh call is queued_me
 import os
 
 import pytest
-
-from process_fakes import HANGS
 from test_queued_merge_join import BRANCH, ENV, PR, World, join, pushed, released
 from veri import queued_merge
+
+from process_fakes import HANGS
 
 RED = "%040x" % 9
 URL = "https://github.com/o/r/actions/runs/42"

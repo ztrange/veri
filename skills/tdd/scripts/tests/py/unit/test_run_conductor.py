@@ -4,8 +4,8 @@ import os
 import pathlib
 import subprocess
 import sys
-import pytest
 
+import pytest
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[3]
 for path in (SCRIPTS, SCRIPTS / "veri"):

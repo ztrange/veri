@@ -5,7 +5,6 @@ import sys
 
 import event_log
 
-
 USAGE = "usage: suite-flakes.sh <run-dir> [<run-dir>...]"
 
 

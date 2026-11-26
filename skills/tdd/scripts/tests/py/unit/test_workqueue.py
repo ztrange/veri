@@ -5,8 +5,8 @@ import os
 import subprocess
 import sys
 import time
-import pytest
 
+import pytest
 
 USAGE = """workqueue.sh: usage: workqueue.sh assign <worker> <issue>...
                      workqueue.sh next <worker>

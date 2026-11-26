@@ -2,6 +2,7 @@
 import importlib
 
 import pytest
+
 from conftest import SCRIPTS
 
 FRAGMENT = (SCRIPTS / "prompts" / "_develop-diff-test-quality.md").read_bytes().rstrip(b"\n")

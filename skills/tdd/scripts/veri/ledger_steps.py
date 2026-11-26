@@ -4,7 +4,14 @@ import sys
 
 import entry
 import issue_body
-from ledger import handed_out, ledger_steps, next_phase, read_ledger_stdin, trailing_markers, carries_mark
+from ledger import (
+    carries_mark,
+    handed_out,
+    ledger_steps,
+    next_phase,
+    read_ledger_stdin,
+    trailing_markers,
+)
 
 VERBS = {
     "current": "current",

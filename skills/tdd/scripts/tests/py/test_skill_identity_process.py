@@ -7,7 +7,6 @@ import pytest
 from conftest import ROOT
 from repo_builder import new_repo
 
-
 OLD_SKILL_DIR = "skills/solve-issue"
 OLD_SCRIPTS_DIR = f"{OLD_SKILL_DIR}/scripts"
 STUBS = [f"{OLD_SKILL_DIR}/SKILL.md", "skills/solve-issues/SKILL.md"]

@@ -7,7 +7,6 @@ import time
 import pytest
 
 
-
 @pytest.fixture
 def pytest_leg():
     return importlib.import_module("pytest_leg")
@@ -1499,6 +1498,7 @@ def test_4310_a_core_wait_whose_marker_cannot_be_written_waits_unmarked_saying_s
 
 def test_4310_a_leg_ended_by_term_while_it_waits_for_a_core_has_removed_its_wait_marker_by_the_time_it_exits(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     import signal
+
     import idle_watch
     on_16_cores(monkeypatch)
     legs = tmp_path / "legs"
@@ -1593,6 +1593,7 @@ def test_4311_a_cap_that_is_not_a_whole_number_of_at_least_1_exits_2_in_one_line
 def test_4311_a_cap_4_leg_finding_no_free_core_waits_with_one_stderr_line_the_wait_marker_and_one_core_wait_event_carrying_its_seconds(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     measured(16)
     import json
+
     import supervise
     monkeypatch.setattr(os, "cpu_count", lambda: 16)
     monkeypatch.setattr(os, "process_cpu_count", lambda: 16, raising=False)
@@ -1959,6 +1960,7 @@ def test_4455_a_legs_waiter_entry_is_gone_once_it_registers_and_starts_pytest(py
 
 def test_4455_a_leg_ended_by_term_while_it_waits_for_t_has_removed_its_waiter_entry_by_the_time_it_exits(pytest_leg, run_cli, monkeypatch, tmp_path, started):
     import signal
+
     import idle_watch
     on_cores(monkeypatch, 16)
     measured(8)

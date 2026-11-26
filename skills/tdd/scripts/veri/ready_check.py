@@ -21,8 +21,9 @@ import launch_floor
 import paths
 import pid_file as pid_file_module
 import tunables
-from github import gh_probe as gh, push_dry_run
 from case_reader import is_test_path
+from github import gh_probe as gh
+from github import push_dry_run
 from session_env import strip_session_env
 from wait_ci import trigger_lines
 

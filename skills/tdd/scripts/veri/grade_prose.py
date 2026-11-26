@@ -12,14 +12,13 @@ import typing
 import uuid
 
 import event
+import leaf
+import leaf_log
+import markdown_sections
 import requirements
 import tunables
-import markdown_sections
 from extract_result import extract
-import leaf_log
 from paths import SCRIPTS
-
-import leaf
 
 USAGE = "usage: grade-prose.sh <requirements-file> <unit> | --signed <base>"
 GRADE_KEY = r"^(?!VERDICT|REASON:)\S+: "

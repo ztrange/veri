@@ -3,9 +3,9 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import re
 import sys
 
+import entry
 import tunables
 from git import git
-import entry
 
 SUFFIX = re.compile(r"\(#(\d+)\)\s*$")
 

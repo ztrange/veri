@@ -8,20 +8,27 @@ import re
 import sys
 
 import case_history
-import git
 import case_identity
+import entry
+import event
+import frozen_record
+import git
 import ledger
 import replaces_case
 import run_dir
 import tunables
-import entry
-from frozen_record import (body_digest, body_line, body_record, helper_records,
-                           record_path, remove_pass_marker, work_tree_hash,
-                           write_pass_marker)
-import event
-import frozen_record
-from ledger import ITEM_RE, KIND_RE, carries_mark, trailing_markers
 from case_reader import UnclosedCase, cut_cases, old_cut_cases_all
+from frozen_record import (
+    body_digest,
+    body_line,
+    body_record,
+    helper_records,
+    record_path,
+    remove_pass_marker,
+    work_tree_hash,
+    write_pass_marker,
+)
+from ledger import ITEM_RE, KIND_RE, carries_mark, trailing_markers
 
 USAGE = ("usage: tests-frozen.sh record <record-file>|--step <step-text> [--red-case <red-test-id>] <test-file>... | "
          "check <record-file>|--step <step-text> | diff --step <step-text> | snapshot --step <step-text> | "

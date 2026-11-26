@@ -9,6 +9,7 @@ def test_4453_dev_set_n_writes_the_lanes_entry_and_prints_n_its_need_the_other_l
     import hashlib
     import os
     import time
+
     import watch_runs
     role_state = importlib.import_module("veri.role_state")
     role_state_cli = importlib.import_module("veri.role_state_cli")

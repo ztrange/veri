@@ -4,7 +4,6 @@ import subprocess
 
 import pytest
 
-
 SKILL = pathlib.Path(__file__).resolve().parents[2].parent / "SKILL.md"
 
 REBASE_CALL = "rebase-onto-default.sh"

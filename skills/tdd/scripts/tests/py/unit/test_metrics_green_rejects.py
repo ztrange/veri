@@ -6,7 +6,6 @@ import importlib
 import io
 
 import pytest
-
 from test_metrics import render, table, write_log
 
 

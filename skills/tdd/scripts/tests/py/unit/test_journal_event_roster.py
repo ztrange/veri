@@ -33,16 +33,18 @@ def test_journal_md_has_a_table_row_for_the_conductor_restart_event():
 
 
 def test_journal_md_has_a_table_row_for_the_lint_event_and_the_event_table_declares_its_exit_key_4122():
-    from event_roster import documented_events
     from veri import event_table
+
+    from event_roster import documented_events
 
     assert ("lint" in documented_events(JOURNAL.read_text(encoding="utf-8")),
             "lint" in event_table.EVENTS and list(event_table.keys("lint"))) == (True, ["exit"])
 
 
 def test_journal_md_has_a_table_row_for_the_tidy_first_event_and_the_event_table_declares_its_keys_4118():
-    from event_roster import documented_events
     from veri import event_table
+
+    from event_roster import documented_events
 
     assert ("tidy-first" in documented_events(JOURNAL.read_text(encoding="utf-8")),
             "tidy-first" in event_table.EVENTS and sorted(event_table.keys("tidy-first"))) == (True, ["anchor", "refactoring"])

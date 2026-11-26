@@ -10,7 +10,13 @@ import sys
 import entry
 from case_reader import file_defines, is_test_path, strip_param_suffix
 from git import GitFailed, out
-from ledger import CRITERION_TAG, ledger_steps, multi_tag_refusal, read_ledger, trailing_markers
+from ledger import (
+    CRITERION_TAG,
+    ledger_steps,
+    multi_tag_refusal,
+    read_ledger,
+    trailing_markers,
+)
 from report import report_values
 
 USAGE = "usage: test-quality.sh files <branch-base> | anchor <ledger> | record <n> < <leaf-report>"

@@ -1,8 +1,8 @@
 """Process cases for veri/structural_predicate.py: the ones that start a real process; the small cases are in unit/test_structural_predicate.py."""
 import os
 import subprocess
-import pytest
 
+import pytest
 
 SHIM = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", "structural-predicate.sh"))
 

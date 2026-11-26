@@ -6,9 +6,9 @@ import os
 import re
 
 import pytest
+from veri import event
 
 from conftest import SCRIPTS
-from veri import event
 
 PUBLISHED = SCRIPTS.parent / "PUBLISHED.md"
 JOURNAL = SCRIPTS.parent / "JOURNAL.md"

@@ -10,14 +10,14 @@ import tempfile
 
 import entry
 import event_log
+import git as git_module
+import github
 import paths
 import pinned_scripts
 import run_dir
 import stack_branch
 import tunables
-import git as git_module
 from git import default_branch, git, symref_default
-import github
 from github import NoAnswer
 from pid_file import ancestors, live_conductor
 

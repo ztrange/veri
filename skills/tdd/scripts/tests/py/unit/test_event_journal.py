@@ -433,6 +433,7 @@ def test_only_event_py_outside_the_tests_names_veri_home_so_nothing_else_writes_
 
 def test_append_once_exits_2_with_a_stderr_message_on_a_short_os_write_3604(tmp_path, monkeypatch, capfd):
     import importlib
+
     import pytest
     event = importlib.import_module("veri.event")
     journal = tmp_path / "7.jsonl"

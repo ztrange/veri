@@ -7,7 +7,6 @@ import pytest
 from conftest import SCRIPTS
 from shim_audit import FLOOR_SOURCE, shim_problems
 
-
 EXEMPT = {
     "build-develop-prompt.sh": "a spelling difference; canonicalising it is a change of its own",
     "build-verify-prompt.sh": "a spelling difference; canonicalising it is a change of its own",

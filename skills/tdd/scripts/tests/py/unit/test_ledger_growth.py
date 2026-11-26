@@ -4,7 +4,6 @@ import json
 
 import pytest
 
-
 # A cap no case below reaches: three ⟦added⟧ steps over a one-step plan.
 ROOMY = {"VERI_STEP_GROWTH_PERCENT": "300"}
 

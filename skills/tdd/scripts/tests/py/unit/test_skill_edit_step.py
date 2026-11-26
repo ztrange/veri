@@ -6,7 +6,6 @@ import types
 
 import pytest
 
-
 UNIT_TEXT = "The widget is painted a deep blue.\n"
 LISTING = "## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n"
 ISSUE = "## Problem\n\nText.\n"
@@ -1796,6 +1795,7 @@ def test_the_issue_body_file_given_reported_changed_does_not_stop_the_step_whose
 
 def test_the_author_prompt_carries_the_untrusted_text_paragraph_of_leaf_safety_before_the_requirements_3959(tmp_path, monkeypatch, skill_edit):
     import re
+
     from conftest import SCRIPTS
     skill_edit_step = skill_edit(unit="The widget is painted a deep green.\n", issue=None, stubbed=False).step
     prompts = []

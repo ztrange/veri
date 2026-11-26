@@ -9,7 +9,6 @@ import os
 import re
 
 import pytest
-
 from test_metrics import table, write_log
 from test_metrics_page import build_rich_root
 

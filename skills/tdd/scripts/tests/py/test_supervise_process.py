@@ -1,7 +1,9 @@
 """Cases for supervise.sh that start a real process."""
 import fcntl
+import importlib
 import json
 import os
+import pathlib
 import subprocess
 import sys
 import time
@@ -9,10 +11,7 @@ import time
 import pytest
 
 from conftest import SCRIPTS, supervised
-import importlib
-import pathlib
-from leaf_waits import leaf_left
-from leaf_waits import leaf_started
+from leaf_waits import leaf_left, leaf_started
 from pass_marker import write_pass_marker
 
 

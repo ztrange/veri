@@ -2,7 +2,6 @@
 import importlib
 
 import pytest
-
 from test_metrics_page import build_rich_root
 
 

@@ -7,7 +7,6 @@ import sys
 import entry
 import git
 
-
 USAGE = "usage: discarded-exit.sh"
 EXIT_CODE_CALLS = {"subprocess.run", "subprocess.call", "os.system", "fused.call"}
 HUNK = re.compile(r"@@ -\S+ \+(\d+)")

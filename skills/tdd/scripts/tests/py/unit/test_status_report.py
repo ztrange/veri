@@ -3,7 +3,6 @@ import datetime
 import importlib
 import json
 
-
 GH_REFUSED = {"gh ": AssertionError("--report started gh")}
 TAGS = (("v0.2", 1762000000, "Second capability"), ("v0.1", 1761000000, "First capability"))
 

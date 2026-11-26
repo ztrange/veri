@@ -4,9 +4,9 @@ import subprocess
 import sys
 
 import pytest
+from veri import event_table
 
 from conftest import SCRIPTS
-from veri import event_table
 
 
 @pytest.mark.process("python3 running veri/journal_sample.py as a script")

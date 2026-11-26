@@ -3,8 +3,8 @@ import importlib
 import os
 import pathlib
 import subprocess
-import pytest
 
+import pytest
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[3]
 USAGE = b"usage: supervise.sh <name> <cmd> [args...]\n"

@@ -2,7 +2,6 @@
 import pathlib
 
 import pytest
-
 from veri.popen_command import command_basename
 
 
@@ -23,9 +22,10 @@ def test_list_args():
 
 
 def test_guards_and_helper_test_share_one_popen_command_module_2012():
+    from veri import popen_command
+
     import network_guard
     import small_case_guard
-    from veri import popen_command
 
     for guard in (network_guard, small_case_guard):
         assert guard.command_basename is popen_command.command_basename
@@ -35,9 +35,11 @@ def test_guards_and_helper_test_share_one_popen_command_module_2012():
 def test_each_guard_asks_the_helper_for_the_command_2012(monkeypatch, tmp_path_factory):
     import importlib
     import subprocess
+
+    from veri import popen_command
+
     import network_guard
     import small_case_guard
-    from veri import popen_command
 
     asked = []
 
@@ -73,6 +75,7 @@ def test_each_guard_asks_the_helper_for_the_command_2012(monkeypatch, tmp_path_f
 
 def test_network_guard_refuses_an_iterator_args_as_it_does_the_list_2012(monkeypatch, tmp_path_factory):
     import subprocess
+
     import network_guard
 
     installed = {}
@@ -91,6 +94,7 @@ def test_network_guard_refuses_an_iterator_args_as_it_does_the_list_2012(monkeyp
 
 def test_small_case_guard_allows_an_iterator_args_as_it_does_the_list_2012():
     import os
+
     import small_case_guard
 
     words = ["python3", os.path.join(small_case_guard.VERI, "status.py")]

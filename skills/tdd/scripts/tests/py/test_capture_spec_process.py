@@ -5,7 +5,6 @@ import subprocess
 
 import pytest
 
-
 BUG_BODY = """## What happened
 tick-ledger.sh ticked the same step twice.
 

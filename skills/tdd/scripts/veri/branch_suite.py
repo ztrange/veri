@@ -2,9 +2,8 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
-import suite_mode
 import entry
-
+import suite_mode
 
 USAGE = "usage: branch-suite.sh"
 
