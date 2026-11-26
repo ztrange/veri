@@ -305,8 +305,7 @@ def _trace(unit, rows, sentences):
     with open(stem + ".log", encoding="utf-8", errors="replace") as f:
         lines = [line.strip() for line in extract(f.read()).splitlines() if line.strip()]
     wanted = [claim_id for claim_id, _ in rows] + ["S%d" % k for k in range(1, len(sentences) + 1)]
-    answered = [line.split()[1] for line in lines
-                if line.split()[0] in ("TRACED", "NOT-CODE") and len(line.split()) > 1]
+    answered = [words[1] for words in map(str.split, lines) if words[0] in ("TRACED", "NOT-CODE") and len(words) > 1]
     return [] if len(answered) == len(lines) and sorted(answered) == sorted(wanted) else None
 
 
