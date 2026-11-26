@@ -24,8 +24,9 @@ def skill_edit(tmp_path, monkeypatch):
     whose `run` (`run`: a callable, default answering 0 with "abc1234\\n") stands in for git. `author=None` or
     `run=None` leaves that one unstubbed, for a case that fakes `leaf.launch` or uses `fake_processes`, and
     `grade=None` leaves `_grade` unstubbed, for a case that grades through `fake_processes`;
-    `guard`, when given, replaces `skill_edit_guard.offending`. Returns a namespace: `step` (the module) and
-    the recorded `graded`, `launched` (author calls), `events` and `commands` (every run argv)."""
+    `guard`, when given, replaces `skill_edit_guard.offending`. Every case, `stubbed=False` included, gets a
+    `_trace` answering that no claim is untraced. Returns a namespace: `step` (the module) and the recorded
+    `graded`, `launched` (author calls), `events` and `commands` (every run argv)."""
     def install(unit=UNIT_TEXT, listing=LISTING, issue=ISSUE, grade=(1, "A1: FAIL - no\n"), author=0,
                 run=_git_ok, guard=None, stubbed=True):
         monkeypatch.chdir(tmp_path)
@@ -34,6 +35,7 @@ def skill_edit(tmp_path, monkeypatch):
             if text is not None:
                 (tmp_path / name).write_text(text)
         case = types.SimpleNamespace(step=skill_edit_step, graded=[], launched=[], events=[], commands=[])
+        monkeypatch.setattr(skill_edit_step, "_trace", lambda *a, **k: [], raising=False)
         if not stubbed:
             return case
         if isinstance(grade, list):

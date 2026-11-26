@@ -8,8 +8,17 @@ from conftest import INTERPRETER_VENV, SCRIPTS
 
 STEP = SCRIPTS / "skill-edit-step.sh"
 OWED = SCRIPTS / "prose-owed.sh"
+TRACE_SH = r"""
+answer_trace() {
+  case "$prompt" in *"TRACED <id>"*) ;; *) return 0 ;; esac
+  reply=$(printf '%s\n' "$prompt" | sed -n 's/^CLAIM \([^ ]*\).*/NOT-CODE \1/p' | awk '{ printf "%s%s", sep, $0; sep = "\\n" }')
+  printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"'"$reply"'"}'
+  exit 0
+}
+"""
 GRADER = """#!/bin/sh
-cat > /dev/null
+""" + TRACE_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+answer_trace
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"BEGIN GRADES\\nA1: PASS - ok\\nA2: PASS - ok\\nVERDICT: PASS\\nEND GRADES"}'
 """
 LIST = ("## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
@@ -63,7 +72,8 @@ reply_rows() {
 """
 
 STUB_MODEL = """#!/bin/sh
-""" + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+""" + TRACE_SH + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+answer_trace
 case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$VERI_TEST_CAP/grades" 2>/dev/null || echo 0)
@@ -120,7 +130,8 @@ def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whos
 
 
 STUB_UNCHANGED_FAILS = """#!/bin/sh
-""" + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+""" + TRACE_SH + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+answer_trace
 case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$VERI_TEST_CAP/grades" 2>/dev/null || echo 0)
@@ -172,7 +183,8 @@ def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_befor
 
 
 STUB_ALWAYS_REJECT = """#!/bin/sh
-case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+""" + TRACE_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+answer_trace
 case "$prompt" in
 *"You grade a piece of prose"*)
   reply='BEGIN GRADES\\nA1: FAIL - prose never says crimson\\nA2: FAIL - prose still hums\\nVERDICT: REJECT\\nEND GRADES' ;;
@@ -184,6 +196,8 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 
 
 STUB_UNPARSEABLE = """#!/bin/sh
+""" + TRACE_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+answer_trace
 printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"no verdict here"}'
 """
 
@@ -218,7 +232,8 @@ def test_a_grader_that_gives_no_parseable_verdict_exits_2(tmp_path):
 
 
 STUB_AUTHOR_KILLED = """#!/bin/sh
-""" + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+""" + TRACE_SH + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+answer_trace
 case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$VERI_TEST_CAP/grades" 2>/dev/null || echo 0)
@@ -267,7 +282,8 @@ def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_o
 
 
 STUB_AUTHOR_TOUCHES_GRADED = """#!/bin/sh
-""" + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+""" + TRACE_SH + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+answer_trace
 case "$prompt" in
 *"You grade a piece of prose"*)
   n=$(cat "$VERI_TEST_CAP/grades" 2>/dev/null || echo 0)
@@ -443,6 +459,7 @@ def test_a_rejected_author_attempts_edits_to_the_unit_are_reset_before_the_next_
     for name in ("GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"):
         monkeypatch.setenv(name, "t@t")
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    monkeypatch.setattr(skill_edit_step, "_trace", lambda *a, **k: [], raising=False)
     seen = []
 
     def author(unit, path, reasons):
@@ -478,6 +495,7 @@ def test_each_author_attempts_leaf_is_named_author_skill_edit_k_for_its_attempt_
     for name in ("GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"):
         monkeypatch.setenv(name, "t@t")
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    monkeypatch.setattr(skill_edit_step, "_trace", lambda *a, **k: [], raising=False)
     real_run = subprocess.run
     names = []
 
@@ -705,7 +723,8 @@ def test_an_author_leaf_is_launched_with_permission_mode_bypass_permissions_2041
 
 
 STUB_ROLE_LOG = """#!/bin/sh
-""" + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+""" + TRACE_SH + ROWS_SH + """case "$2" in --*|"") prompt=$(cat) ;; *) prompt=$2 ;; esac
+answer_trace
 case "$prompt" in
 *"You grade a piece of prose"*)
   echo grader >> "$VERI_TEST_CAP/roles"
@@ -953,6 +972,7 @@ def test_a_grader_that_keeps_rejecting_relaunches_the_author_three_times_by_defa
     for name in ("GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"):
         monkeypatch.setenv(name, "t@t")
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    monkeypatch.setattr(skill_edit_step, "_trace", lambda *a, **k: [], raising=False)
     launches = []
 
     def author(unit, path, reasons):
@@ -988,6 +1008,7 @@ def test_a_grader_that_keeps_rejecting_relaunches_the_author_exactly_veri_skill_
     for name in ("GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"):
         monkeypatch.setenv(name, "t@t")
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    monkeypatch.setattr(skill_edit_step, "_trace", lambda *a, **k: [], raising=False)
     launches = []
 
     def author(unit, path, reasons):
@@ -1022,6 +1043,7 @@ def test_a_relaunched_author_prompt_carries_the_fail_reasons_of_the_latest_gradi
     for name in ("GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"):
         monkeypatch.setenv(name, "t@t")
     skill_edit_step = importlib.import_module("veri.skill_edit_step")
+    monkeypatch.setattr(skill_edit_step, "_trace", lambda *a, **k: [], raising=False)
     gradings = []
     seen = []
 
