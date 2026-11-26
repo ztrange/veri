@@ -1339,7 +1339,7 @@ def test_an_untraced_row_exits_1_with_a_row_untraced_bail(tmp_path, path, run, s
     events = repo / ".tdd" / "events.jsonl"
     bails = [json.loads(line) for line in (events.read_text().splitlines() if events.exists() else [])
              if json.loads(line).get("event") == "bail"]
-    assert [ran.returncode, calls, [b.get("cause") for b in bails]] == [1, wanted, ["row-untraced"]], \
+    assert [ran.returncode, calls, "skill-edit-step.sh: row-untraced:" in ran.stderr, bails] == [1, wanted, True, []], \
         (path, calls, ran.stderr[-700:])
 
 

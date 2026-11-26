@@ -6,7 +6,6 @@ import subprocess
 import sys
 import tempfile
 
-import classify_bail
 import event
 import fused
 import grade_prose
@@ -437,8 +436,6 @@ def main(argv):
         if untraced_rows:
             print("skill-edit-step.sh: row-untraced: the verify-trace-rows leaf traced no code for a row\n"
                   + "\n".join(untraced_rows), file=sys.stderr)
-            event.mark("", event.context(os.environ), "bail",
-                       ["cause=row-untraced", "classification=" + classify_bail.CATEGORIES["row-untraced"]])
             return 1, []
         return None, answer
 
