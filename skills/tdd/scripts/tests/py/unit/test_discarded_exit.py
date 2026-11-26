@@ -286,3 +286,23 @@ def test_an_added_subprocess_run_with_check_true_bare_or_assigned_to_underscore_
     monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
+
+
+def test_a_discarded_call_on_a_context_or_removed_line_is_not_printed_while_an_added_one_is(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    (tmp_path / "mod.py").write_text(
+        "import subprocess\n"
+        "subprocess.call([\"context\"])\n"
+        "subprocess.call([\"added\"])\n")
+    diff = ("diff --git a/mod.py b/mod.py\n"
+            "index 1111111..2222222 100644\n"
+            "--- a/mod.py\n"
+            "+++ b/mod.py\n"
+            "@@ -1,3 +1,3 @@\n"
+            " import subprocess\n"
+            " subprocess.call([\"context\"])\n"
+            "-subprocess.call([\"removed\"])\n"
+            "+subprocess.call([\"added\"])\n")
+    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:3\n", "")
