@@ -2255,3 +2255,19 @@ def test_an_untraced_sentence_sends_the_step_back_to_the_author_with_that_line_a
     reasons = [a[2] for a in case.launched]
     assert (code, len(case.launched), len(case.graded)) == (0, 2, 2), (code, out, err, reasons)
     assert "UNTRACED S1 no code makes the widget round" in reasons[1], reasons
+
+
+def test_an_untraced_sentence_on_the_last_attempt_of_the_budget_launches_no_further_author_and_exits_1_with_the_units_files_restored_4759(tmp_path, monkeypatch, skill_edit, run_cli):
+    case = skill_edit(
+        unit="The widget is painted a deep blue.\n",
+        author=lambda *a: (tmp_path / "unit.md").write_text(
+            "The widget is painted a deep blue. It is round.\n") and 0,
+        guard=lambda unit, base, pins: [])
+    before = {name: (tmp_path / name).read_bytes() for name in ("unit.md", "REQUIREMENTS.md")}
+    monkeypatch.setattr(case.step, "_trace", lambda *a: ["UNTRACED S1 no code makes the widget round"])
+
+    code, out, err = run_cli(case.step, ["issue.md", "unit.md"], env={"VERI_SKILL_EDIT_BUDGET": "2"})
+
+    after = {name: (tmp_path / name).read_bytes() for name in before}
+    assert (code, len(case.launched), len(case.graded)) == (1, 2, 1), (code, out, err)
+    assert after == before
