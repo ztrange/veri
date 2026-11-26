@@ -11,8 +11,9 @@
 - [x] an added `read, body, _ = fused.call("gh", "api", "x")` followed in the same function by `if read:` prints nothing and exits 0 (unit case) ⟦criterion 3⟧
 - [x] an added `proc = subprocess.run(["x"])` with no `check=True`, whose `proc.stdout` the function reads and `proc.returncode` it never reads, is printed as `<file>:<line>`, exit 1 (unit case) ⟦criterion 14⟧
 - [x] an added `proc = subprocess.run(["x"], check=True)` whose `.returncode` is never read prints nothing and exits 0 (unit case) ⟦criterion 14⟧
-- [ ] an added `proc = subprocess.run(["x"])` with no `check=True` followed in the same function by `if proc.returncode:` prints nothing and exits 0 (unit case) ⟦criterion 14⟧
+- [x] an added `proc = subprocess.run(["x"])` with no `check=True` followed in the same function by `if proc.returncode:` prints nothing and exits 0 (unit case) ⟦criterion 14⟧
 - [ ] an added `out = subprocess.run(["x"]).stdout`, a `subprocess.run` with no `check=True` never bound whole, is printed as `<file>:<line>`, exit 1 (unit case) ⟦criterion 14⟧
+- [ ] an added bare `subprocess.run(["x"], check=True)` statement, or `_ = subprocess.run(["x"], check=True)`, prints nothing and exits 0 (unit case) ⟦added⟧ ⟦criterion 14⟧
 - [ ] a discarded call on a context or removed line of the diff is not printed, while an added one in the same file is: only the added line's `<file>:<line>` (unit case) ⟦criterion 1⟧
 - [ ] `discarded-exit.sh` run in a real git work tree with an uncommitted change adding a bare `subprocess.call(["true"])` line to a tracked `.py` file reads `git diff HEAD` and prints that `<file>:<line>`, exit 1 (a `process("git")` case in `skills/tdd/scripts/tests/py/test_discarded_exit_process.py`) ⟦criterion 1⟧
 - [ ] `build-verify-prompt.sh green` fills `{{DISCARDED_EXIT}}` with the path of `discarded-exit.sh` beside the build script, the built prompt holding that path and no unfilled `{{DISCARDED_EXIT}}` (a case in `skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py`) ⟦criterion 4⟧
