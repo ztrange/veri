@@ -112,13 +112,22 @@ def solvable(label, priority="priority", repo=None):
         return 2, []
 
 
-def solvable_in_scope():
-    """(exit code, the solvable issue numbers) for the configured scope; 2 when a label is unusable."""
+def scope_labels():
+    """The (opt-in, priority, author) labels, or None when one of their variables is set but empty."""
     label = scope_label()
     priority = label and priority_label()
     author = priority and author_label()
     if label is None or priority is None or author is None:
+        return None
+    return label, priority, author
+
+
+def solvable_in_scope():
+    """(exit code, the solvable issue numbers) for the configured scope; 2 when a label is unusable."""
+    labels = scope_labels()
+    if labels is None:
         return 2, []
+    label, priority, _ = labels
     return solvable(label, priority)
 
 
@@ -218,11 +227,10 @@ def main(argv):
         main_tree = run_dir.main_tree(missing="")
         starting = pid_file.runs_with_directory(main_tree)
         skip = running_numbers() | {int(number) for number in starting}
-    label = scope_label()
-    priority = label and priority_label()
-    author = priority and author_label()
-    if label is None or priority is None or author is None:
+    labels = scope_labels()
+    if labels is None:
         return 2
+    label, priority, _ = labels
     code, numbers = select(label, priority, repo)
     numbers = [number for number in numbers if int(number) not in skip]
     for number in numbers:
