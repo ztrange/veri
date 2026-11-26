@@ -477,3 +477,20 @@ def test_4760_a_quality_repairs_cap_of_2_with_one_quality_repair_step_already_in
     assert code == 0, err
     assert (len(repairs), repairs[-1] == steps[-1], POSSIBLE_BUG.strip() in repairs[-1]) == (2, True, True)
     assert [a[a.index("-m") + 1].startswith("plan:") for a in commits] == [True]
+
+
+def test_4760_a_spent_quality_repair_budget_appends_the_possible_bug_to_the_test_quality_record_as_not_fixed(
+        diff, monkeypatch):
+    """SG5: past VERI_QUALITY_REPAIRS the finding is not repaired, so it lands in .tdd/issue-<n>-test-quality, the record
+    the PR body's ### Test quality section renders as `<kind> | <file>::<case> | <why>`, after the lines already there."""
+    monkeypatch.setenv("VERI_QUALITY_REPAIRS", "0")
+    record = diff.wt / ".tdd" / "issue-12-test-quality"
+    earlier = "redundant | tests/test_a.py::test_other | the same as test_split\n"
+    record.write_text(earlier)
+    diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    code, out, err, fake = diff(step=QUALITY, report="SUITE: ok\n" + POSSIBLE_BUG)
+
+    assert code == 0, err
+    assert record.read_text() == earlier + (
+        "possible-bug | tests/test_a.py::test_split | expects [300, 300, 300], code yields [300, 300, 299];"
+        " not fixed: past VERI_QUALITY_REPAIRS\n")
