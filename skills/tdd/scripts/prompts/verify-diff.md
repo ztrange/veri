@@ -22,6 +22,13 @@ diff touched, as `affected-suites.sh` prints them, each through the wrapper {{IN
 
 {{INCLUDE:_verify-coverage-probe.md}}
 
+Where a criterion of the issue covers sites with "wherever", find each such site by searching
+the repository, not by the plan's row list. Check the docs against the code too. REJECT,
+naming the sentence, a doc sentence the step's diff, `git diff {{STEP_BASE_SHA}}..HEAD`, adds
+or changes that states a behaviour no file at `HEAD` shows. When that diff changes a
+behaviour, search for the doc sites that name it, re-read each one, and REJECT, naming it,
+one the change left false. Either REJECT applies even when the step's criterion is met.
+
 {{LINT_REPAIR}}PASS if the diff satisfies the step's criterion. REJECT, naming where the diff falls short,
 otherwise. REJECT, too, if the fast command or those test files are red. REJECT, too,
 if the step's own commits add a test — those in

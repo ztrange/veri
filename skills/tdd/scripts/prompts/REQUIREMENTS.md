@@ -921,6 +921,9 @@
 | VD9 | The closing paragraph ends: End with `VERDICT: PASS` or `VERDICT: REJECT`. (Closing paragraph, last sentence.) | The conductor reads one fixed verdict line. |
 | VD10 | The prompt says that when the step is a supersede edit, the rule rejecting a test added by the step's own commits does not apply to the step's own Red case, which is outside the diff under judgement. | The blind verifier must not reject the step's own pinned case on the supersede route. |
 | VD121 | For a `⟦lint-repair⟧` step the prompt tells the verifier to run the lint command it names and to REJECT when that command exits non-zero, naming its first finding: its `{{LINT_REPAIR}}` slot, between the included `_verify-coverage-probe.md` paragraph and the closing paragraph, carries the `_verify-diff-lint-repair.md` paragraph for such a step and nothing for any other. | A repair step is done only when the lint command passes (PRD 032, LR3). |
+| VD122 | The prompt REJECTs a doc sentence the step's diff adds or changes that states a behaviour no file at `HEAD` shows, naming the sentence. | A `⟦diff-checked⟧` step's sentences are held to the bar `trace-rows` holds a skill-edit's to (PR #4477's false M6). |
+| VD123 | The prompt tells the verifier to find each site an issue's criterion covers with "wherever" by searching the repository, not by the plan's row list. | PR #4478's stale DRAFT-PR.md, SCRIPTS.md and veri/README.md sites were named by row id while the criterion said "wherever" (leak audit class E). |
+| VD124 | The prompt tells the verifier that when the diff changes a behaviour it re-reads the doc sites that name that behaviour, and REJECTs one the change left false. | PR #4405's SCRIPTS.md sentences were graded against rows and never re-read against the code (leak audit class E). |
 
 ## skills/tdd/scripts/prompts/_verify-diff-lint-repair.md
 
