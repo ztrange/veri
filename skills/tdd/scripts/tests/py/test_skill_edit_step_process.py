@@ -769,7 +769,7 @@ STUB_WRITES_UNIT = STUB_ROLE_LOG.replace(
     "  echo 'The new skill is described.' >skills/new-skill/SKILL.md\n  reply='edited' ;;")
 
 
-def run_on_a_new_skill(tmp_path, stub):
+def run_on_a_new_skill(tmp_path, stub, extra_env=None):
     repo = tmp_path / "repo"
     repo.mkdir()
     git(repo, "init", "-q", "-b", "main")
@@ -785,7 +785,7 @@ def run_on_a_new_skill(tmp_path, stub):
     claude.chmod(0o755)
     env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
            "VERI_TEST_CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
-           "GIT_COMMITTER_EMAIL": "t@t"}
+           "GIT_COMMITTER_EMAIL": "t@t", **(extra_env or {})}
 
     ran = subprocess.run([str(STEP), "issue.md", "skills/new-skill/SKILL.md"], cwd=repo, capture_output=True,
                          text=True, env=env)
@@ -1271,3 +1271,18 @@ def test_a_run_that_goes_to_the_author_sends_no_trace_prompt_to_the_stub_before_
     calls = roles.read_text().split() if roles.exists() else []
     before_author = calls[:calls.index("author")] if "author" in calls else None
     assert [before_author is not None, "trace" in (before_author or [])] == [True, False], (calls, ran.returncode, ran.stderr[-700:])
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub claude whose trace leaf answers garbage")
+def test_a_garbage_trace_answer_exits_2_naming_no_verdict_and_runs_no_grade(tmp_path):
+    stub = STUB_WRITES_UNIT.replace(
+        "\nanswer_trace\n",
+        '\ncase "$prompt" in *"TRACED <id>"*) echo trace >> "$VERI_TEST_CAP/roles"\n'
+        "  printf '%s\\n''{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"no idea, sorry\"}'\n"
+        "  exit 0 ;; esac\n")
+    repo, cap, ran = run_on_a_new_skill(tmp_path, stub, {"VERI_NO_VERDICT_RETRIES": "0"})
+
+    roles = cap / "roles"
+    calls = roles.read_text().split() if roles.exists() else []
+    assert [ran.returncode, "no-verdict" in ran.stderr, calls] == [2, True, ["author", "trace"]], \
+        (calls, ran.stderr[-700:])
