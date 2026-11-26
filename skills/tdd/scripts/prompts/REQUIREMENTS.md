@@ -1150,6 +1150,7 @@
 |---|---|---|
 | TQP1 | The prompt includes `skills/tdd/SMELLS.md`'s test-code rules and the test files it is given, and tells the leaf to change no file and make no commit. | The leaf has no verifier, so it may change nothing (PRD 032, TQ2, C4). |
 | TQP2 | The prompt asks for one `FINDING: <kind> \| <file>::<case> \| <why>` line per finding, `<kind>` one of `weak-assertion` (asserts less than its criterion's observable), `redundant` (asserts nothing another case of those files does not), `implementation-coupled` (imports or asserts on a name private to the code under test, or computes its expected value with that code) and `fixed-wait` (sleeps a fixed time, or waits out a window of fixed length, for a condition it could wait on directly under a timeout), or the one line `FINDING: none`; its `REPORT-FORMAT` line declares `FINDING:`. (The numbered list's step 2 and the `FINDING:` line under *Report*.) | Farley: trustworthy feedback, over the range's tests and not only the step's new case (PRD 032, TQ2). A fixed wait costs its full length on every suite run and fails under load: a 400 ms sleep per step and a 700 ms quiet window in another repository's tests went unreported (#4578). |
+| TQP3 | The prompt says a `weak-assertion` finding's why field names the production bug the case would let through, and that a case with no nameable bug is no finding. (The `weak-assertion` kind and the `FINDING:` line.) | A finding with no bug is taste. |
 
 ## skills/tdd/scripts/prompts/_develop-diff-test-quality.md
 

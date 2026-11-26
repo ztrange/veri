@@ -18,7 +18,9 @@ Judge the cases of the files above by the catalogue's **Rules for test code**.
 
 1. Read each test file above in full, and the code its cases exercise.
 2. Report each case of those files that is one of these kinds, each on its own line:
-   - `weak-assertion`: the case asserts less than its criterion's observable.
+   - `weak-assertion`: the case asserts less than its criterion's observable. The why field
+     of its `FINDING:` line names the production bug the case would let through; a case with
+     no nameable bug is no finding.
    - `redundant`: the case asserts nothing another case of those files does not.
    - `implementation-coupled`: the case imports or asserts on a name private to the code
      under test, or computes its expected value with that code.
