@@ -45,9 +45,12 @@ def _called_name(call):
     return None
 
 
-def _drops_exit_code(node):
+FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
+
+
+def _drops_exit_code(node, read):
     """Whether node is a statement discarding an exit-code call's code: a bare call, or one whose
-    code, the whole result or its unpacked first element, goes to `_`."""
+    code, the whole result or its unpacked first element, goes to `_` or to a name not in read."""
     if not (isinstance(node, (ast.Expr, ast.Assign)) and isinstance(node.value, ast.Call)
             and _called_name(node.value) in EXIT_CODE_CALLS):
         return False
@@ -55,12 +58,28 @@ def _drops_exit_code(node):
         return True
     target = node.targets[0]
     code = target.elts[0] if isinstance(target, ast.Tuple) else target
-    return isinstance(code, ast.Name) and code.id == "_"
+    return isinstance(code, ast.Name) and (code.id == "_" or code.id not in read)
+
+
+def _own_nodes(scope):
+    """The nodes under scope (a module or a function), not descending into a nested function."""
+    pending = list(ast.iter_child_nodes(scope))
+    while pending:
+        node = pending.pop()
+        yield node
+        if not isinstance(node, FUNCTIONS):
+            pending.extend(ast.iter_child_nodes(node))
 
 
 def _discarded(source):
-    """The line numbers of the statements in source that discard an exit-code call's result."""
-    return sorted(node.lineno for node in ast.walk(ast.parse(source)) if _drops_exit_code(node))
+    """The line numbers of the statements in source that discard an exit-code call's result: each
+    scope's statements are judged against the names read anywhere inside that scope."""
+    tree = ast.parse(source)
+    lines = []
+    for scope in [tree, *(node for node in ast.walk(tree) if isinstance(node, FUNCTIONS))]:
+        read = {node.id for node in ast.walk(scope) if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)}
+        lines.extend(node.lineno for node in _own_nodes(scope) if _drops_exit_code(node, read))
+    return sorted(lines)
 
 
 def main(argv):
