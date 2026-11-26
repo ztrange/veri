@@ -56,10 +56,13 @@ what fills a TDD session's context; none of it belongs in the main thread.
   per transform. Push and PR stay with the main thread.
 - **Same step, same agent.** A split, a re-prediction or a "go ahead with Refactor" goes back by
   `SendMessage` to the agent that already holds the test in its context, not to a fresh one.
-- **Every child runs in the foreground, never in the background**: the cycle agent, the baseline
-  and full-suite runners, and the CI watch. The main thread's turn stays open until the child
-  returns; a turn that ends while a background child runs is never woken again, and the work stalls
-  with nothing live in the worktree.
+- **Every child may return asynchronously; wait for it inside the turn.** The Agent tool has no
+  foreground mode: the cycle agent, the baseline and full-suite runners and the CI watch can each
+  come back as an async launch (ADR-0039). After each launch the main thread stays in its turn on a
+  blocking watch with its own timeout, a `Monitor` until-loop or an equivalent, on the child's
+  result notice, its commit in the worktree or its output file, until the child completes. A turn
+  that ends while a child runs is never woken again, and the work stalls with nothing live in the
+  worktree.
 - **The turn ends only on the final report or on a blocker.** The final report is the PR url, the
   steps done out of total and the CI verdict; a blocker is a question the user must answer. Never
   end the turn on a per-step progress line, or to wait for a child's report: the host reads a
