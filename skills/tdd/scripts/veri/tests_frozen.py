@@ -513,7 +513,7 @@ def rerecord_refactored(ledger, green):
             return skip(name, case, record, "helpers digest differs from green's")
         helpers = case_identity.called_helpers("HEAD", at, head)
         called = set(re.findall(r"^(?:func|def)\s+(\w+)", helpers, re.M))
-        head_lines = [l for l in case_identity.checked_lines(head) if l.split("(")[0] not in called]
+        head_lines = [line for line in case_identity.checked_lines(head) if line.split("(")[0] not in called]
         verified_lines = case_identity.checked_lines(verified)
         verified_count = collections.Counter(verified_lines + case_identity.checked_lines(case_identity.called_helpers(green, name, verified + "\n" + head)))
         carried = collections.Counter(head_lines + case_identity.checked_lines(helpers))

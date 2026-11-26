@@ -110,7 +110,7 @@ def parsed_once():
 
 def headings(path):
     lines, fenced = parsed(path)
-    return [l[3:] for l, f in zip(lines, fenced, strict=False) if l.startswith("## ") and not f]
+    return [line[3:] for line, f in zip(lines, fenced, strict=False) if line.startswith("## ") and not f]
 
 
 def declared_units(path, swallows):

@@ -176,7 +176,7 @@ def do_add(path, argv):
         except ValueError:
             sys.stderr.write("timed-n text must be: <n> until <ISO-8601 datetime>\n")
             return 2
-    item = str(max([int(l.split()[1]) for l in (read(path) or "").splitlines() if l.partition(" ")[0] in LISTS] + [0]) + 1)
+    item = str(max([int(line.split()[1]) for line in (read(path) or "").splitlines() if line.partition(" ")[0] in LISTS] + [0]) + 1)
     append(path, "%s %s %s %s\n" % (argv[2], item, now(), argv[3]))
     print(item)
     return 0
@@ -184,7 +184,7 @@ def do_add(path, argv):
 
 def drop_lines(path, doomed):
     lines = (read(path) or "").splitlines(True)
-    kept = [l for l in lines if not doomed(l)]
+    kept = [line for line in lines if not doomed(line)]
     if kept == lines:
         return 3
     replace(path, "".join(kept))
@@ -194,7 +194,7 @@ def drop_lines(path, doomed):
 def do_drop(path, argv):
     if argv[2] not in LISTS:
         return usage()
-    code = drop_lines(path, lambda l: l.split()[:2] == argv[2:4])
+    code = drop_lines(path, lambda line: line.split()[:2] == argv[2:4])
     if code == 0 and argv[2] == "decision":
         append(path, "dropped-decision %s %s\n" % (argv[3], now()))
     return code

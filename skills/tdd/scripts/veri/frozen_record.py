@@ -19,7 +19,7 @@ def record_path(step):
 def recorded_cases(step):
     try:
         with open(record_path(step), encoding="utf-8", errors="replace") as handle:
-            return {l[6:].strip() for l in handle.read().splitlines() if l.startswith("case: ")}
+            return {line[6:].strip() for line in handle.read().splitlines() if line.startswith("case: ")}
     except OSError:
         return set()
 

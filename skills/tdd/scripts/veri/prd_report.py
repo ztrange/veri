@@ -157,13 +157,13 @@ def _print_solved(snapshot, nnn, issue, now):
 def _print_left(nnn, issue, opened, open_children):
     open_numbers = {o["number"] for o in opened}
     solvable = 0
-    for label in sorted({l["name"] for o in open_children for l in o["labels"]}):
+    for label in sorted({label_row["name"] for o in open_children for label_row in o["labels"]}):
         listed = solvable_issues.solvable(label)[1]
         solvable += sum(1 for o in open_children if o["number"] in listed)
     waiting = [(o["number"], b) for o in open_children
                for b in o["blockedBy"] if b in open_numbers]
     unheld = sum(1 for o in open_children
-                 if not any(l["name"].split(":")[0] == "ready-for-agent" for l in o["labels"])
+                 if not any(label_row["name"].split(":")[0] == "ready-for-agent" for label_row in o["labels"])
                  and not issue_worktree.remote_issue_branch("tdd/%d" % o["number"]))
     print("left: solvable now %d, waiting %d on %s, held by no lane %d" % (
         solvable, len({n for n, _ in waiting}),

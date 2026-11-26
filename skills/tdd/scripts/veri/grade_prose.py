@@ -316,9 +316,9 @@ def record_graded(unit, sig, grading_id):
     graded = graded_path(unit)
     kept = []
     if os.path.exists(graded):
-        kept = [l for l in read_graded(graded) if graded_fields(l)[0] != unit]
+        kept = [line for line in read_graded(graded) if graded_fields(line)[0] != unit]
     with open(graded, "w", encoding="utf-8") as f:
-        f.write("".join(l + "\n" for l in kept))
+        f.write("".join(line + "\n" for line in kept))
         template = hashlib.sha256(GRADER_INSTRUCTIONS.encode("utf-8")).hexdigest()[:12]
         f.write(graded_line([unit, sig, time.strftime("%Y-%m-%d"), grading_id, template]) + "\n")
 
@@ -362,7 +362,7 @@ def resign(unit, own, tree):
             fields[1] = tree
             lines[i] = graded_line(fields)
     with open(graded, "w", encoding="utf-8") as f:
-        f.write("".join(l + "\n" for l in lines))
+        f.write("".join(line + "\n" for line in lines))
 
 
 def convert(path):
@@ -493,17 +493,17 @@ def grade_unit(path, unit, read=None):
         follow = extract(more)
         if "BEGIN GRADES" in follow:
             follow = follow[follow.rindex("BEGIN GRADES"):].partition("END GRADES")[0]
-            added = drop_off_list([l for l in follow.splitlines()[1:] if not l.startswith("VERDICT")], missing)
-            kept = [l for l in reply.partition("END GRADES")[0].splitlines() if not l.startswith("VERDICT")]
+            added = drop_off_list([line for line in follow.splitlines()[1:] if not line.startswith("VERDICT")], missing)
+            kept = [line for line in reply.partition("END GRADES")[0].splitlines() if not line.startswith("VERDICT")]
             lines = kept + added
-            verdict = "REJECT" if any(": FAIL" in l for l in lines) else "PASS"
+            verdict = "REJECT" if any(": FAIL" in line for line in lines) else "PASS"
             reply = "\n".join(lines + ["VERDICT: " + verdict, "END GRADES"])
         still = [i for i in missing if i not in graded_ids(reply)]
         if still:
             return no_verdict("GRADES block is missing requirement IDs %s; the follow-up for them was tried"
                               % ", ".join(still))
     block, _, after = reply.partition("END GRADES")
-    trailing = "\n".join(l for l in after.splitlines() if l.strip())
+    trailing = "\n".join(line for line in after.splitlines() if line.strip())
     if trailing:
         return no_verdict("text after END GRADES: %s" % trailing)
     for word in re.findall(GRADE_KEY + r"(\S+)", block, re.M):
@@ -526,7 +526,7 @@ def grade_unit(path, unit, read=None):
     if said[-1] != ("REJECT" if failed else "PASS"):
         return no_verdict("VERDICT %s disagrees with the GRADES lines" % said[-1])
     if failed:
-        asked = {l.split(":")[0] for l in failed}
+        asked = {line.split(":")[0] for line in failed}
         counted = set(asked)
         for _ in range(2):
             for _try in range(retries + 1):
@@ -539,12 +539,12 @@ def grade_unit(path, unit, read=None):
             if not asked <= set(graded_ids(again)):
                 return no_verdict("the re-grade has no GRADES block for the rows it was asked about")
             counted &= set(re.findall(r"^(?!VERDICT)(\S+): FAIL\b", again, re.M))
-        failed = [l for l in failed if l.split(":")[0] in counted]
+        failed = [line for line in failed if line.split(":")[0] in counted]
         if not failed:
             said = ["PASS"]
     grading_id = uuid.uuid4().hex
     event.append(".", {}, "grading", ["unit=" + unit, "verdict=" + said[-1],
-                                       "failing=" + ",".join(l.split(":")[0] for l in failed),
+                                       "failing=" + ",".join(line.split(":")[0] for line in failed),
                                        "cost_usd=%s" % leaf_log.plain(cost), "id=" + grading_id,
                                        "effort=" + (effort or "default")])
     ours = stamp(with_effort([shown, claims, model], effort))
@@ -558,14 +558,14 @@ def grade_unit(path, unit, read=None):
         print("grade-prose.sh: signature-formula-disagreement: %s: the running grader signs %s, the tree's formula gave none (%s)"
               % (unit, ours, e), file=sys.stderr)
         return Grading(2)
-    answered = dict(verdict=said[-1], failing=tuple(l.split(":")[0] for l in failed), cost=cost,
+    answered = dict(verdict=said[-1], failing=tuple(line.split(":")[0] for line in failed), cost=cost,
                     grading_id=grading_id)
     rejected = os.path.join(".tdd", "grade-prose-rejected")
     if not failed:
         if os.path.exists(rejected):
             with open(rejected, encoding="utf-8") as f:
-                earlier = [l for l in f.read().splitlines()
-                           if l.split(" ")[:2] == [unit, sig]]
+                earlier = [line for line in f.read().splitlines()
+                           if line.split(" ")[:2] == [unit, sig]]
             if earlier:
                 return Grading(1, lines=("grade-prose.sh: %s was REJECTed on this same text (%s); change the text "
                                          "before it can be signed" % (unit, earlier[-1]),), **answered)

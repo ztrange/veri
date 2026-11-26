@@ -323,7 +323,7 @@ def landed_lines():
     lines = git_tags(root, "%(refname:short)  %(creatordate:format-local:%Y-%m-%d %H:%M)  %(contents:subject)")
     if since is not None:
         cut = tags_created_since(root, since)
-        lines = [l for l in lines if l.split()[0] in cut]
+        lines = [line for line in lines if line.split()[0] in cut]
     return "\n".join(lines) or "none"
 
 
@@ -333,7 +333,7 @@ def git_tags(root, fmt):
 
 
 def tags_created_since(root, since):
-    return {l.split()[1] for l in git_tags(root, "%(creatordate:unix) %(refname:short)") if int(l.split()[0]) >= since}
+    return {line.split()[1] for line in git_tags(root, "%(creatordate:unix) %(refname:short)") if int(line.split()[0]) >= since}
 
 
 def sum_since(events, since, value=lambda e: 1):

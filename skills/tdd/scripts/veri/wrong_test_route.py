@@ -177,7 +177,7 @@ def _unparseable_claim(report, own_id):
     for claim in _claims(report, "WRONG_TEST"):
         if not _is_none(claim.strip()):
             return True
-    return any(_prose_claim(l) and not any(True for _ in _spellings(l)) for l in _text(report).splitlines())
+    return any(_prose_claim(line) and not any(True for _ in _spellings(line)) for line in _text(report).splitlines())
 
 
 def _prose_claim(line):

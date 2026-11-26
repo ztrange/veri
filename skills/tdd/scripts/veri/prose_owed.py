@@ -25,7 +25,7 @@ def rowless():
 
 
 def waive(ledger, owed):
-    steps = [l for l in ledger.splitlines() if l.startswith(OPEN_STEP) and is_skill_edit(l)]
+    steps = [line for line in ledger.splitlines() if line.startswith(OPEN_STEP) and is_skill_edit(line)]
     still, waived = [], []
     for unit in owed:
         step = next((s for s in steps if re.search(r"(?<![\w./-])" + re.escape(unit) + r"(?![\w/-]|\.\w)", s)), None)
