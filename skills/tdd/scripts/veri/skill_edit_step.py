@@ -268,7 +268,7 @@ def _author(unit, path, reasons):
 
 def _trace_prompt(rows, sentences):
     with open(os.path.join(SCRIPTS, "prompts", "trace-rows.md")) as f:
-        return f.read()
+        return f.read().replace("{{CLAIMS}}", "".join("CLAIM %s %s\n" % row for row in rows).rstrip("\n"))
 
 
 def _trace(unit, rows, sentences):
@@ -394,6 +394,7 @@ def main(argv):
     fresh = any(row_id(r) not in listed or _row_text(r) != texts.get(row_id(r))
                 for r in issue_rows)
     moved = apply(issue, unit)
+    rows = [(i, t) for i, t in listed_texts(path, unit).items() if texts.get(i) != t]
     if not _claimed(path, unit):
         if added is not None:
             print("added step names a unit no requirements list claims, so nothing would change: " + added,
@@ -403,7 +404,7 @@ def main(argv):
         return 3
     if os.path.getsize(file):
         if added is not None and change is None:
-            _trace(unit, [], [])
+            _trace(unit, rows, [])
         graded, said = _grade(path, unit)
     else:
         graded, said = 1, "FAIL: unit is empty\n"
@@ -441,7 +442,7 @@ def main(argv):
                              if n in tree or (os.path.normpath(n) not in present
                                               and not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep)))])
         if not graded:
-            rows, sentences = [], []
+            sentences = []
             answer = _trace(unit, rows, sentences)
             graded, said = _grade(path, unit)
         if change is not None and graded == 0 and all(_read_existing([f]).get(f) == before.get(f) for f in (file, path)):
