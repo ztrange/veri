@@ -44,7 +44,7 @@ def run(n):
         code = fused.wait(wt, n, NAME, "verdict-diff", rejected_step=step)
         if code != 0:
             raise fused.Stop("verify", "wait-leaf.sh verdict-diff exit %d" % code, code)
-    if has_kind(step, "⟦test-quality⟧"):
+    if has_kind(step, "⟦test-quality⟧") and not possible_bug(wt, values["leaf"]):
         flip(n, wt, step, values)
     fused.checked("tick", fused.script("step-tick.sh"), n, cwd=wt)
     return 0
