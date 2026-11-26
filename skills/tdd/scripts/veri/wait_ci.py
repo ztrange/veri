@@ -316,7 +316,8 @@ def wait(pr, want, slice_arg, total):
         if head:
             try:
                 state, failed, queued = sha_state(
-                    repo, head, lambda err, is_draft: wait_for_reset(err, want or head, is_draft, total, bound, call_end), draft)
+                    repo, head, lambda err, is_draft, head=head: wait_for_reset(
+                        err, want or head, is_draft, total, bound, call_end), draft)
             except NoAnswer as error:
                 if str(error) == "permanent":
                     return unreadable(head)

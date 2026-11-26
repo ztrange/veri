@@ -814,7 +814,8 @@ def test_4432_an_empty_ledger_sha_never_matches_a_record_and_the_call_restarts_a
         monkeypatch, run_cli, tmp_path):
     run_pr = importlib.import_module("veri.run_pr")
     for answer in ((128, ""), (0, "\n"), (0, "aaaaaaa\n")):
-        calls = _git_run(monkeypatch, tmp_path / str(answer[0]) / str(len(answer[1])), lambda args: answer)
+        calls = _git_run(monkeypatch, tmp_path / str(answer[0]) / str(len(answer[1])),
+                         lambda args, answer=answer: answer)
         cwd = str(tmp_path / str(answer[0]) / str(len(answer[1])))
         run_cli(run_pr, ["12"], cwd=cwd)
         del calls[:]

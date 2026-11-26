@@ -1606,7 +1606,7 @@ def test_the_cli_exits_0_all_done_1_a_bail_or_a_kill_2_plumbing_and_3_nothing_so
         work, gh, launches = prepare("rest-" + name, (0, "7\n"), bailed=["7"], through_gh=True)
         faked_run, gh_calls = subprocess.run, []
 
-        def gh_run(args, *rest, **kwargs):
+        def gh_run(args, *rest, faked_run=faked_run, gh_calls=gh_calls, served=served, **kwargs):
             if args[0] != "gh" or selection_asked(args):
                 return faked_run(args, *rest, **kwargs)
             gh_calls.append(list(args))

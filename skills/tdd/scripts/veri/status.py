@@ -345,7 +345,7 @@ def running_lines():
     blocks = []
     since = status_last_time()
     for path, events in journals():
-        def of(kind):
+        def of(kind, events=events):
             return [e for e in events if e.get("event") == kind]
         starts = of("conductor-start")
         if starts and conductor_alive(starts[-1]):

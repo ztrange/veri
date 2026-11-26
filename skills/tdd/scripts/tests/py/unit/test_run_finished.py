@@ -114,7 +114,7 @@ def test_main_exits_2_saying_the_pr_body_could_not_be_read_when_gh_answers_non_z
     for driver in ("rest", "graphql", "auto"):
         monkeypatch.setenv("VERI_GH_DRIVER", driver)
         for name, reply in answers.items():
-            fake_processes(lambda line, **kwargs: reply)
+            fake_processes(lambda line, reply=reply, **kwargs: reply)
             code, out, err = run_cli(run_finished, ["4242"])
             outcomes[driver, name] = (code, out, "the PR body could not be read" in err, "Traceback" in err)
     assert outcomes == {key: (2, "", True, False) for key in outcomes}

@@ -341,7 +341,7 @@ def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_
         routed = subprocess.run
         path_at_refusal = []
 
-        def run(args, **kwargs):
+        def run(args, *, refusing=refusing, path_at_refusal=path_at_refusal, routed=routed, **kwargs):
             if tuple(args) == refusing:
                 path_at_refusal.append(os.path.exists(path))
             return routed(args, **kwargs)

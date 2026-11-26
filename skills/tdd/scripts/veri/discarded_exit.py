@@ -143,7 +143,7 @@ def _discarded(source):
         own = list(_own_nodes(scope))
         loops = [node for node in own if isinstance(node, LOOPS)]
 
-        def reads_after(statement):
+        def reads_after(statement, reads=reads, loops=loops):
             around = [loop for loop in loops if _within(statement, loop)]
             return {what for what, node in reads
                     if _after(node, statement) or any(_within(node, loop) for loop in around)}

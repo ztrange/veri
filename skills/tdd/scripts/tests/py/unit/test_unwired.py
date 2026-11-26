@@ -108,7 +108,7 @@ def test_a_base_that_does_not_resolve_or_a_directory_that_is_no_work_tree_exits_
     monkeypatch.chdir(tmp_path)
     results = []
     for failing in ("--is-inside-work-tree", "--verify"):
-        def answer(line, **kwargs):
+        def answer(line, failing=failing, **kwargs):
             if failing in line or not line.startswith("git rev-parse"):
                 return 128, "", "fatal: no\n"
             return 0, (str(tmp_path) if "--show-toplevel" in line else "true") + "\n", ""

@@ -359,7 +359,7 @@ def test_this_file_runs_no_clock_and_profiles_only_fixtures_under_tmp_path_and_m
         in_tmp_path = any(isinstance(node, ast.Call) and ast.unparse(node.func) == "monkeypatch.chdir"
                           and node.args and under_tmp_path(node.args[0]) for node in ast.walk(fn))
 
-        def fixture(arg, cwd_tmp):
+        def fixture(arg, cwd_tmp, fixtures=fixtures):
             if isinstance(arg, ast.Call) and ast.unparse(arg.func) == "str" and len(arg.args) == 1:
                 inner = arg.args[0]
                 return isinstance(inner, ast.Name) and inner.id in fixtures or under_tmp_path(inner)

@@ -129,7 +129,7 @@ def _held(stack, window):
     if code:
         return code
     for _, pr, _ in joins:
-        answers = merge_common.settle(lambda: _pull(pr), window)
+        answers = merge_common.settle(lambda pr=pr: _pull(pr), window)
         if not merge_common.merged(answers[-1]):
             last = answers[-1] or {}
             return _refuse("%s did not read merged by the end of the settle window (last read: state %s, merged %s);"

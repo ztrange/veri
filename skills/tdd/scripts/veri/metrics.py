@@ -1388,12 +1388,12 @@ def as_json(f):
             "stages": f.stages,
             "phases": {phase: dict(json_row(row_counts, PHASE_COLUMNS),
                                    **f.first_tries.get(phase, dict.fromkeys(FIRST_TRY_KEYS, 0)),
-                                   rejects=rejects_json(f.reject_outcomes, lambda of, _step: of == phase))
+                                   rejects=rejects_json(f.reject_outcomes, lambda of, _step, phase=phase: of == phase))
                        for phase, row_counts in f.phases.items()},
             "leaves": {kind: json_row(row_counts, PHASE_COLUMNS) for kind, row_counts in f.leaves.items()},
             # a step's wall is the markdown's: its start-to-done span, not its leaves' summed seconds
             "steps": [dict(json_row(row_counts, STEP_COLUMNS), text=step, wall_seconds=f.step_walls[step],
-                           rejects=rejects_json(f.reject_outcomes, lambda _phase, of: of == step),
+                           rejects=rejects_json(f.reject_outcomes, lambda _phase, of, step=step: of == step),
                            former=list(f.former.get(step, [])))
                       for step, row_counts in f.steps.items()],
             "conductor": conductor_json(f),

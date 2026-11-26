@@ -83,7 +83,7 @@ def copy_writable(source, destination):
                 os.mkdir(copy)
             else:
                 shutil.copyfile(path, copy)
-                change_mode(copy, lambda _: stat.S_IMODE(mode) | stat.S_IWUSR)
+                change_mode(copy, lambda _, mode=mode: stat.S_IMODE(mode) | stat.S_IWUSR)
 
 
 def take_bits(path, bits):

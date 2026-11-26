@@ -131,7 +131,7 @@ def test_main_folds_an_absent_or_null_statuses_or_check_runs_key_as_empty(monkey
     observed = []
     for bodies in scenarios:
         bodies = {PULL: head, "date +%s": "0\n", **bodies}
-        fake_processes(lambda line, **_: (0, bodies.get(line, ""), ""))
+        fake_processes(lambda line, bodies=bodies, **_: (0, bodies.get(line, ""), ""))
         code = wait_ci.main([PR, "60", "120", SHA])
         captured = capsys.readouterr()
         observed.append((code, captured.out, captured.err))
@@ -173,7 +173,7 @@ def test_main_folds_null_unfinished_skipped_absent_conflicting_or_foreign_checks
             "date +%s": "1000\n",
         }
         def answer(line, bodies=bodies, **_):
-            early_read(line, calls)
+            early_read(line, calls)  # noqa: B023 -- calls is bound after this def; answer runs in this iteration
             return 0, bodies.get(line, ""), ""
 
         calls = fake_processes(answer)
@@ -224,8 +224,8 @@ def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_
         monkeypatch.chdir(tmp_path / str(n))
         clock = []
 
-        def answer(line, bodies=bodies, **kwargs):
-            if early_read(line, calls):
+        def answer(line, bodies=bodies, clock=clock, **kwargs):
+            if early_read(line, calls):  # noqa: B023 -- calls is bound after this def; answer runs in this iteration
                 return 0, "0\n", None
             if line == "date +%s":
                 clock.append(1000 * len(clock))
@@ -295,8 +295,8 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
             monkeypatch.setenv("VERI_POLL", poll)
         readings = iter(clock)
 
-        def answer(line, **kwargs):
-            if early_read(line, calls):
+        def answer(line, clock=clock, readings=readings, **kwargs):
+            if early_read(line, calls):  # noqa: B023 -- calls is bound after this def; answer runs in this iteration
                 code, out, err = 0, f"{clock[0]}\n", ""
             elif line == "date +%s":
                 code, out, err = 0, f"{next(readings)}\n", ""
@@ -383,8 +383,8 @@ def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_refu
         monkeypatch.chdir(work)
         readings = iter(clock)
 
-        def answer(line, **kwargs):
-            if early_read(line, calls):
+        def answer(line, clock=clock, readings=readings, **kwargs):
+            if early_read(line, calls):  # noqa: B023 -- calls is bound after this def; answer runs in this iteration
                 out = f"{clock[0]}\n"
             elif line == "date +%s":
                 out = f"{next(readings, 99999)}\n"
@@ -457,9 +457,9 @@ def test_main_bounds_an_omitted_or_empty_total_by_the_mean_of_the_last_five_ci_r
         monkeypatch.chdir(work)
         readings = iter([1000, 1030])
 
-        def answer(line, pages=pages, **kwargs):
+        def answer(line, pages=pages, readings=readings, **kwargs):
             code = 0
-            if early_read(line, calls):
+            if early_read(line, calls):  # noqa: B023 -- calls is bound after this def; answer runs in this iteration
                 out = "1000\n"
             elif line == "date +%s":
                 out = f"{next(readings, 99999)}\n"
@@ -1632,7 +1632,7 @@ def test_main_prints_nothing_on_stdout_on_exit_0_2_or_3_issue_1904(
             STATUS: json.dumps({"state": "x", "statuses": []}),
                     "date +%s": "1000\n",
         }
-        fake_processes(lambda line, **_: (0, bodies.get(line, ""), ""))
+        fake_processes(lambda line, bodies=bodies, **_: (0, bodies.get(line, ""), ""))
         code = wait_ci.main([PR, "0", "0", SHA])
         observed.append((code, capsys.readouterr().out))
 
@@ -2429,7 +2429,7 @@ def test_main_refuses_a_head_sha_that_is_not_40_hex_with_2_and_one_stderr_line_n
     for given in (FULL_SHA[:10], FULL_SHA + "0", "z" * 40):
         lines = []
 
-        def answer(line):
+        def answer(line, lines=lines):
             lines.append(line)
             return OPEN_PULL if line == PULL else None
 
@@ -2809,14 +2809,14 @@ def test_main_caps_a_rate_limit_sleep_at_the_time_left_until_the_slice_end_when_
         (work / ".tdd").mkdir(parents=True)
         clock, reads, slept = {"now": 1000}, [], []
 
-        def limited_once(line):
+        def limited_once(line, reads=reads, clock=clock, refused_at=refused_at):
             if line == f"{COMMITS}/status":
                 reads.append(line)
                 if len(reads) == 1:
                     clock["now"] = refused_at
                     return (1, "", "gh: API rate limit exceeded for user ID 1. (HTTP 403)\n")
 
-        def clocked(inner):
+        def clocked(inner, clock=clock):
             def spy(line, **kwargs):
                 if line == "date +%s":
                     return 0, f"{clock['now']}\n", ""

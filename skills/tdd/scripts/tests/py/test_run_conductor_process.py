@@ -2127,7 +2127,7 @@ def test_main_records_the_skill_repin_event_then_hands_claude_no_veri_new_skill_
         events.refuse_event_sh()
         run, started = subprocess.run, []
 
-        def records_each_environment(args, *a, **kwargs):
+        def records_each_environment(args, *a, run=run, started=started, **kwargs):
             program = os.path.basename(str(list(args)[0]))
             if program == "fake-claude":
                 env = kwargs.get("env") if kwargs.get("env") is not None else os.environ
