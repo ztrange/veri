@@ -735,7 +735,7 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   and `tests/py/test_<m>_process.py` where they exist, and every `tests/py/test_*_process.py` that imports or runs it by
   name (`veri.<m>`, `<m>.py`, `<m>.sh`, or the name of any `*.sh` shim whose `exec` line names `veri/<m>.py`, as `report.sh`
   for `veri/prd_report.py`, each as a whole word); when no process file names it, the process files naming a
-  module whose own line imports it (`import <m>`, `from <m> import`), one hop and no further (#4425). Any changed `.py` file, a test file included, also places `tests/py/test_ruff_tree_audit_process.py`, the pyflakes gate,
+  module whose own line imports it (`import <m>`, `from <m> import`), one hop and no further (#4425). Any changed `.py` file, a test file included, also places `tests/py/test_ruff_tree_audit_process.py`, the ruff gate,
   in veri's own tree only, even one no other rule places (still named on stderr); a foreign tree's mapping never adds it. Elsewhere it reads
   no declaration: a changed test file (by `case_reader.is_test_path`) that exists selects itself; any other changed
   file selects every test file git does not ignore whose text holds the file's stem (its basename without its last
