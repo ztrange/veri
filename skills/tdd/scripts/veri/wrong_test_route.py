@@ -424,7 +424,7 @@ def main(argv):
             where = [_defining_file(c) for c in older]
             if None in where:
                 return 2
-            write(sys.stdout, "supersede " + " ".join(_file_case(f, c) for f, c in zip(where, older)))
+            write(sys.stdout, "supersede " + " ".join(_file_case(f, c) for f, c in zip(where, older, strict=True)))
         return 0
     case = None if rerouted else route(argv[0], argv[1])
     if case is None and len(older) == 1:

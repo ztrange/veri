@@ -96,7 +96,7 @@ def _reverted(n, path, worktree):
         if not onto:
             raise stack_fix.NoAnswer("origin has no %s branch after the fetch; nothing pushed" % stack)
         owned = stack_culprit.owners([subject for _, subject in commits])
-        mine = [(commit, subject) for (commit, subject), issues in zip(commits, owned) if n in issues]
+        mine = [(commit, subject) for (commit, subject), issues in zip(commits, owned, strict=True) if n in issues]
         if not mine:
             raise Nothing("no commit of origin/%s..origin/%s belongs to issue %s; nothing reverted" % (default, stack, n))
         done = [at for at, (_, subject) in enumerate(mine) if subject == SUBJECT % (n, n)]

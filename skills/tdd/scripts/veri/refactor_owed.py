@@ -164,7 +164,7 @@ def render(file):
             test_only.append(l[len(TEST_ONLY_MARK):])
         else:
             kept.append(l)
-    kept = [l for l, after in zip(kept, kept[1:] + ["### "])
+    kept = [l for l, after in zip(kept, kept[1:] + ["### "], strict=False)
             if not (l.startswith("### ") and after.startswith("### "))]
     sections = test_only or done or skipped
     if not (kept or sections or os.path.isdir(file)):

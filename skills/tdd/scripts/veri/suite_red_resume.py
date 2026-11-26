@@ -68,8 +68,8 @@ def insert(ledger, branch_file):
     reds = text.splitlines()
     steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
     ticks = [STEP_RE.fullmatch(line).group(2) for line in steps]
-    unchecked = [line for line, tick in zip(steps, ticks) if tick == " "]
-    if any("fix the full-suite failure by editing" in line for line, tick in zip(steps, ticks) if tick != " "):
+    unchecked = [line for line, tick in zip(steps, ticks, strict=True) if tick == " "]
+    if any("fix the full-suite failure by editing" in line for line, tick in zip(steps, ticks, strict=True) if tick != " "):
         return 1
     names = suites(text)
     basenames = {os.path.basename(name) for name in names}

@@ -30,7 +30,7 @@ def _pulls_onto(stack):
     keeps nothing live."""
     run = github.gh_api("repos/{owner}/{repo}/pulls?state=open&base=%s&per_page=100" % stack, stderr=subprocess.PIPE)
     raws = json.loads(run.stdout)
-    return [pr.html_url for raw, pr in zip(raws, github.pulls_in(run.stdout))
+    return [pr.html_url for raw, pr in zip(raws, github.pulls_in(run.stdout), strict=True)
             if (raw.get("base") or {}).get("ref") == stack and not pr.cross_repository]
 
 

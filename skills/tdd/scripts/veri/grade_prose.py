@@ -77,7 +77,7 @@ def own_texts(text):
     fenced = markdown_sections.fenced_lines("\n".join(flat))
     fenced += [False] * (len(lines) - len(fenced))
     cuts = [[None, ""]]
-    for line, plain, inside in zip(lines, flat, fenced):
+    for line, plain, inside in zip(lines, flat, fenced, strict=True):
         if not inside and heading_text(plain) is not None:
             cuts.append([line.removesuffix("\n"), ""])
         cuts[-1][1] += line

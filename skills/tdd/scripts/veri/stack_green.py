@@ -59,7 +59,7 @@ def main(argv):
                             prefix="stack-green: ")
     stack, default, commits = span
     ends = issue_ends([subject for _, subject in commits])
-    candidates = [sha for (sha, _), end in reversed(list(zip(commits, ends))) if end]
+    candidates = [sha for (sha, _), end in reversed(list(zip(commits, ends, strict=True))) if end]
     for sha in candidates[:ENDS_READ]:
         try:
             runs = github.check_runs(sha)

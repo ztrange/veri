@@ -133,7 +133,7 @@ def arguments(argv):
         if not (args[index] if index < len(args) else ""):
             return Refusal(f"build-develop-prompt: missing {name}")
     if phase == "over-budget":
-        for name, value in zip(names[3:], args[3:]):
+        for name, value in zip(names[3:], args[3:], strict=False):
             if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", value):
                 return Refusal(f"build-develop-prompt: {name} '{value}' is not a non-negative decimal number")
     if (phase == "revise" and revised_phase == "red" and os.path.basename(args[3]) == "verify-pin.reason"
@@ -242,7 +242,7 @@ def render(parsed, chosen):
                             "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
                             "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON", "SUPERSEDED_CASES", "ISSUE_NUMBER", "STEP_ARGUMENT",
                             "AFFECTED_RUN_LINE", "RUN_LINE", "TEST_FILES", "SMELL_NAMES", "NEAR_DUPLICATES"), b"")
-    for name, value in zip(names[3:], args[3:]):
+    for name, value in zip(names[3:], args[3:], strict=False):
         if name in ARGUMENT_PLACEHOLDERS:
             values[ARGUMENT_PLACEHOLDERS[name]] = os.fsencode(value)
     if phase == "test-quality":

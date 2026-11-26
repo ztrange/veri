@@ -223,7 +223,7 @@ def changed_by_refactor(name, case):
         history = [case_history.cases_at(rev, name).get(case) for rev in revs]
     except OSError:
         return False
-    for rev, now, before in zip(revs, history, history[1:]):
+    for rev, now, before in zip(revs, history, history[1:], strict=False):
         if now != before:
             return case_history.subject(rev).startswith("refactor:")
     return False

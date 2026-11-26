@@ -26,7 +26,7 @@ def arguments(argv):
     if not argv or argv[0].startswith("-") or len(argv) % 2 != 1:
         return None
     messages = {}
-    for flag, value in zip(argv[1::2], argv[2::2]):
+    for flag, value in zip(argv[1::2], argv[2::2], strict=True):
         pair = re.fullmatch(r"(\d+)=(.+)", value, re.S)
         if flag != "--message" or not pair:
             return None

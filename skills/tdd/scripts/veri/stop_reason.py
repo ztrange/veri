@@ -70,7 +70,7 @@ def main(argv):
             text = text.partition(" resets ")[2]
         sys.stdout.write("%s %s\n" % (cause, text) if text else "%s\n" % cause)
     timed = [e for e in events if "ts" in e]
-    for a, b in zip(timed, timed[1:]):
+    for a, b in zip(timed, timed[1:], strict=False):
         if b["ts"] - a["ts"] > int(gap):
             sys.stdout.write("gap %s %s\n" % (a["ts"], b["ts"]))
     return 0
