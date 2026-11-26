@@ -207,7 +207,7 @@ def test_one_stdout_line_per_call_names_the_call_and_its_exit_code_a_non_zero_on
                 "push-branch.sh": ["4"], "comment.sh": ["6", "6"]}
     for name, codes in expected.items():
         named = [line for line in lines if name in line]
-        assert [c in line for c, line in zip(codes, named)] == [True] * len(codes), name
+        assert [c in line for c, line in zip(codes, named, strict=True)] == [True] * len(codes), name
         assert len(named) == len(codes), name
     for body in ("SNAPSHOT-BODY", "METRICS-BODY", "PUSH-BODY", "COMMENT-BODY"):
         assert body not in out

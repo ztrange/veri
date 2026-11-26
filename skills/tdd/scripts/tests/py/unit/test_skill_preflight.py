@@ -60,7 +60,7 @@ def only_in_preflight(value, preflight, rest):
             pattern = re.compile(probe, re.I | re.M)
     except re.error:
         pattern = None
-    for inside, outside in zip(preflight, rest):
+    for inside, outside in zip(preflight, rest, strict=True):
         if plain(probe) in inside and plain(probe) not in outside:
             return True
         if pattern and pattern.search(inside) and not pattern.search(outside):

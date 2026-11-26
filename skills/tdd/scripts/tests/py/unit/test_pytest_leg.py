@@ -205,7 +205,7 @@ def test_2100_with_no_worker_count_a_leg_starting_beside_registered_legs_takes_o
     for counts in ((14,), (8, 6)):
         legs = tmp_path / ("legs-%d" % len(counts))
         legs.mkdir()
-        for pid, count in zip(live, counts):
+        for pid, count in zip(live, counts, strict=False):
             registered(legs / str(pid), count)
         env = leg_env(VERI_PYTEST_LEGS=str(legs))
         assert run_cli(pytest_leg, ["-q", "some/dir"], env=env)[0] == 0

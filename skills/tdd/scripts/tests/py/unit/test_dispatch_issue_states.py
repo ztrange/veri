@@ -31,7 +31,7 @@ def test_issue_states_reads_closed_issues_beyond_the_default_page_and_omits_an_u
     everything = [{"number": n, "state": "OPEN" if n % 2 else "CLOSED"} for n in range(1, 601)]
 
     def gh_issue_list(*args):
-        option = dict(zip(args[::2], args[1::2]))
+        option = dict(zip(args[::2], args[1::2], strict=True))
         listed = [item for item in everything if option.get("--state", "open") == "all" or item["state"] == "OPEN"]
         return json.dumps(listed[:int(option.get("--limit", "30"))])
 

@@ -174,7 +174,7 @@ class History(Fake):
         if os.path.basename(name) == "git" and args[:2] == ("log", "-1"):
             self.calls.append(("git", args, kw.get("cwd"), kw.get("env"), kw))
             text = args[args.index("-S") + 1] if "-S" in args else None
-            for (sha, after), (_, before) in zip(reversed(self.commits), reversed([(None, "")] + self.commits[:-1])):
+            for (sha, after), (_, before) in zip(reversed(self.commits), reversed([(None, "")] + self.commits[:-1]), strict=False):
                 if (before.count(text) != after.count(text)) if text else before != after:
                     return 0, sha + "\n", ""
             return 0, "", ""

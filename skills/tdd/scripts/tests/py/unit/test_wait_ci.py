@@ -885,7 +885,7 @@ def test_main_records_a_deadline_from_the_ci_workflows_recent_runs_or_its_capped
     mixed = [("CI", "in_progress", "", 3000), ("Pages", "completed", "success", 3000), done("success", 200),
              done("cancelled", 3000), done("failure", 220), done("skipped", 3000), done("success", 160),
              done("success", 230), done("failure", 190), done("success", 3000)]
-    five = lambda *seconds: [done(c, s) for c, s in zip(("success", "failure", "success", "success", "failure"), seconds)]
+    five = lambda *seconds: [done(c, s) for c, s in zip(("success", "failure", "success", "success", "failure"), seconds, strict=True)]
     few = [done("success", 100), done("cancelled", 3000), done("failure", 120), done("skipped", 3000),
            done("success", 80)]
     fewer = "wait-ci.sh: fewer than 5 success or failure CI runs found; bounding the wait at 540 s\n"

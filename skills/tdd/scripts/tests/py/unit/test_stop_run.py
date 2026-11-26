@@ -242,7 +242,7 @@ def test_main_takes_a_git_that_cannot_start_exits_non_zero_or_prints_nothing_as_
         assert capsysbinary.readouterr() == (
             b"", "stop-run: no main working tree here — type this inside the repository\n".encode() + USAGE)
         assert [(argv, kwargs.get("cwd"), kwargs.get("capture_output"), cwd)
-                for (argv, kwargs), cwd in zip(fake.seen, working_dirs)] == [
+                for (argv, kwargs), cwd in zip(fake.seen, working_dirs, strict=True)] == [
             (["git", "worktree", "list", "--porcelain"], None, True, str(caller))]
         assert len(fake.seen) == 1
         assert list(tmp_path.rglob("stop")) == []
