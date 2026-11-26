@@ -1,6 +1,7 @@
 """skill-edit-step.sh's entry point, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -266,9 +267,29 @@ def _author(unit, path, reasons):
         os.unlink(f.name)
 
 
+def _sentences(text):
+    """The sentences of `text`: its whitespace runs collapsed, split after each `.`, `!` or `?` that whitespace follows."""
+    return [s for s in re.split(r"(?<=[.!?])\s+", " ".join(text.split())) if s]
+
+
+def _changed_sentences(before, after):
+    """The sentences of `after` that `before` does not hold, in `after`'s order."""
+    held = set(_sentences(before))
+    return [s for s in _sentences(after) if s not in held]
+
+
+def _unit_text_in(snapshot, unit):
+    """`unit`'s text as `snapshot` holds its file; empty when the file or its heading is not there yet."""
+    try:
+        return grade_prose.unit_text(unit, lambda f: snapshot.get(f, b"").decode("utf-8", "surrogateescape"))
+    except ValueError:
+        return ""
+
+
 def _trace_prompt(rows, sentences):
+    claims = list(rows) + [("S%d" % k, s) for k, s in enumerate(sentences, 1)]
     with open(os.path.join(SCRIPTS, "prompts", "trace-rows.md")) as f:
-        return f.read().replace("{{CLAIMS}}", "".join("CLAIM %s %s\n" % row for row in rows).rstrip("\n"))
+        return f.read().replace("{{CLAIMS}}", "".join("CLAIM %s %s\n" % claim for claim in claims).rstrip("\n"))
 
 
 def _trace(unit, rows, sentences):
@@ -442,7 +463,7 @@ def main(argv):
                              if n in tree or (os.path.normpath(n) not in present
                                               and not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep)))])
         if not graded:
-            sentences = []
+            sentences = _changed_sentences(_unit_text_in(snapshot, unit), _unit_text_in(_read_existing([file]), unit))
             answer = _trace(unit, rows, sentences)
             graded, said = _grade(path, unit)
         if change is not None and graded == 0 and all(_read_existing([f]).get(f) == before.get(f) for f in (file, path)):
