@@ -523,6 +523,7 @@
 | CY414 | The PASS bullet names the ledger commit's subject for a ⟦diff-checked⟧ tick: `chore: diff-checked — <step summary> (#<n>)`. | Runs commit it under that subject today and no skill file names it (DST6, S14). |
 | CY418 | `skills/tdd/DIFF-CHECKED.md`'s PASS bullet runs no `pin-recheck.sh` and names no re-pin step. | PRD 044 D4: no recheck adds a re-pin step. |
 | DC3 | DIFF-CHECKED.md says a `⟦test-quality⟧` step whose strengthened case goes red reports `POSSIBLE-BUG:` and stays test-only, and that the `⟦quality-repair⟧` step it causes runs as any `⟦diff-checked⟧` step, `develop-diff` then the blind `verify-diff`. | The repair takes D11's route and the test-quality step never widens (D16). |
+| DC4 | DIFF-CHECKED.md's *A possible bug* paragraph says `diff-step.sh` reads `git diff --name-only <step base>..HEAD` before routing a `POSSIBLE-BUG:` line, and that a leaf which reported the line yet committed since the step base stops it with exit 2, the step not ticked. | A leaf's word that it committed nothing would otherwise tick its commit with no `verify-diff` (PR #4775 review). |
 
 ## skills/tdd/GO-RED.md
 
@@ -1487,6 +1488,7 @@
 | SC647 | The `pin-reject-route.sh` entry has no `--recheck` mode, and says any other `--` argument is rejected as unknown (exit 2). | PRD 044 D4. |
 | SC648 | The `tick-ledger.sh` `--unpinnable` entry says a retire whose reason has no before-state-green clause also returns every test file differing from HEAD to HEAD (an untracked one deleted, a modified one restored), touching no other path. | The script's effect on the working tree is its contract with the conductor, which then commits only the ledger. |
 | SC649 | The `pin-reject-route.sh` entry says its non-`--missing-reroute` unpinnable retire removes the step's Red test changes when the reason has no before-state-green clause, and keeps them when it has one, with stdout and the `unpinnable-step` event unchanged. | The routing entry is where a reader looks for what a retire leaves behind. |
+| SC651 | The `diff-step.sh` entry says a `⟦test-quality⟧` step whose leaf reports a `POSSIBLE-BUG:` line gets no `verdict-diff` and no flip but a `git diff --name-only <step-base-sha>..HEAD` check, then the route (a `⟦quality-repair⟧` step within `VERI_QUALITY_REPAIRS`, else the not-fixed line in `.tdd/issue-<n>-test-quality`) and `step-tick.sh`; its exit 2 list names a `POSSIBLE-BUG:` line over commits since the step base and an `add-ledger-step.sh` refusal of the `⟦quality-repair⟧` step. | The catalogue states the route diff_step.py takes and both exit-2 causes it added (#4760). |
 | SC650 | SCRIPTS.md names `discarded-exit.sh`: it prints `<file>:<line>` for each added `.py` line of `git diff HEAD` whose `subprocess.run`, `subprocess.call`, `os.system` or `fused.call` exit code is discarded; it exits 1 when it prints, 0 when not, 3 when no `.py` file changed and 2 on any argument or outside a work tree; verify-green runs it. | Docs drift blocks. |
 
 ## skills/tdd/SKILL-EDIT.md

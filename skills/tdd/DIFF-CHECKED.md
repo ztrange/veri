@@ -40,8 +40,10 @@ changed something leaves the leaf's commit and then the tick commit, in that ord
 leaf reverts the case, commits nothing for it, changes no production code and reports
 `POSSIBLE-BUG: <file>::<case> expects <X>, code yields <Y>`. The `suite-reported.sh` and
 `diff-leaf-deviation.sh` checks still run, but no `verify-diff` and no flip judge that step:
-`diff-step.sh` routes the line as `<base directory>/DRAFT-PR.md`, *A possible bug*, sets out, then
-ticks the step. The `⟦quality-repair⟧` step it causes, within `VERI_QUALITY_REPAIRS`, runs as any
+`diff-step.sh` first reads `git diff --name-only <step base>..HEAD`: a leaf that reports the line
+yet committed since the step base stops it with exit 2, nothing ticked, since the claim that it
+committed nothing is checked, never trusted. With nothing committed it routes the line as
+`<base directory>/DRAFT-PR.md`, *A possible bug*, sets out, then ticks the step. The `⟦quality-repair⟧` step it causes, within `VERI_QUALITY_REPAIRS`, runs as any
 `⟦diff-checked⟧` step does: `develop-diff`, then the blind `verify-diff`.
 
 The verifier's verdict closes the `⟦diff-checked⟧` step:
