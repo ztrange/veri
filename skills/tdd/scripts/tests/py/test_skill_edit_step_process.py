@@ -1332,7 +1332,7 @@ def run_added_with_no_author(tmp_path, stub, extra_env=None):
     ("added_no_author", run_added_with_no_author, STUB_ROLE_LOG, ["trace"]),
 ], ids=["author", "added_no_author"])
 def test_an_untraced_row_exits_1_with_a_row_untraced_bail(tmp_path, path, run, stub, wanted):
-    repo, cap, ran = run(tmp_path, stub.replace("\nanswer_trace\n", UNTRACED_ROWS))
+    repo, cap, ran = run(tmp_path, stub.replace("\nanswer_trace\n", UNTRACED_ROWS), {"VERI_EVENT_STRICT": "1"})
 
     roles = cap / "roles"
     calls = roles.read_text().split() if roles.exists() else []
