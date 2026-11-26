@@ -22,4 +22,4 @@
 - [x] ⟦skill-edit⟧ `skills/tdd/scripts/prompts/verify-plan.md` REJECTs a plan leaving a dispatch's residual outcome untested, counts a scoped output as a predicate, and REJECTs a plan leaving a stated behaviour untested (rows VL98-VL100) ⟦criterion 7⟧
 - [x] ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md` names `discarded-exit.sh`, what it prints, its exits and verify-green as its caller (row SC650) ⟦criterion 8⟧
 - [x] `skills/tdd/SKILL.md` grows by at most 0 B net: its `git diff` against the branch base shows no net byte growth ⟦diff-checked⟧ ⟦criterion 9⟧
-- [ ] The PR body states the cost as $0: no new leaf, a few prompt lines in leaves that already run ⟦human-owed⟧ ⟦criterion 10⟧
+- [x] The PR body states the cost as $0: no new leaf, a few prompt lines in leaves that already run ⟦human-owed⟧ ⟦criterion 10⟧
