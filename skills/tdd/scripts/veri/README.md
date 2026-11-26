@@ -244,6 +244,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_MERGE_SETTLE_SLEEP` | `3` | its readers' own words |
 | `VERI_MIN_FREE_GB` | `20` | its readers' own words |
 | `VERI_MISSING_REROUTE_BUDGET` | `3` | its readers' own words |
+| `VERI_QUALITY_REPAIRS` | `1` | its readers' own words |
 | `VERI_PLAN_TOUCHING_CASES` | `100` | its readers' own words |
 | `VERI_MODEL` | "" | its readers' own words |
 | `VERI_MODEL_ADJUDICATOR` | `opus` | its readers' own words |

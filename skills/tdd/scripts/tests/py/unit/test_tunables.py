@@ -408,3 +408,12 @@ def test_4013_veri_effort_verifier_parses_exactly_the_five_effort_levels_the_cli
     accepted = [value for value in ("low", "medium", "high", "xhigh", "max", "", "LOW", " low", "minimal", "maximum")
                 if tunables.parses("VERI_EFFORT_VERIFIER", value)]
     assert accepted == ["low", "medium", "high", "xhigh", "max"]
+
+
+def test_4760_quality_repairs_unset_reads_1_and_its_entry_states_no_refusal_so_preflight_refuses_in_its_own_words(
+        monkeypatch):
+    tunables = importlib.import_module("veri.tunables")
+    monkeypatch.delenv("VERI_QUALITY_REPAIRS", raising=False)
+
+    assert (tunables.get("VERI_QUALITY_REPAIRS"), tunables.TUNABLES["VERI_QUALITY_REPAIRS"].refusal,
+            "VERI_QUALITY_REPAIRS" in tunables.TABLE) == ("1", None, False)
