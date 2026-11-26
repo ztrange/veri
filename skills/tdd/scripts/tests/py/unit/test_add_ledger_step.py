@@ -2024,3 +2024,14 @@ def test_main_before_inserts_an_untagged_diff_checked_text_with_the_anchor_crite
         "",
         ["- [ ] " + text + " ⟦added⟧ ⟦criterion 3⟧", "- [ ] c three ⟦criterion 3⟧"],
     )
+
+
+def test_4760_main_appends_a_quality_repair_step_with_no_added(tmp_path, run_cli, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    text = "fix POSSIBLE-BUG: test_a.py::test_b expects 1, code yields 2 ⟦diff-checked⟧ ⟦quality-repair⟧"
+
+    code, out, err = run_cli(add_ledger_step, [str(ledger), "after", "c three", text])
+
+    assert (code, out, settled(err), ledger.read_bytes().decode()) == (
+        0, "", NOT_DURABLE, LEDGER.decode() + f"- [ ] {text} ⟦criterion 3⟧\n")
