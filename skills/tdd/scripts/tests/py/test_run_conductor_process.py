@@ -838,7 +838,7 @@ def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_
         tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)
     monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
-    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
     base = str(SCRIPTS.parent)
     commit = "1111111111111111111111111111111111111111"
     accepted = {"1111111^{commit}", "main^{commit}"}
@@ -1335,7 +1335,7 @@ def test_main_run_from_a_subdirectory_of_the_repo_makes_the_run_state_at_the_rep
 def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_appends_a_skill_repin_event_in_the_run_worktree_returning_2_on_its_failure_and_logs_nothing_on_a_first_launch_or_any_other_value(
         tmp_path, monkeypatch, capfdbinary, events):
     past_the_guards(monkeypatch)
-    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
     commit = "1111111111111111111111111111111111111111"
     run_conductor = importlib.import_module("veri.run_conductor")
     scenarios = {
@@ -1922,7 +1922,7 @@ def test_main_hands_claude_the_snapshots_committed_skill_md_never_the_skill_clon
     past_the_guards(monkeypatch)
     for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
         monkeypatch.delenv(name, raising=False)
-    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
     skill = tmp_path / "skill"
     (skill / "scripts" / "veri").mkdir(parents=True)
     (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
@@ -2103,7 +2103,7 @@ def test_main_records_the_skill_repin_event_then_hands_claude_no_veri_new_skill_
     monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "sess-1077")
     for name in ("VERI_ISSUE", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
         monkeypatch.delenv(name, raising=False)
-    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
     commit = "1111111111111111111111111111111111111111"
     run_conductor = importlib.import_module("veri.run_conductor")
     names = ("VERI_NEW_SKILL", "CLAUDE_CODE_SESSION_ID", "VERI_KEPT", "VERI_SKILL_COMMIT", "VERI_SKILL_UNPINNED")
@@ -2562,7 +2562,7 @@ def test_main_a_conductor_session_loads_no_skills_connectors_memory_or_user_clau
     monkeypatch.chdir(cwd)
     home = pathlib.Path(os.path.expanduser("~"))
     run_conductor = importlib.import_module("veri.run_conductor")
-    launches = fake_claude_exiting(monkeypatch, 0, 0)
+    fake_claude_exiting(monkeypatch, 0, 0)
     answer = subprocess.run
 
     def streaming(args, *rest, **kwargs):
@@ -3514,7 +3514,7 @@ def test_cli_a_launch_whose_target_repository_filesystem_has_less_than_veri_min_
     past_the_guards(monkeypatch)
     monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
     monkeypatch.delenv("VERI_MIN_FREE_GB", raising=False)
-    scratch = scratch_tmpdir(tmp_path, monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
     run_conductor = importlib.import_module("veri.run_conductor")
     launches = fake_claude_exiting(monkeypatch, 0, 0)
     cwd = tmp_path / "cwd"
@@ -6006,7 +6006,7 @@ def test_cli_takes_the_bailed_and_pr_ready_labels_off_the_issue_before_the_condu
     past_the_guards(monkeypatch)
     scratch_tmpdir(tmp_path, monkeypatch)
     run_conductor = importlib.import_module("veri.run_conductor")
-    gh_calls = conductor_that_prints(monkeypatch, tmp_path, ["done"], result_record("Done."))
+    conductor_that_prints(monkeypatch, tmp_path, ["done"], result_record("Done."))
     started, order = subprocess.run, []
 
     def spy(args, *a, **kwargs):
