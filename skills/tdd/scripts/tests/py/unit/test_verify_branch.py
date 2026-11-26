@@ -466,8 +466,8 @@ def test_4707_a_reject_whose_reason_holds_a_missing_test_line_appends_a_branch_r
     monkeypatch.setattr(fused, "run_script",
                         lambda name, *a, **kw: (1, "", "") if name.endswith("wait-leaf.sh") else (0, "", ""))
     run_cli(verify_branch, ["12"], cwd=str(tmp_path))
-    repairs = [l for l in (wt / ".tdd" / "issue-12.md").read_text().split("\n") if "⟦branch-repair⟧" in l]
-    assert [("⟦diff-checked⟧" in l) for l in repairs] == [False]
+    repairs = [line for line in (wt / ".tdd" / "issue-12.md").read_text().split("\n") if "⟦branch-repair⟧" in line]
+    assert [("⟦diff-checked⟧" in line) for line in repairs] == [False]
 
 
 def test_4707_a_reject_whose_reason_holds_no_missing_test_line_still_appends_a_diff_checked_branch_repair_step_carrying_the_reason_committed_as_a_plan_commit(
@@ -494,9 +494,9 @@ def test_4707_a_reject_whose_reason_holds_no_missing_test_line_still_appends_a_d
     monkeypatch.setattr(fused, "launch", lambda *a, **kw: None)
     monkeypatch.setattr(fused, "run_script", run_script)
     run_cli(verify_branch, ["12"], cwd=str(tmp_path))
-    repairs = [l for l in (wt / ".tdd" / "issue-12.md").read_text().split("\n") if "⟦branch-repair⟧" in l]
+    repairs = [line for line in (wt / ".tdd" / "issue-12.md").read_text().split("\n") if "⟦branch-repair⟧" in line]
     messages = [a[a.index("-m") + 1] for a in gits if "commit" in a and "-m" in a]
-    assert ([("⟦diff-checked⟧" in l, "usage string omits the flag" in l) for l in repairs],
+    assert ([("⟦diff-checked⟧" in line, "usage string omits the flag" in line) for line in repairs],
             [m.startswith("plan:") for m in messages]) == ([(True, True)], [True])
 
 
@@ -520,5 +520,5 @@ def test_4707_a_missing_test_line_indented_or_written_as_a_backticked_bullet_sti
     monkeypatch.setattr(fused, "run_script",
                         lambda name, *a, **kw: (1, "", "") if name.endswith("wait-leaf.sh") else (0, "", ""))
     run_cli(verify_branch, ["12"], cwd=str(tmp_path))
-    repairs = [l for l in (wt / ".tdd" / "issue-12.md").read_text().split("\n") if "⟦branch-repair⟧" in l]
-    assert [("⟦diff-checked⟧" in l) for l in repairs] == [False]
+    repairs = [line for line in (wt / ".tdd" / "issue-12.md").read_text().split("\n") if "⟦branch-repair⟧" in line]
+    assert [("⟦diff-checked⟧" in line) for line in repairs] == [False]

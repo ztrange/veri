@@ -53,7 +53,7 @@ def test_rerecord_approved_re_records_only_the_named_stale_case_and_check_earlie
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[1]], cwd=tmp_path)[:2]
 
     def untouched(lines):
-        return [l for l in lines if "\ttest_one\t" not in l]
+        return [line for line in lines if "\ttest_one\t" not in line]
     assert (code, untouched(after) == untouched(before), after != before, checked) == (
         0, True, True, (1, "test_two (%s)\n" % STEPS[0]))
 
@@ -243,9 +243,9 @@ def test_rerecord_approved_file_double_colon_case_re_records_only_that_files_cas
     after = record.read_text().splitlines()
 
     def other(lines):
-        return [l for l in lines if ": %s\t" % OTHER in l]
-    changed = [l for l in after if l not in before]
-    assert (code, other(after) == other(before), bool(changed), all(": %s\t" % SUITE in l for l in changed)) == (
+        return [line for line in lines if ": %s\t" % OTHER in line]
+    changed = [line for line in after if line not in before]
+    assert (code, other(after) == other(before), bool(changed), all(": %s\t" % SUITE in line for line in changed)) == (
         0, True, True, True)
 
 

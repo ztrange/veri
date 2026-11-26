@@ -134,7 +134,7 @@ def test_3224_recover_lists_under_bailed_each_bailed_run_with_its_issue_and_its_
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     bailed = lines[lines.index("Bailed") + 1:lines.index("PRs")]
     assert code == 0, out
-    assert [l.replace("#", "").split()[:1] + [l.split()[-1]] for l in bailed] == [["3400", "system"], ["3401", "process"]], bailed
+    assert [line.replace("#", "").split()[:1] + [line.split()[-1]] for line in bailed] == [["3400", "system"], ["3401", "process"]], bailed
 
 
 def test_3224_recover_bailed_shows_an_unknown_cause_raw_skips_an_empty_journal_and_lists_a_bail_with_no_cause(tmp_path, monkeypatch, run_cli, fake_processes):
@@ -164,7 +164,7 @@ def test_3224_recover_bailed_shows_an_unknown_cause_raw_skips_an_empty_journal_a
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     bailed = lines[lines.index("Bailed") + 1:lines.index("PRs")]
     assert code == 0, out
-    assert [l.split()[0] for l in bailed] == ["#3500", "#3502"], bailed
+    assert [line.split()[0] for line in bailed] == ["#3500", "#3502"], bailed
     assert bailed[0].split()[-1] == "moon-phase-wrong", bailed
 
 
@@ -263,7 +263,7 @@ def test_3224_recover_lists_under_prs_an_open_pr_whose_body_is_null_or_names_no_
     assert code == 0, (code, out, _)
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     prs = lines[lines.index("PRs") + 1:lines.index("Merge lock")]
-    words = [" ".join(l.replace("#", "").split()) for l in prs]
+    words = [" ".join(line.replace("#", "").split()) for line in prs]
     assert code == 0 and len(prs) == 2, (code, prs)
     assert all(w in words[0].split() for w in ("4723", "draft", "unstable")), prs
     assert all(w in words[1].split() for w in ("4724", "ready", "clean")), prs
@@ -342,8 +342,8 @@ def test_3224_recover_prints_under_state_each_timed_n_change_from_the_roles_stat
 
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     state = lines[lines.index("State") + 1:lines.index("Pending decisions")]
-    first = [l for l in state if "raise N to 4" in l]
-    second = [l for l in state if "drop N to 1" in l]
+    first = [line for line in state if "raise N to 4" in line]
+    second = [line for line in state if "drop N to 1" in line]
     assert code == 0 and len(first) == 1 and len(second) == 1, (code, state)
     assert "1" in first[0].split() and "2026-11-08T14:30:00" in first[0], first
     assert "2" in second[0].split() and "2026-11-08T18:45:10" in second[0], second
@@ -365,8 +365,8 @@ def test_3224_recover_prints_under_state_each_order_override_from_the_roles_stat
 
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     state = lines[lines.index("State") + 1:lines.index("Pending decisions")]
-    first = [l for l in state if "take 12 before 9" in l]
-    second = [l for l in state if "skip 7" in l]
+    first = [line for line in state if "take 12 before 9" in line]
+    second = [line for line in state if "skip 7" in line]
     assert code == 0 and len(first) == 1 and len(second) == 1, (code, state)
     assert "1" in first[0].split() and "2026-11-08T14:30:00" in first[0], first
     assert "2" in second[0].split() and "2026-11-08T18:45:10" in second[0], second
@@ -412,8 +412,8 @@ def test_3224_recover_prints_under_pending_decisions_each_decision_from_the_role
 
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     pending = lines[lines.index("Pending decisions") + 1:lines.index("Pending messages")]
-    first = [l for l in pending if "merge 4721 before 4722 or hold both for review?" in l]
-    second = [l for l in pending if "park the flaky issue 3300 until Monday" in l]
+    first = [line for line in pending if "merge 4721 before 4722 or hold both for review?" in line]
+    second = [line for line in pending if "park the flaky issue 3300 until Monday" in line]
     assert code == 0 and len(first) == 1 and len(second) == 1, (code, pending)
     assert "1" in first[0].split() and "2026-11-08T14:30:00" in first[0], first
     assert "2" in second[0].split() and "2026-11-08T18:45:10" in second[0], second
@@ -460,8 +460,8 @@ def test_3224_recover_prints_under_pending_messages_each_message_from_the_roles_
 
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     pending = lines[lines.index("Pending messages") + 1:]
-    first = [l for l in pending if "told the dev of 4721 to rebase; confirmed by a force-push" in l]
-    second = [l for l in pending if "asked the reviewer to look at 4722" in l]
+    first = [line for line in pending if "told the dev of 4721 to rebase; confirmed by a force-push" in line]
+    second = [line for line in pending if "asked the reviewer to look at 4722" in line]
     assert code == 0 and len(first) == 1 and len(second) == 1, (code, pending)
     assert "1" in first[0].split() and "2026-11-08T14:30:00" in first[0], first
     assert "2" in second[0].split() and "2026-11-08T18:45:10" in second[0], second
@@ -683,7 +683,7 @@ def test_3604_recover_reads_every_whole_event_of_every_journal_when_one_journal_
 
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     bailed = lines[lines.index("Bailed") + 1:lines.index("PRs")] if "Bailed" in lines else []
-    assert (code, [l.replace("#", "").split()[:1] + [l.split()[-1]] for l in bailed]) == (0, [["3600", "system"], ["3601", "process"]]), (err, bailed)
+    assert (code, [line.replace("#", "").split()[:1] + [line.split()[-1]] for line in bailed]) == (0, [["3600", "system"], ["3601", "process"]]), (err, bailed)
 
 
 def test_3604_recover_names_the_journal_file_and_line_number_of_a_torn_line_on_stderr(tmp_path, monkeypatch, run_cli, fake_processes):
@@ -707,7 +707,7 @@ def test_3604_recover_names_the_journal_file_and_line_number_of_a_torn_line_on_s
 
     code, out, err = run_cli(status, ["--recover", "dev"])
 
-    named = [l for l in err.splitlines() if re.search(r"3600\.jsonl\D+2\b", l)]
+    named = [line for line in err.splitlines() if re.search(r"3600\.jsonl\D+2\b", line)]
     assert (code, len(named)) == (0, 1), (code, err)
 
 

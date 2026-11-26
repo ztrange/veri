@@ -29,7 +29,7 @@ VERDICT = ".tdd/verdict-refactor.exit"
 
 
 def _skip_lines(err, what):
-    return sum(1 for l in err.splitlines() if l == "skipped: " + what or l.startswith("skipped: " + what + " ("))
+    return sum(1 for line in err.splitlines() if line == "skipped: " + what or line.startswith("skipped: " + what + " ("))
 
 
 def _ledger(root, **state):
@@ -482,9 +482,9 @@ def test_rerecord_refactored_names_the_helpers_digest_guard_in_parentheses_on_th
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
-    lines = [l for l in err.splitlines() if l.startswith("skipped: suite_test.go TestX")]
-    assert (code, len(lines), [l.startswith("skipped: suite_test.go TestX (") and l.endswith(")")
-                               and len(l) > len("skipped: suite_test.go TestX ()") for l in lines]) == (
+    lines = [line for line in err.splitlines() if line.startswith("skipped: suite_test.go TestX")]
+    assert (code, len(lines), [line.startswith("skipped: suite_test.go TestX (") and line.endswith(")")
+                               and len(line) > len("skipped: suite_test.go TestX ()") for line in lines]) == (
         1, 1, [True])
 
 
@@ -504,9 +504,9 @@ def test_rerecord_refactored_names_the_assertion_lines_guard_in_parentheses_on_t
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
-    lines = [l for l in err.splitlines() if l.startswith("skipped: suite_test.go TestX")]
-    assert (code, len(lines), [l.startswith("skipped: suite_test.go TestX (") and l.endswith(")")
-                               and len(l) > len("skipped: suite_test.go TestX ()") for l in lines]) == (
+    lines = [line for line in err.splitlines() if line.startswith("skipped: suite_test.go TestX")]
+    assert (code, len(lines), [line.startswith("skipped: suite_test.go TestX (") and line.endswith(")")
+                               and len(line) > len("skipped: suite_test.go TestX ()") for line in lines]) == (
         1, 1, [True])
 
 
@@ -523,9 +523,9 @@ def test_rerecord_refactored_names_the_helper_assertion_count_guard_in_parenthes
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
-    lines = [l for l in err.splitlines() if l.startswith("skipped: suite_test.go TestX")]
-    assert (code, len(lines), [l.startswith("skipped: suite_test.go TestX (") and l.endswith(")")
-                               and len(l) > len("skipped: suite_test.go TestX ()") for l in lines]) == (
+    lines = [line for line in err.splitlines() if line.startswith("skipped: suite_test.go TestX")]
+    assert (code, len(lines), [line.startswith("skipped: suite_test.go TestX (") and line.endswith(")")
+                               and len(line) > len("skipped: suite_test.go TestX ()") for line in lines]) == (
         0, 1, [True])
 
 
@@ -547,7 +547,7 @@ def test_rerecord_refactored_leaves_one_helpers_line_from_head_for_a_go_case_who
     run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
-    assert ([l for l in record.read_text().splitlines() if l.startswith("helpers: ")], checked) == (
+    assert ([line for line in record.read_text().splitlines() if line.startswith("helpers: ")], checked) == (
         ["helpers: suite_test.go\tTestX\t%s" % held], (0, ""))
 
 
@@ -676,7 +676,7 @@ def test_rerecord_refactored_skips_only_the_go_case_whose_own_lines_the_shared_h
     err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[2]
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[0]
 
-    skipped = [l.split(" (")[0] for l in err.splitlines() if l.startswith("skipped: ")]
+    skipped = [line.split(" (")[0] for line in err.splitlines() if line.startswith("skipped: ")]
     assert (skipped, checked) == (["skipped: suite_test.go TestX"], 1)
 
 
@@ -685,7 +685,7 @@ def _ts_shared_move(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, h
     shared = shared or "".join("it('%s', () => {\n  const x = 1;\n  sharedBase();\n});\n\n" % n for n in TS_NAMES)
     _, err, (checked, _) = _ts_rerecorded(tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits, TS_INLINE,
                                           shared + helper)
-    return [l.split(" (")[0] for l in err.splitlines() if l.startswith("skipped: ")], checked
+    return [line.split(" (")[0] for line in err.splitlines() if line.startswith("skipped: ")], checked
 
 
 @pytest.mark.parametrize("opener", ["let sharedBase = () => {", "return sharedBase = () => {"])
@@ -906,8 +906,8 @@ def test_rerecord_refactored_re_records_a_go_case_a_refactor_moved_byte_identica
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
-    bodies = [l for l in _record_of(tmp_path).read_text().splitlines() if l.startswith("body: ")]
-    assert (code, "skipped:" in err, any(sibling + "\tTestX\t" in l for l in bodies)) == (0, False, True), err
+    bodies = [line for line in _record_of(tmp_path).read_text().splitlines() if line.startswith("body: ")]
+    assert (code, "skipped:" in err, any(sibling + "\tTestX\t" in line for line in bodies)) == (0, False, True), err
 
 
 def test_rerecord_refactored_writes_the_helpers_record_of_a_go_case_moved_to_a_sibling_file_naming_it_with_the_digest_of_its_text_4601(
@@ -926,8 +926,8 @@ def test_rerecord_refactored_writes_the_helpers_record_of_a_go_case_moved_to_a_s
 
     code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
 
-    held = [l.split("\t") for l in _record_of(tmp_path).read_text().splitlines()
-            if l.startswith("helpers: " + sibling + "\t") and l.split("\t")[1] == "TestX"]
+    held = [line.split("\t") for line in _record_of(tmp_path).read_text().splitlines()
+            if line.startswith("helpers: " + sibling + "\t") and line.split("\t")[1] == "TestX"]
     assert (code, [h[2] for h in held]) == (0, [expected]), held
 
 
@@ -1150,8 +1150,8 @@ def test_rerecord_refactored_writes_the_empty_helpers_digest_for_a_python_case_w
 
     code = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[0]
 
-    held = [l.split("\t")[2] for l in _record_of(tmp_path).read_text().splitlines()
-            if l.startswith("helpers: " + SAME_DIR_A + "\t") and l.split("\t")[1] == "test_a"]
+    held = [line.split("\t")[2] for line in _record_of(tmp_path).read_text().splitlines()
+            if line.startswith("helpers: " + SAME_DIR_A + "\t") and line.split("\t")[1] == "test_a"]
     assert (code, held[-1:]) == (0, [nothing]), held
 
 
@@ -1184,7 +1184,7 @@ def test_rerecord_refactored_re_records_a_case_whose_record_holds_the_non_transi
 
     def as_written_before_the_transitive_walk():
         record = _record_of(tmp_path)
-        kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
+        kept = [line for line in record.read_text().splitlines(keepends=True) if not line.startswith("helpers:")]
         record.write_text("".join(kept) + "helpers: %s\tTestX\t%s\n" % (
             GO_SUITE, identity.helper_digest(nested, body, transitive=False)))
     green = _refactored(tmp_path, run_cli, tests_frozen, repo, GO_SUITE, nested, nested.replace(

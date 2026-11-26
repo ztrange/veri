@@ -45,8 +45,8 @@ def test_a_green_step_marked_with_a_repair_or_replaces_mark_carries_its_own_frag
     spec = tmp_path / "spec.md"
     spec.write_text(SPEC_TEXT)
     marks = ["replaces-case", "suite-repair", "ci-repair", "fixture-repair"]
-    lines = {m: [l for l in (prompts / f"_verify-green-{m}.md").read_text().splitlines()
-                 if l.strip() and "{{" not in l] for m in marks}
+    lines = {m: [line for line in (prompts / f"_verify-green-{m}.md").read_text().splitlines()
+                 if line.strip() and "{{" not in line] for m in marks}
 
     results = {}
     for mark in marks:
@@ -54,8 +54,8 @@ def test_a_green_step_marked_with_a_repair_or_replaces_mark_carries_its_own_frag
             "--step", f"pin the slug ⟦{mark}⟧", "--fast-cmd", "make unit",
             "green", str(spec), "tests/x_suite.py", "test_x"])
         rendered = out.splitlines()
-        others = [l for m in marks if m != mark for l in lines[m]]
-        results[mark] = (code, bool(lines[mark]) and any(l in rendered for l in lines[mark]),
-                         [l for l in others if l in rendered], "{{" in out)
+        others = [line for m in marks if m != mark for line in lines[m]]
+        results[mark] = (code, bool(lines[mark]) and any(line in rendered for line in lines[mark]),
+                         [line for line in others if line in rendered], "{{" in out)
 
     assert results == dict.fromkeys(marks, (0, True, [], False))

@@ -201,11 +201,11 @@ def test_record_step_again_for_a_case_committed_unchanged_keeps_its_body_entry_a
     run_cli(tests_frozen, ["record", "--step", step, NEW], cwd=tmp_path)
     fed_history(("base", "base", base), ("red", "red", {NEW: (tmp_path / NEW).read_text()}), root=tmp_path)
     record = tmp_path / run_cli(tests_frozen, ["path", step], cwd=tmp_path)[1].strip()
-    first = [l for l in record.read_text().splitlines() if l.startswith("body: ")]
+    first = [line for line in record.read_text().splitlines() if line.startswith("body: ")]
 
     code, _, err = run_cli(tests_frozen, ["record", "--step", step, NEW], cwd=tmp_path)
 
-    again = [l for l in record.read_text().splitlines() if l.startswith("body: ")]
+    again = [line for line in record.read_text().splitlines() if line.startswith("body: ")]
     assert (code, len(first), again) == (0, 1, first), err
 
 
@@ -241,7 +241,7 @@ def plan_repo(tmp_path, fed_history, monkeypatch):
 
 def _names(root, tests_frozen, step):
     record = (root / tests_frozen.record_path(step)).read_text()
-    return sorted(l[6:] for l in record.splitlines() if l.startswith("case: "))
+    return sorted(line[6:] for line in record.splitlines() if line.startswith("case: "))
 
 
 def test_rerecord_on_head_keeps_a_pin_and_rename_committed_in_green_and_a_successor_a_later_step_renamed_2673(

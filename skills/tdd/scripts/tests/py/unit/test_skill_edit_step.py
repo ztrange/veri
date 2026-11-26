@@ -93,7 +93,7 @@ def test_apply_rewords_a_row_the_list_already_holds_in_place_keeping_its_id_and_
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
-    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| A")]
+    rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| A")]
     assert rows == [
         "| A1 | The widget is blue. | because |",
         "| A2 | The widget is square. | corners |",
@@ -114,7 +114,7 @@ def test_apply_rewords_in_place_a_row_whose_id_cell_is_id_reword_writing_the_id_
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
-    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| A")]
+    rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| A")]
     assert rows == [
         "| A1 | The widget is blue. | because |",
         "| A2 | The widget is square. | corners |",
@@ -135,7 +135,7 @@ def test_apply_drops_the_row_an_issue_marks_dropped_and_renumbers_no_other_row(t
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
-    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| A")]
+    rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| A")]
     assert rows == [
         "| A1 | The widget is blue. | because |",
         "| A3 | The widget is shiny. | gloss |",
@@ -175,7 +175,7 @@ def test_apply_creates_a_new_unit_empty_and_its_section_in_a_requirements_list_i
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
     assert (tmp_path / "unit.md").read_bytes() == b""
-    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("|")]
+    rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("|")]
     assert rows[2:] == [
         "| A1 | The widget is blue. | because |",
         "| A2 | The widget is round. | shape |",
@@ -279,7 +279,7 @@ def test_apply_adds_the_rows_under_a_repo_relative_path_heading_to_the_list_besi
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "skills/vdev/SKILL.md")
 
-    rows = [l for l in (tmp_path / "skills" / "vdev" / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| A")]
+    rows = [line for line in (tmp_path / "skills" / "vdev" / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| A")]
     assert rows == [
         "| A1 | The widget is blue. | because |",
         "| A2 | The widget is round. | shape |",
@@ -325,7 +325,7 @@ def test_apply_makes_the_issue_rows_the_new_list_beside_a_unit_with_no_requireme
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "skills/vdev/SKILL.md")
 
-    rows = [l for l in (tmp_path / "skills" / "vdev" / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| A")]
+    rows = [line for line in (tmp_path / "skills" / "vdev" / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| A")]
     assert rows == ["| A1 | The widget is blue. | because |"], rows
 
 
@@ -786,7 +786,7 @@ def test_apply_numbers_a_prefix_next_row_1_when_the_list_holds_no_row_of_that_pr
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
-    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("|")]
+    rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("|")]
     assert rows[2:] == ["| PL1 | The widget is shiny. | gloss |"], rows
 
 
@@ -798,7 +798,7 @@ def test_apply_numbers_a_prefix_next_row_1_when_the_unit_exists_but_no_requireme
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
-    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("|")]
+    rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("|")]
     assert rows[2:] == ["| PL1 | The widget is shiny. | gloss |"], rows
 
 
@@ -956,7 +956,7 @@ def test_apply_writes_a_prefix_next_rows_other_cells_byte_for_byte_keeping_an_es
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
-    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| PL")]
+    rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| PL")]
     assert rows == ["| PL5 | The widget is blue. | because |",
                     "| PL6 | The widget shows a\\|b. | gloss\\|shine |"], rows
 
@@ -970,7 +970,7 @@ def test_apply_numbers_a_prefix_next_row_past_the_issues_explicit_ids_when_the_u
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
-    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| PL")]
+    rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| PL")]
     assert rows == ["| PL2 | The widget is shiny. | gloss |",
                     "| PL1 | The widget is heavy. | weight |"], rows
 
@@ -985,7 +985,7 @@ def test_apply_numbers_a_prefix_next_row_past_the_issues_explicit_ids_in_a_list_
 
     skill_edit_step.apply(str(tmp_path / "issue.md"), "unit.md")
 
-    rows = [l for l in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if l.startswith("| PL")]
+    rows = [line for line in (tmp_path / "REQUIREMENTS.md").read_text().splitlines() if line.startswith("| PL")]
     assert rows == ["| PL2 | The widget is shiny. | gloss |",
                     "| PL1 | The widget is heavy. | weight |"], rows
 
@@ -1266,7 +1266,7 @@ def test_a_change_step_on_a_unit_already_graded_pass_grades_the_authors_edit_tho
                                                "issue.md", "unit.md"],
                              env={"VERI_SKILL_EDIT_BUDGET": "1"})
 
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     gradings = [e for e in events if e.get("event") == "grading"]
     assert graded_texts == [original, edited], (code, out, err, graded_texts)
     assert (code, (tmp_path / "unit.md").read_text()) == (0, edited), (code, out, err)

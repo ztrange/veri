@@ -307,7 +307,7 @@ def test_insert_adds_no_suite_repair_step_when_the_red_is_only_a_stale_grade_of_
 
     assert code == 0
     assert "⟦suite-repair⟧" not in ledger.read_text()
-    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][0] == f"- [ ] ⟦skill-edit⟧ regrade `{unit}` against SC48"
+    assert [line for line in ledger.read_text().split("\n") if line.startswith("- [ ]")][0] == f"- [ ] ⟦skill-edit⟧ regrade `{unit}` against SC48"
 
 
 def test_insert_still_adds_the_suite_repair_step_before_the_skill_edit_step_when_a_branch_red_suite_is_red_for_another_reason_3004(run_cli, tmp_path, monkeypatch):
@@ -326,7 +326,7 @@ def test_insert_still_adds_the_suite_repair_step_before_the_skill_edit_step_when
     code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
 
     assert code == 0
-    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][:2] == [step, skill_edit]
+    assert [line for line in ledger.read_text().split("\n") if line.startswith("- [ ]")][:2] == [step, skill_edit]
 
 
 def test_insert_still_adds_the_suite_repair_step_when_the_stale_graded_unit_has_no_pending_skill_edit_step_3004(run_cli, tmp_path, monkeypatch):
@@ -344,7 +344,7 @@ def test_insert_still_adds_the_suite_repair_step_when_the_stale_graded_unit_has_
     code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
 
     assert code == 0
-    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][0] == step
+    assert [line for line in ledger.read_text().split("\n") if line.startswith("- [ ]")][0] == step
 
 
 def test_insert_still_adds_the_suite_repair_step_when_the_first_unchecked_skill_edit_step_names_a_different_unit_3004(run_cli, tmp_path, monkeypatch):
@@ -363,7 +363,7 @@ def test_insert_still_adds_the_suite_repair_step_when_the_first_unchecked_skill_
     code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
 
     assert code == 0
-    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][:2] == [step, skill_edit]
+    assert [line for line in ledger.read_text().split("\n") if line.startswith("- [ ]")][:2] == [step, skill_edit]
 
 
 def test_flake_with_the_wrong_argument_count_exits_2_and_its_usage_line_names_flake_2946(run_cli):
@@ -399,7 +399,7 @@ def test_insert_with_a_red_naming_a_case_no_graded_unit_pins_alongside_cases_tha
     code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
 
     assert code == 0
-    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")] == [step]
+    assert [line for line in ledger.read_text().split("\n") if line.startswith("- [ ]")] == [step]
     assert "⟦skill-edit⟧" not in ledger.read_text()
 
 
@@ -416,7 +416,7 @@ def test_insert_with_a_red_whose_every_case_pins_one_graded_unit_adds_one_skill_
 
     code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
 
-    unchecked = [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")]
+    unchecked = [line for line in ledger.read_text().split("\n") if line.startswith("- [ ]")]
     assert code == 0
     assert len(unchecked) == 1 and "⟦skill-edit⟧" in unchecked[0] and f"`{unit}`" in unchecked[0]
     assert "⟦suite-repair⟧" not in ledger.read_text()
@@ -435,7 +435,7 @@ def test_insert_with_a_red_pinned_by_two_listed_units_at_once_adds_one_skill_edi
 
     code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
 
-    unchecked = [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")]
+    unchecked = [line for line in ledger.read_text().split("\n") if line.startswith("- [ ]")]
     assert code == 0
     assert len(unchecked) == 1 and "⟦skill-edit⟧" in unchecked[0]
     assert any(f"`{u}`" in unchecked[0] for u in units)
@@ -456,7 +456,7 @@ def test_insert_with_graded_reds_where_only_one_names_the_stale_unit_adds_the_su
 
     code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
 
-    unchecked = [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")]
+    unchecked = [line for line in ledger.read_text().split("\n") if line.startswith("- [ ]")]
     assert code == 0
     assert len(unchecked) == 1 and "⟦suite-repair⟧" in unchecked[0]
     assert "⟦skill-edit⟧" not in ledger.read_text()
@@ -561,8 +561,8 @@ def test_insert_with_a_red_from_suites_outside_the_grade_suites_naming_one_liste
     named_code, _, _ = run_cli(module, ["insert", str(named), str(branch)])
     unnamed_code, _, _ = run_cli(module, ["insert", str(unnamed), str(stray)])
 
-    named_steps = [l for l in named.read_text().split("\n") if l.startswith("- [ ]")]
-    unnamed_steps = [l for l in unnamed.read_text().split("\n") if l.startswith("- [ ]")]
+    named_steps = [line for line in named.read_text().split("\n") if line.startswith("- [ ]")]
+    unnamed_steps = [line for line in unnamed.read_text().split("\n") if line.startswith("- [ ]")]
     assert named_code == 0 and len(named_steps) == 1
     assert named_steps[0].startswith(f"- [ ] fix the full-suite failure by editing `{unit}`: ")
     assert "⟦skill-edit⟧" in named_steps[0] and "⟦suite-repair⟧" not in named.read_text()
@@ -585,7 +585,7 @@ def test_insert_with_reds_outside_the_grade_suites_naming_two_different_listed_u
 
     code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
 
-    steps = [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")]
+    steps = [line for line in ledger.read_text().split("\n") if line.startswith("- [ ]")]
     assert code == 0 and len(steps) == 1 and "⟦suite-repair⟧" in steps[0]
     assert "⟦skill-edit⟧" not in ledger.read_text()
 
@@ -626,7 +626,7 @@ def test_insert_with_reds_outside_the_grade_suites_not_naming_the_listed_unit_of
     code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
 
     assert code == 0
-    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][:2] == [step, skill_edit]
+    assert [line for line in ledger.read_text().split("\n") if line.startswith("- [ ]")][:2] == [step, skill_edit]
 
 
 def test_insert_with_a_red_mixing_a_grade_suite_with_an_outside_suite_both_naming_one_listed_unit_adds_the_suite_repair_step_and_no_skill_edit_step_3107(run_cli, tmp_path, monkeypatch):
@@ -643,7 +643,7 @@ def test_insert_with_a_red_mixing_a_grade_suite_with_an_outside_suite_both_namin
 
     code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
 
-    steps = [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")]
+    steps = [line for line in ledger.read_text().split("\n") if line.startswith("- [ ]")]
     assert code == 0 and len(steps) == 1 and "⟦suite-repair⟧" in steps[0]
     assert "⟦skill-edit⟧" not in ledger.read_text().replace("⟦suite-repair⟧", "")
 
@@ -683,7 +683,7 @@ def test_insert_still_adds_the_suite_repair_step_before_two_pending_skill_edit_s
     code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
 
     assert code == 0
-    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")][:3] == [step, first, second]
+    assert [line for line in ledger.read_text().split("\n") if line.startswith("- [ ]")][:3] == [step, first, second]
 
 
 def test_insert_leaves_the_ledger_untouched_and_exits_0_when_two_consecutive_pending_skill_edit_steps_together_name_the_two_stale_graded_units_3306(run_cli, tmp_path, monkeypatch):
@@ -722,7 +722,7 @@ def test_insert_still_adds_the_suite_repair_step_before_the_first_of_two_separat
     code, _, _ = run_cli(module, ["insert", str(ledger), str(branch)])
 
     assert code == 0
-    assert [l for l in ledger.read_text().split("\n") if l.startswith("- [ ]")] == [step, first, middle, second]
+    assert [line for line in ledger.read_text().split("\n") if line.startswith("- [ ]")] == [step, first, middle, second]
 
 
 def test_insert_adds_no_step_and_exits_2_naming_both_skill_edit_steps_and_reorder_ledger_steps_when_a_plain_step_separates_the_two_stale_graded_units_steps_3378(run_cli, tmp_path, monkeypatch):
