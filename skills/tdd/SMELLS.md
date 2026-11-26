@@ -15,12 +15,16 @@ is owed. Name a smell and a refactoring exactly as this table spells them.
 | Repeated Switch | the same condition chain on the same value appears in 2 or more places | Replace Conditional with Polymorphism, Extract Function |
 | Data Clumps | the same 3 or more parameters or fields travel together in 2 or more signatures | Introduce Parameter Object, Extract Class |
 | Magic Literal | the same string or number, other than 0 and 1, is written out in 3 or more places | Replace Magic Literal |
-| Message Chain | a chain of more than 3 calls or field reads through other objects, as `a.b().c().d()` | Hide Delegate, Extract Function |
+| Message Chain | a chain of more than 3 calls or field reads through other objects, as `a.b().c().d().e()` | Hide Delegate, Extract Function |
 | Feature Envy | a function reads 3 or more fields of another module's object and none of its own | Move Function |
 | Mysterious Name | a name says something its code does not do | Rename Variable, Change Function Declaration, Rename Field |
 | Leaky Scope | a module-level name is used by 1 function only, or a variable lives wider than its uses | Move Statements into Function, Encapsulate Variable |
 | Dead Code | a function, branch, parameter or import no code path reaches | Remove Dead Code |
 | Speculative Generality | a parameter, option, hook or abstraction no test exercises | Inline Function, Remove Dead Code |
+| Sibling Asymmetry | 1 function or stage in a family of 3 or more siblings skips a step all the others take | Extract Function |
+
+Extract Function answers Sibling Asymmetry only where behaviour is unchanged. Otherwise report it
+as an `uncovered-spec` flag; no transform ever fixes it.
 
 #### Rules every transform keeps
 
