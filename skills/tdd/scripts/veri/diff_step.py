@@ -48,15 +48,21 @@ def run(n):
     if has_kind(step, "⟦test-quality⟧"):
         found = possible_bug(wt, values["leaf"])
         if found:
-            steps = [line for line in read_ledger(run_dir.ledger(wt, n)).split("\n") if STEP_RE.fullmatch(line)]
-            if sum(has_kind(line, "⟦quality-repair⟧") for line in steps) < int(tunables.get("VERI_QUALITY_REPAIRS")):
-                quality_repair(n, wt, found)
-            else:
-                unrepaired(n, wt, found)
+            route_possible_bug(n, wt, found)
         else:
             flip(n, wt, step, values)
     fused.checked("tick", fused.script("step-tick.sh"), n, cwd=wt)
     return 0
+
+
+def route_possible_bug(n, wt, found):
+    """A POSSIBLE-BUG: value's route (SG5): a ⟦quality-repair⟧ step while the ledger holds fewer than
+    VERI_QUALITY_REPAIRS of them, else a not-fixed line in the test-quality record."""
+    steps = [line for line in read_ledger(run_dir.ledger(wt, n)).split("\n") if STEP_RE.fullmatch(line)]
+    if sum(has_kind(line, "⟦quality-repair⟧") for line in steps) < int(tunables.get("VERI_QUALITY_REPAIRS")):
+        quality_repair(n, wt, found)
+    else:
+        unrepaired(n, wt, found)
 
 
 def quality_repair(n, wt, found):
