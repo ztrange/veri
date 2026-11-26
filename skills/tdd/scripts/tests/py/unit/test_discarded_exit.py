@@ -306,3 +306,49 @@ def test_a_discarded_call_on_a_context_or_removed_line_is_not_printed_while_an_a
     monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:3\n", "")
+
+
+def test_an_added_exit_code_assigned_to_underscore_is_printed_even_when_the_function_reads_underscore(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    (tmp_path / "mod.py").write_text(
+        "import subprocess\n"
+        "\n"
+        "def call():\n"
+        "    _ = subprocess.call([\"x\"])\n"
+        "    print(_)\n")
+    diff = ("diff --git a/mod.py b/mod.py\n"
+            "index 1111111..2222222 100644\n"
+            "--- a/mod.py\n"
+            "+++ b/mod.py\n"
+            "@@ -1 +1,5 @@\n"
+            " import subprocess\n"
+            "+\n"
+            "+def call():\n"
+            "+    _ = subprocess.call([\"x\"])\n"
+            "+    print(_)\n")
+    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:4\n", "")
+
+
+def test_an_added_subprocess_run_with_check_true_never_bound_whole_prints_nothing_and_exits_0(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    (tmp_path / "mod.py").write_text(
+        "import subprocess\n"
+        "\n"
+        "def output():\n"
+        "    out = subprocess.run([\"x\"], check=True).stdout\n"
+        "    return out\n")
+    diff = ("diff --git a/mod.py b/mod.py\n"
+            "index 1111111..2222222 100644\n"
+            "--- a/mod.py\n"
+            "+++ b/mod.py\n"
+            "@@ -1 +1,5 @@\n"
+            " import subprocess\n"
+            "+\n"
+            "+def output():\n"
+            "+    out = subprocess.run([\"x\"], check=True).stdout\n"
+            "+    return out\n")
+    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
