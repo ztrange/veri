@@ -667,8 +667,8 @@ def test_4432_the_usage_names_from_and_hand_and_the_shim_header_lists_every_exit
     header = open(shim, encoding="utf-8").read()
     assert "# Usage:   run-pr.sh <n> [--from <stage>] [--hand <stage>]" in header
     lines = header.splitlines()
-    start = next(i for i, l in enumerate(lines) if l.startswith("# Exit:"))
-    block = [lines[start]] + [l for l in lines[start + 1:] if l.startswith("#    ")][:3]
+    start = next(i for i, line in enumerate(lines) if line.startswith("# Exit:"))
+    block = [lines[start]] + [line for line in lines[start + 1:] if line.startswith("#    ")][:3]
     for c in ("Exit:    0 ", "; 1 ", "2 bad arguments", "; 3 "):
         assert c in " ".join(block)
 

@@ -225,7 +225,7 @@ def test_4016_grade_prose_shows_the_grader_a_split_whole_file_units_view_and_sig
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "f.md"], cwd=tmp_path)
 
     graded = tmp_path / "GRADED"
-    signed = [l.split(" ")[1] for l in graded.read_text().splitlines() if l.startswith("f.md ")] if graded.exists() else []
+    signed = [line.split(" ")[1] for line in graded.read_text().splitlines() if line.startswith("f.md ")] if graded.exists() else []
     assert (code, prompts, signed, grade_prose.unit_text("f.md")) == (
         0, [grade_prose.prompt("f.md", SPLIT_VIEW, "A1\tThe widget is blue.\n")],
         [grade_prose.signature("REQUIREMENTS.md", "f.md")], SPLIT), err

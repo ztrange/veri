@@ -993,7 +993,7 @@ def test_main_reads_walls_off_the_awake_clock_and_falls_back_to_the_wall_clock_s
         return events
 
     def line(out, prefix):
-        found = [l for l in out.split("\n") if l.startswith(prefix)]
+        found = [line for line in out.split("\n") if line.startswith(prefix)]
         return found[0][len(prefix):].split(" s", 1)[0] if found else None
 
     def walls(out):
@@ -1609,7 +1609,7 @@ def test_main_names_the_conductor_model_the_run_recorded_at_launch_on_the_conduc
 
     out = render(metrics, capsys)
 
-    line = next(l for l in out.splitlines() if l.startswith("Conductor own spending:"))
+    line = next(line for line in out.splitlines() if line.startswith("Conductor own spending:"))
     assert "sonnet" in line
 
 
@@ -1637,7 +1637,7 @@ def test_main_run_from_the_issue_worktree_names_the_conductor_model_the_launcher
 
     out = render(metrics, capsys)
 
-    line = next(l for l in out.splitlines() if l.startswith("Conductor own spending:"))
+    line = next(line for line in out.splitlines() if line.startswith("Conductor own spending:"))
     assert "sonnet" in line
 
 
@@ -1673,7 +1673,7 @@ def test_issue_1815_a_conductor_turn_with_both_one_hour_and_five_minute_cache_wr
     out = render(metrics, capsys)
 
     assert cells(out, "#### Conductor per turn", ["dollars"]) == {"1": ["$48.75"]}
-    line = next(l for l in out.splitlines() if l.startswith("Conductor own spending:"))
+    line = next(line for line in out.splitlines() if line.startswith("Conductor own spending:"))
     assert re.fullmatch(r"Conductor own spending: \$48\.75 over 1 turns, in 1 sessions\W.*estimate\W*", line, re.I)
 
 
@@ -1845,7 +1845,7 @@ def test_issue_2309_a_trailing_conductor_session_with_no_result_record_still_get
 
     out = render(metrics, capsys)
 
-    line = next(l for l in out.splitlines() if l.startswith("Conductor own spending:"))
+    line = next(line for line in out.splitlines() if line.startswith("Conductor own spending:"))
     assert re.search(r" in 2 sessions\b.*estimate", line, re.I)
     assert [line for line in out.split("\n") if line.startswith("Conductor context:")] == [
         "Conductor context: first turn 1000 tokens, largest 5000 tokens",
@@ -1963,7 +1963,7 @@ def test_issue_2499_a_conductor_figure_from_a_session_without_a_result_record_is
 
     out = render(metrics, capsys)
 
-    line = next(l for l in out.splitlines() if l.startswith("Conductor own spending:"))
+    line = next(line for line in out.splitlines() if line.startswith("Conductor own spending:"))
     assert re.search(r"estimate", line, re.I)
     assert not re.fullmatch(r"\d+\.\d\d", cells(out, "#### Total", ["$"])["total"][0])
 

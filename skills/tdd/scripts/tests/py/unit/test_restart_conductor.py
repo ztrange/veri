@@ -401,7 +401,7 @@ def test_3223_a_relaunch_records_exactly_one_conductor_restart_event_with_the_gr
 
     run_cli(restart_conductor, ["7"], cwd=tmp_path)
 
-    lines = [json.loads(l) for l in events.read_text().splitlines()] if events.exists() else []
+    lines = [json.loads(line) for line in events.read_text().splitlines()] if events.exists() else []
     restarts = [(e.get("growth"), e.get("knob")) for e in lines if e.get("event") == "conductor-restart"]
     assert restarts == [("59500", "30000")]
 
@@ -1381,7 +1381,7 @@ def _operator_stop(run_tdd):
 
 def _restart_events(run_tdd):
     events = run_tdd / "events.jsonl"
-    lines = [json.loads(l) for l in events.read_text().splitlines()] if events.exists() else []
+    lines = [json.loads(line) for line in events.read_text().splitlines()] if events.exists() else []
     return [e for e in lines if e.get("event") == "conductor-restart"]
 
 

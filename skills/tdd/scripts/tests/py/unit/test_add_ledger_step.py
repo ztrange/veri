@@ -1353,13 +1353,13 @@ def test_main_refuses_an_instead_of_over_an_added_anchor_with_more_texts_than_th
 
 
 def test_shim_header_describes_planned_and_its_exit_2_refusals_and_no_longer_lists_a_criterion_no_step_carries_1579():
-    header = "\n".join(l for l in (SCRIPTS / "add-ledger-step.sh").read_text().split("\n") if l.startswith("#"))
+    header = "\n".join(line for line in (SCRIPTS / "add-ledger-step.sh").read_text().split("\n") if line.startswith("#"))
     exit2 = header[header.index("# Exit:"):]
-    planned = [l for l in header.split("\n") if "--planned" in l]
+    planned = [line for line in header.split("\n") if "--planned" in line]
 
     assert (
-        any("VERI_STEP_GROWTH_PERCENT" in l for l in planned),
-        any("⟦added⟧" in l for l in planned),
+        any("VERI_STEP_GROWTH_PERCENT" in line for line in planned),
+        any("⟦added⟧" in line for line in planned),
         "--planned without --criterion" in exit2,
         "already serves" in exit2,
         "unticked in the issue body" in exit2,

@@ -25,7 +25,7 @@ def test_no_argument_prints_the_usage_line_on_stderr_and_exits_2(run_cli):
     assert "--note-file" in err
     shim = (SCRIPTS / "comment.sh").read_text()
     assert shim.startswith("#!/bin/sh\n")
-    usage_lines = [l for l in shim.splitlines() if l.startswith("# usage: comment.sh <issue> <kind>")]
+    usage_lines = [line for line in shim.splitlines() if line.startswith("# usage: comment.sh <issue> <kind>")]
     assert len(usage_lines) == 1
     assert "--note-file" in usage_lines[0]
 
@@ -1373,7 +1373,7 @@ def test_plan_names_the_test_command_as_plain_text_on_its_own_test_command_line(
     code, out, err = run_cli(comment, ["7", "plan"], cwd=tmp_path)
 
     assert code == 0, err
-    assert [l for l in posted[0].split("\n") if l.startswith("Test command:")] == ["Test command: bin/detected-fast -q"]
+    assert [line for line in posted[0].split("\n") if line.startswith("Test command:")] == ["Test command: bin/detected-fast -q"]
 
 
 def test_plan_with_no_fast_tier_command_found_exits_2_naming_it_on_one_stderr_line_and_posts_nothing(

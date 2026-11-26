@@ -81,7 +81,7 @@ def test_usage_output_on_a_missing_argument_is_unchanged(run_cli):
     for want, script, argv in USAGE:
         text = emitted(run_cli, script, argv)
         if script == "build-develop-prompt.sh":
-            usage = [l for l in text.splitlines() if "usage: " in l]
+            usage = [line for line in text.splitlines() if "usage: " in line]
             phases = usage[0].split("usage: build-develop-prompt.sh ")[1].split(" ")[0].split("|") if usage else []
             if not text.startswith("exit 2\n") or "dual-stub" not in phases or "beside" not in phases:
                 problems.append("%s %s: usage line must name dual-stub and beside, got %r" % (script, " ".join(argv), text))

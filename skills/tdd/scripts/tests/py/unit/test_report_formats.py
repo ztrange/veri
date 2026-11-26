@@ -61,7 +61,7 @@ def test_1568_every_key_a_real_develop_prompt_declares_appears_in_its_report_tex
     for path, text in prompts:
         heading = re.search(r"^#+ Report.*$", text, re.M)
         section = text[heading.start():] if heading else text
-        report = "\n".join(l for l in section.splitlines() if not l.startswith("REPORT-FORMAT "))
+        report = "\n".join(line for line in section.splitlines() if not line.startswith("REPORT-FORMAT "))
         for declared in report_formats.parse(text):
             missing += [f"{path.name}: {key}" for key in declared["keys"] if key not in report]
 
