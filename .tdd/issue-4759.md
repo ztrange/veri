@@ -22,7 +22,7 @@
 - [x] An `UNTRACED S<k> <why>` trace answer for a sentence sends the step back to the author with that line among its reasons, spending one attempt of `VERI_SKILL_EDIT_BUDGET`, the grade not run on that attempt ⟦criterion 5⟧
 - [x] An `UNTRACED S<k> <why>` trace answer on the last attempt of `VERI_SKILL_EDIT_BUDGET` launches no further author: the step ends as an exhausted author's does, exit 1 and the unit's files restored ⟦criterion 5⟧
 - [x] Pin: the `verify-trace-rows` leaf is launched through `fused.launch`, so `detach-leaf.sh` runs `supervise.sh verify-trace-rows run-leaf.sh …`; a unit case records the launch ⟦criterion 8⟧
-- [ ] Pin: `leaf-model.sh verify-trace-rows` resolves `VERI_MODEL_VERIFIER`, else `VERI_MODEL`, else sonnet; a unit case ⟦criterion 8⟧
+- [x] Pin: `leaf-model.sh verify-trace-rows` resolves `VERI_MODEL_VERIFIER`, else `VERI_MODEL`, else sonnet; a unit case ⟦criterion 8⟧
 - [ ] `skills/tdd/BAIL.md` lists `row-untraced`, exit 1, a process failure: a `trace-rows` leaf answered `UNTRACED` for a row of the issue ⟦skill-edit⟧ ⟦criterion 11⟧
 - [ ] `skills/tdd/SKILL-EDIT.md` states the trace, before the grade on both paths and blind to the step's text and the author's report, its three answers and their routes ⟦skill-edit⟧ ⟦criterion 11⟧
 - [ ] `skills/tdd/scripts/prompts/verify-diff.md` REJECTs a doc sentence the step's diff adds or changes that states a behaviour no file at `HEAD` shows, finds a site an issue says "wherever" by search, and re-reads the doc sites naming a behaviour the diff changes ⟦skill-edit⟧ ⟦criterion 10⟧

@@ -556,3 +556,18 @@ def test_develop_test_quality_runs_on_the_developer_model_else_veri_model_with_n
     monkeypatch.setenv("VERI_MODEL_VERIFIER", "opus")
 
     assert (fallback, leaf_model.leaf_model("develop-test-quality")) == ("haiku", "sonnet")
+
+
+def test_main_resolves_verify_trace_rows_to_veri_model_verifier_else_veri_model_else_sonnet_4759(
+        capsys, monkeypatch, leaf_model):
+    answers = []
+    for environment in ({"VERI_MODEL": "haiku", "VERI_MODEL_VERIFIER": "opus", "VERI_MODEL_DEVELOPER": "fable"},
+                        {"VERI_MODEL": "haiku", "VERI_MODEL_DEVELOPER": "fable"},
+                        {"VERI_MODEL_DEVELOPER": "fable"}):
+        for variable in MODEL_VARIABLES:
+            monkeypatch.delenv(variable, raising=False)
+        for variable, value in environment.items():
+            monkeypatch.setenv(variable, value)
+        code = leaf_model.main(["verify-trace-rows"])
+        answers.append((code, capsys.readouterr().out))
+    assert answers == [(0, "opus\n"), (0, "haiku\n"), (0, "sonnet\n")]
