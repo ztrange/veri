@@ -30,11 +30,31 @@ def split_calls():
     return outside_cost_check(numbered(r'\$S/add-ledger-step\.sh (--criterion [^ ]+ )?\.tdd/.*(instead-of|before "\$\(\$S/next-unchecked\.sh)'))
 
 
-def test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and_say_a_split_keeps_its_anchor_s_criterion_the_uncovered_spec_call_passes_criterion_k_read_from_the_issue_s_numbered_acceptance_criteria_one_call_per_criterion_bailing_on_exit_2():
-    splits = [(n, line) for n, line in numbered(r'\$S/add-ledger-step\.sh (--criterion [^ ]+ )?\.tdd/.*instead-of')]
-    assert splits, "SKILL.md has no instead-of add-ledger-step.sh call"
-    for _n, line in filter(in_skill_md, splits):
-        assert "--criterion" not in line.strip(), f"SKILL.md's split call passes --criterion: {line.strip()}"
+def test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and_say_a_split_keeps_its_anchor_s_criterion_the_uncovered_spec_call_passes_criterion_k_read_from_the_issue_s_numbered_acceptance_criteria_one_call_per_criterion_bailing_on_exit_2(tmp_path, monkeypatch, fake_processes):
+    from veri import add_ledger_step
+
+    splits = [(n, line) for n, line in numbered(r'\$S/add-ledger-step\.sh (--criterion [^ ]+ )?\.tdd/.*(instead-of|before "\$\(\$S/next-unchecked\.sh)') if in_skill_md(n)]
+    positions = {re.search(r"\.md (instead-of|before) ", line).group(1): line.strip() for _n, line in splits}
+    assert sorted(positions) == ["before", "instead-of"], f"SKILL.md's split add-ledger-step.sh calls: {positions}"
+    fake_processes.answers({"git log --format=%H %s": (0, "beef plan: scope #42 into 3 steps (#42)\n", ""),
+                            "git show beef:./": (0, "- [ ] planned step\n" * 3, "")})
+    monkeypatch.setenv("VERI_STEP_GROWTH_PERCENT", "100")
+    kept = {}
+    for where, line in positions.items():
+        assert "--criterion" not in line, f"SKILL.md's split call passes --criterion: {line}"
+        ledger = tmp_path / where / ".tdd" / "issue-42.md"
+        ledger.parent.mkdir(parents=True)
+        ledger.write_text("# Plan for #42\n\n- [ ] anchor ⟦criterion 7⟧\n")
+        assert add_ledger_step.main([str(ledger), where, "anchor", "smaller"]) == 0
+        kept[where] = re.search(r"smaller.*⟦criterion (\d+)⟧", ledger.read_text()).group(1)
+    assert kept == {"instead-of": "7", "before": "7"}
+
+    uncovered = [(n, line) for n, line in numbered(r'\$S/add-ledger-step\.sh .*after "\$\(\$S/next-pending-refactor\.sh') if in_skill_md(n)]
+    assert len(uncovered) == 1, f"SKILL.md's uncovered-spec add-ledger-step.sh calls: {uncovered}"
+    at, call = uncovered[0]
+    assert "$S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md after" in call, f"SKILL.md's uncovered-spec call: {call.strip()}"
+    near = plain(skill_lines()[at - 1:at + 30])
+    assert re.search(r"add-ledger-step\.sh exit 2.*step-add-refused", near), f"SKILL.md:{at} never bails step-add-refused on exit 2"
 
 
 def first_line(needle):
