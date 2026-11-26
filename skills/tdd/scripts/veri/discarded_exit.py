@@ -50,7 +50,8 @@ FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
 
 def _drops_exit_code(node, read):
     """Whether node is a statement discarding an exit-code call's code: a bare call, or one whose
-    code, the whole result or its unpacked first element, goes to `_` or to a name not in read."""
+    code, the whole result or its unpacked first element, goes to `_` or to a name not in read; a
+    subprocess.run bound whole holds its code in <name>.returncode, so that is what must be read."""
     if not (isinstance(node, (ast.Expr, ast.Assign)) and isinstance(node.value, ast.Call)
             and _called_name(node.value) in EXIT_CODE_CALLS):
         return False
@@ -58,7 +59,11 @@ def _drops_exit_code(node, read):
         return True
     target = node.targets[0]
     code = target.elts[0] if isinstance(target, ast.Tuple) else target
-    return isinstance(code, ast.Name) and (code.id == "_" or code.id not in read)
+    if not isinstance(code, ast.Name):
+        return False
+    if _called_name(node.value) == "subprocess.run" and code is target:
+        return code.id + ".returncode" not in read
+    return code.id == "_" or code.id not in read
 
 
 def _own_nodes(scope):
@@ -71,13 +76,25 @@ def _own_nodes(scope):
             pending.extend(ast.iter_child_nodes(node))
 
 
+def _reads(scope):
+    """What scope reads anywhere inside it: each loaded name, and `<name>.returncode` for each
+    attribute of that form."""
+    read = set()
+    for node in ast.walk(scope):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+            read.add(node.id)
+        elif isinstance(node, ast.Attribute) and node.attr == "returncode" and isinstance(node.value, ast.Name):
+            read.add(node.value.id + ".returncode")
+    return read
+
+
 def _discarded(source):
     """The line numbers of the statements in source that discard an exit-code call's result: each
-    scope's statements are judged against the names read anywhere inside that scope."""
+    scope's statements are judged against what is read anywhere inside that scope."""
     tree = ast.parse(source)
     lines = []
     for scope in [tree, *(node for node in ast.walk(tree) if isinstance(node, FUNCTIONS))]:
-        read = {node.id for node in ast.walk(scope) if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)}
+        read = _reads(scope)
         lines.extend(node.lineno for node in _own_nodes(scope) if _drops_exit_code(node, read))
     return sorted(lines)
 

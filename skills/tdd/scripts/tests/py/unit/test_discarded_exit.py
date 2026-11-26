@@ -167,3 +167,26 @@ def test_an_added_fused_call_whose_exit_code_the_function_reads_prints_nothing_a
     monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
+
+
+def test_an_added_subprocess_run_bound_whole_whose_returncode_is_never_read_is_printed_and_exits_1(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    (tmp_path / "mod.py").write_text(
+        "import subprocess\n"
+        "\n"
+        "def output():\n"
+        "    proc = subprocess.run([\"x\"], capture_output=True, text=True)\n"
+        "    return proc.stdout\n")
+    diff = ("diff --git a/mod.py b/mod.py\n"
+            "index 1111111..2222222 100644\n"
+            "--- a/mod.py\n"
+            "+++ b/mod.py\n"
+            "@@ -1 +1,5 @@\n"
+            " import subprocess\n"
+            "+\n"
+            "+def output():\n"
+            "+    proc = subprocess.run([\"x\"], capture_output=True, text=True)\n"
+            "+    return proc.stdout\n")
+    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:4\n", "")
