@@ -45,6 +45,23 @@ through `### Missing PRD parents` and `### PRD trackers`. Every issue in scope g
 line, and every one but a `draft` ends the run with exactly one outcome; none is skipped or left
 unlabelled without its reason.
 
+The sweep is stateless: it keeps, writes and reads no marker of when an issue was last groomed, and
+re-reads every open issue in its scope on every run. So an issue whose blocker closed, whose park
+cause landed or whose draft condition lapsed is groomed on the next sweep.
+
+**Every open issue the sweep leaves without the opt-in label carries exactly one reason**, the
+`taken:` and `draft` ones included, from this closed list:
+
+- taken by a live run (a `taken:` label);
+- blocked by an open issue it names (`#N`);
+- draft waiting on the condition its `## Not ready` names;
+- needs a human decision on a question stated in full;
+- parked or bailed, with the cause its label's comment names unresolved;
+- folded into an issue it names (`#N`);
+- not planned now: a draft whose `## Not ready` condition no longer holds, not yet planned.
+
+No other reason is allowed: an issue that fits none is groomed until it is ready or fits one.
+
 **A `draft` issue is only reported.** The sweep never adds the opt-in label to, rewrites, splits
 or closes an issue carrying the `draft` label, and none of the outcomes in the steps below is
 applied to it. Triage reads the reason under its `## Not ready`, and its report line names it as
@@ -63,7 +80,9 @@ line also names it as promotable.
 5. **`gone`** and **`duplicate`**: close with the reason.
 6. **`needs-human`**: leave without the opt-in label; show the question in full.
 
-The report ends with the tally: labelled ready, rewritten, split, closed, left for the human.
+The sweep's report ends with one table of every open issue left without the opt-in label, one row
+each, then the tally: labelled ready, rewritten, split, closed, left for the human. The table's
+columns are the issue's number, its title and its reason from the closed list above.
 
 **An issue already opted in is groomed too.** Triage re-checks it like any other: `gone`,
 `duplicate`, stale rows (`$S/stale-rows.sh <issue>`, read by its exits as `## Before labelling
@@ -108,6 +127,9 @@ slices, the `PRD <nnn>.<k>: …` issues it plans.
   it open.
 
 A slice filed as a `draft` counts as filed and not done, so its tracker stays open.
+
+The sweep's report has one line headed `Closed PRDs:`, naming each tracker this sweep closed, by
+number and title, or `none`.
 
 ## Before labelling ready
 
