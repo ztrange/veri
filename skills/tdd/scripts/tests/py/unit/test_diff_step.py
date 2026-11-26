@@ -317,3 +317,19 @@ def test_4760_a_test_quality_step_whose_leaf_reports_a_possible_bug_launches_no_
     assert fake.launched() == []
     assert "run-verdict.sh" not in [os.path.basename(a) for c in fake.calls for a in c[1]]
     assert code == 0, err
+
+
+def test_4760_an_ordinary_diff_checked_step_whose_leaf_reports_a_possible_bug_still_launches_verdict_diff(diff):
+    """SG2's counter-case: the skip is keyed on the step's own ⟦test-quality⟧ mark, so an ordinary step's POSSIBLE-BUG
+    line is judged by verify-diff like any other report, and adds no repair step."""
+    report = "SUITE: ok\n" + POSSIBLE_BUG
+    diff(answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    second = diff(answers={("wait-leaf.sh", "verdict-diff"): (3, "")}, report=report)
+    third = diff(report=report)
+
+    assert (second[0], second[1].splitlines()[-1]) == (3, "waiting on verdict-diff")
+    assert second[3].launched() == ["verdict-diff"]
+    assert third[0] == 0, third[2]
+    for _, _, _, fake in (second, third):
+        assert "add-ledger-step.sh" not in fake.names()
+        assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
