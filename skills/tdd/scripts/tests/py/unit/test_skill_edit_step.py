@@ -2081,6 +2081,9 @@ def test_the_trace_prompt_carries_neither_the_step_text_nor_the_author_report(tm
 
     def author(*a):
         (tmp_path / "unit.md").write_text("The widget is painted a deep blue. It has three legs.\n")
+        (tmp_path / ".tdd").mkdir(exist_ok=True)
+        (tmp_path / ".tdd" / "author-skill-edit-1.log").write_text(
+            json.dumps({"type": "result", "result": "AUTHOR-REPORT-QUOKKA: I made the widget three-legged."}) + "\n")
         print("AUTHOR-REPORT-QUOKKA: I made the widget three-legged.")
         return 0
 
@@ -2212,8 +2215,10 @@ def test_an_empty_trace_answer_exits_2_naming_no_verdict_and_runs_no_grade_4759(
     assert (code, "no-verdict" in err, len(case.graded)) == (2, True, 1), (code, out, err)
 
 
-@pytest.mark.parametrize("traced", ["TRACED A2", "TRACED A2 somewhere in the widget code"])
-def test_a_traced_line_without_a_file_and_line_exits_2_naming_no_verdict_and_runs_no_grade_4759(tmp_path, monkeypatch, skill_edit, run_cli, fake_processes, traced):
+@pytest.mark.parametrize("traced", ["TRACED A2", "TRACED A2 somewhere in the widget code", "UNTRACED A2",
+                                    "TRACED A2 skills/widget.py:12\nNOT-CODE",
+                                    "TRACED A2 skills/widget.py:12\nno idea, sorry"])
+def test_a_traced_line_without_a_file_and_line_or_any_other_line_off_the_grammar_exits_2_naming_no_verdict_and_runs_no_grade_4759(tmp_path, monkeypatch, skill_edit, run_cli, fake_processes, traced):
     trace = importlib.import_module("veri.skill_edit_step")._trace
 
     def detach(line, **kw):
@@ -2270,6 +2275,46 @@ def test_an_untraced_sentence_on_the_last_attempt_of_the_budget_launches_no_furt
 
     after = {name: (tmp_path / name).read_bytes() for name in before}
     assert (code, len(case.launched), len(case.graded)) == (1, 2, 1), (code, out, err)
+    assert after == before
+
+
+def test_an_untraced_row_after_the_author_exits_1_with_the_unit_its_rows_and_the_pin_file_the_author_edited_restored_4759(tmp_path, monkeypatch, skill_edit, run_cli):
+    def author(*a):
+        (tmp_path / "unit.md").write_text("The widget is painted a deep blue. It is round.\n")
+        (tmp_path / "pin.md").write_text("pinned: The widget is painted a deep blue. It is round.\n")
+        return 0
+
+    case = skill_edit(
+        unit="The widget is painted a deep blue.\n",
+        issue="## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n",
+        author=author, guard=lambda unit, base, pins: [])
+    (tmp_path / "pin.md").write_text("pinned: The widget is painted a deep blue.\n")
+    before = {name: (tmp_path / name).read_bytes() for name in ("unit.md", "REQUIREMENTS.md", "pin.md")}
+    monkeypatch.setattr(case.step, "_trace", lambda *a: ["UNTRACED A1 no code makes the widget blue"])
+
+    code, out, err = run_cli(case.step, ["issue.md", "unit.md", "pin.md"])
+
+    after = {name: (tmp_path / name).read_bytes() for name in before}
+    assert (code, "row-untraced" in err, len(case.launched)) == (1, True, 1), (code, out, err)
+    assert after == before
+
+
+def test_an_untraced_row_on_the_added_path_that_runs_no_author_exits_1_with_the_rows_apply_added_removed_4759(tmp_path, monkeypatch, skill_edit, run_cli):
+    case = skill_edit(
+        listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n",
+        issue="## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n",
+        grade=(0, ""))
+    before = {name: (tmp_path / name).read_bytes() for name in ("unit.md", "REQUIREMENTS.md")}
+    monkeypatch.setattr(case.step, "_trace", lambda *a: ["UNTRACED A2 no code makes the widget round"])
+
+    code, out, err = run_cli(case.step, ["--added", "add A2", "issue.md", "unit.md"])
+
+    after = {name: (tmp_path / name).read_bytes() for name in before}
+    assert (code, "row-untraced" in err, len(case.launched), len(case.graded)) == (1, True, 0, 0), (code, out, err)
     assert after == before
 
 
