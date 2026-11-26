@@ -226,6 +226,13 @@ by the steps below. Steps 1 to 7 stay stated here.
    `VERI_STUCK_RETRIES`, `VERI_NO_VERDICT_RETRIES`, `VERI_REFACTOR_BUDGET`, `VERI_STEP_GROWTH_PERCENT` or
    `VERI_SKILL_EDIT_BUDGET`.
 
+   Then `VERI_QUALITY_REPAIRS`, the `⟦quality-repair⟧` steps one ledger may hold (default 1): it must be unset,
+   or a whole number ≥ 0:
+   ```
+   [[ "${VERI_QUALITY_REPAIRS-1}" =~ ^[0-9]+$ ]]
+   ```
+   Anything else is false, set-but-empty included (`stopped at 5 VERI_QUALITY_REPAIRS`, exit 2), before the baseline.
+
    Then `VERI_SKIP_VERIFY`: it is a comma-separated list of phases whose verify is skipped. Each
    word must be a phase this release can skip, and `plan` is never one; `branch` is among the phases
    it may name. Any other word is false, before the baseline.
