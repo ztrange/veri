@@ -47,15 +47,15 @@ def _called_name(call):
 
 def _drops_exit_code(node):
     """Whether node is a statement discarding an exit-code call's code: a bare call, or one whose
-    unpacked first element, the code, goes to `_`."""
+    code, the whole result or its unpacked first element, goes to `_`."""
     if not (isinstance(node, (ast.Expr, ast.Assign)) and isinstance(node.value, ast.Call)
             and _called_name(node.value) in EXIT_CODE_CALLS):
         return False
     if isinstance(node, ast.Expr):
         return True
     target = node.targets[0]
-    return (isinstance(target, ast.Tuple) and isinstance(target.elts[0], ast.Name)
-            and target.elts[0].id == "_")
+    code = target.elts[0] if isinstance(target, ast.Tuple) else target
+    return isinstance(code, ast.Name) and code.id == "_"
 
 
 def _discarded(source):

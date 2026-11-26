@@ -89,3 +89,21 @@ def test_an_added_fused_call_unpacking_its_exit_code_into_underscore_is_printed_
     monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:2\n", "")
+
+
+def test_an_added_exit_code_assigned_whole_to_underscore_is_printed_and_exits_1(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    (tmp_path / "mod.py").write_text(
+        "import os\nimport subprocess\n_ = subprocess.call([\"x\"])\n_ = os.system(\"x\")\n")
+    diff = ("diff --git a/mod.py b/mod.py\n"
+            "index 1111111..2222222 100644\n"
+            "--- a/mod.py\n"
+            "+++ b/mod.py\n"
+            "@@ -1,2 +1,4 @@\n"
+            " import os\n"
+            " import subprocess\n"
+            "+_ = subprocess.call([\"x\"])\n"
+            "+_ = os.system(\"x\")\n")
+    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:3\nmod.py:4\n", "")

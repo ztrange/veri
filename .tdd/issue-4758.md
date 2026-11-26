@@ -6,7 +6,7 @@
 - [x] an added `.py` line that is a bare expression statement calling `subprocess.run`, `subprocess.call`, `os.system` or `fused.call` is printed as `<file>:<line>` (the path and the line's number in the new file), one line per such statement, exit 1 (unit case) ⟦criterion 11⟧
 - [x] an added bare expression statement calling any other function (`print("x")`, `os.getcwd()`) prints nothing and exits 0 (unit case) ⟦criterion 11⟧
 - [x] an added `_, body, _ = fused.call("gh", "api", "x")`, the exit code unpacked into `_`, is printed as `<file>:<line>`, exit 1 (unit case; watched red before the `_` rule exists) ⟦criterion 3⟧
-- [ ] an added `_ = subprocess.call(["x"])` or `_ = os.system("x")`, the whole exit code assigned to `_`, is printed as `<file>:<line>`, exit 1 (unit case) ⟦criterion 12⟧
+- [x] an added `_ = subprocess.call(["x"])` or `_ = os.system("x")`, the whole exit code assigned to `_`, is printed as `<file>:<line>`, exit 1 (unit case) ⟦criterion 12⟧
 - [ ] an added `code, out, err = fused.call("git", "status")` or `rc = os.system("x")` whose bound exit-code name the enclosing function never reads again is printed as `<file>:<line>`, exit 1 (unit case) ⟦criterion 13⟧
 - [ ] an added `read, body, _ = fused.call("gh", "api", "x")` followed in the same function by `if read:` prints nothing and exits 0 (unit case) ⟦criterion 3⟧
 - [ ] an added `proc = subprocess.run(["x"])` with no `check=True`, whose `proc.stdout` the function reads and `proc.returncode` it never reads, is printed as `<file>:<line>`, exit 1 (unit case) ⟦criterion 14⟧
