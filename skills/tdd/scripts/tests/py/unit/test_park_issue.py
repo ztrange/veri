@@ -137,7 +137,7 @@ def test_issue_3683_a_comma_separated_blocker_list_is_one_blocked_by_line_in_the
     assert len(comments) == 1
     lines = comments[0].splitlines()
     assert lines.count("Blocked by: #9, #10") == 1
-    assert len([l for l in lines if l.startswith("Blocked by:")]) == 1
+    assert len([line for line in lines if line.startswith("Blocked by:")]) == 1
 
 
 def test_issue_3683_the_parked_comment_with_a_pr_argument_carries_both_the_pr_line_and_the_blocked_by_line(park, run_cli, monkeypatch):

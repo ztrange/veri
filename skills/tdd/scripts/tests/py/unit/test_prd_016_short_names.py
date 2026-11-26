@@ -47,7 +47,7 @@ def test_each_of_the_10_renamed_units_with_a_requirements_list_has_a_graded_line
             continue
         unit = f"skills/v{name}/SKILL.md"
         graded = ROOT / "skills" / f"v{name}" / "GRADED"
-        lines = [l.split(" ") for l in graded.read_text().splitlines()] if graded.is_file() else []
+        lines = [line.split(" ") for line in graded.read_text().splitlines()] if graded.is_file() else []
         found = [f[1] for f in lines if f[0] == unit and len(f) > 1]
         listed = f"skills/v{name}/REQUIREMENTS.md"
         want = grade_prose.signature(listed, unit, units=units)

@@ -29,8 +29,8 @@ def test_3402_the_launch_record_holds_veri_variables_and_no_other_variable_of_th
 
     code = run_conductor.launch(str(tmp_path), "7", None)
 
-    lines = [l for p in (tmp_path / ".tdd").rglob("issue-7-launch-env") for l in p.read_text().splitlines()]
-    assert (code, "VERI_STEP_GROWTH=18" in lines, [l for l in lines if not l.startswith("VERI_")]) == (0, True, [])
+    lines = [line for p in (tmp_path / ".tdd").rglob("issue-7-launch-env") for line in p.read_text().splitlines()]
+    assert (code, "VERI_STEP_GROWTH=18" in lines, [line for line in lines if not line.startswith("VERI_")]) == (0, True, [])
 
 
 def test_3402_the_launch_record_excludes_veri_new_skill_and_keeps_another_veri_knob(tmp_path, monkeypatch):
@@ -45,5 +45,5 @@ def test_3402_the_launch_record_excludes_veri_new_skill_and_keeps_another_veri_k
 
     code = run_conductor.launch(str(tmp_path), "7", None)
 
-    lines = [l for p in (tmp_path / ".tdd").rglob("issue-7-launch-env") for l in p.read_text().splitlines()]
-    assert (code, "VERI_STEP_GROWTH=18" in lines, [l for l in lines if l.startswith("VERI_NEW_SKILL")]) == (0, True, [])
+    lines = [line for p in (tmp_path / ".tdd").rglob("issue-7-launch-env") for line in p.read_text().splitlines()]
+    assert (code, "VERI_STEP_GROWTH=18" in lines, [line for line in lines if line.startswith("VERI_NEW_SKILL")]) == (0, True, [])

@@ -60,7 +60,7 @@ def test_append_writes_a_test_only_line_under_the_step_as_test_only_candidate_an
         text = owed.read_text() if owed.exists() else ""
         assert (line, code) == (line, 0)
         if transform is None:
-            assert (line, [l for l in text.splitlines() if l.startswith("- test-only | ")]) == (line, [])
+            assert (line, [owed_line for owed_line in text.splitlines() if owed_line.startswith("- test-only | ")]) == (line, [])
             if not line.startswith("CANDIDATES: structural"):
                 assert (line, owed.exists()) == (line, False)
         else:
@@ -240,8 +240,8 @@ def test_applied_takes_a_candidate_off_every_step_render_lists_as_owed_and_lists
     code = refactor_owed.main(["render", str(owed)])
     out = capsys.readouterr().out
     assert code == 0
-    assert [l for l in out.splitlines() if l == "- extract venv_path_advice"] == []
-    assert [l for l in out.splitlines() if "extract venv_path_advice" in l and "1a9ce1d" in l] != []
+    assert [line for line in out.splitlines() if line == "- extract venv_path_advice"] == []
+    assert [line for line in out.splitlines() if "extract venv_path_advice" in line and "1a9ce1d" in line] != []
 
 
 def test_render_still_lists_as_owed_under_its_step_a_candidate_no_applied_call_named_beside_an_applied_one_952(
@@ -301,7 +301,7 @@ def test_main_answers_every_refactor_owed_contract_case_outside_the_floor_as_the
         return code, capsys.readouterr().out
 
     def append(owed, step, *lines, bounds=()):
-        report = "".join(f"{l}\n" for l in lines)
+        report = "".join(f"{line}\n" for line in lines)
         return run(["append", str(owed), step, *bounds], report)[0]
 
     def under_step(text, step, transform):
@@ -397,7 +397,7 @@ def test_render_prints_no_heading_for_a_step_whose_only_leftovers_are_test_only_
     code = refactor_owed.main(["render", str(owed)])
     out = capsys.readouterr().out
     section = out[out.index("### Test-only"):] if "### Test-only" in out else ""
-    assert (code, [l for l in out.splitlines() if l == "### step one"], section) == (
+    assert (code, [line for line in out.splitlines() if line == "### step one"], section) == (
         0, [], "### Test-only\n\n"
                "These change only test files (tests/ directories, *.test.*, JS/TS *.spec.*, Go *_test.go, Python test_*.py and *_test.py); the structural pass does not work them.\n\n"
                "- fold helper A\n")
@@ -413,7 +413,7 @@ def test_render_prints_the_structural_steps_heading_and_bullet_and_not_a_test_on
 
     code = refactor_owed.main(["render", str(owed)])
     out = capsys.readouterr().out
-    assert (code, [l for l in out.splitlines() if l == "### step one"],
+    assert (code, [line for line in out.splitlines() if line == "### step one"],
             "### step two\n- real one\n" in out) == (0, [], True)
 
 
@@ -427,7 +427,7 @@ def test_render_prints_no_heading_for_a_step_whose_every_structural_bullet_is_ap
     code = refactor_owed.main(["render", str(owed)])
     out = capsys.readouterr().out
     section = out[out.index("### Applied"):] if "### Applied" in out else ""
-    assert (code, [l for l in out.splitlines() if l == "### step A"], section) == (
+    assert (code, [line for line in out.splitlines() if line == "### step A"], section) == (
         0, [], "### Applied\n\n- x — abc123\n")
 
 
@@ -441,14 +441,14 @@ def test_render_lists_a_not_done_candidate_with_its_reason_under_not_done_only_a
 
     code = refactor_owed.main(["render", str(owed)])
     lines = capsys.readouterr().out.splitlines()
-    heads = [i for i, l in enumerate(lines) if l == "### Not done"]
+    heads = [i for i, line in enumerate(lines) if line == "### Not done"]
     after = lines[heads[0] + 1:] if heads else []
-    section = after[:next((i for i, l in enumerate(after) if l.startswith("### ")), len(after))]
+    section = after[:next((i for i, line in enumerate(after) if line.startswith("### ")), len(after))]
     listed = refactor_owed.main(["list", str(owed)])
-    assert (code, len(heads), [l for l in section if candidate in l and reason in l],
-            sum(candidate in l for l in lines), listed, capsys.readouterr().out) == (
-        0, 1, [l for l in section if candidate in l and reason in l], 1, 3, "")
-    assert [l for l in section if candidate in l and reason in l]
+    assert (code, len(heads), [line for line in section if candidate in line and reason in line],
+            sum(candidate in line for line in lines), listed, capsys.readouterr().out) == (
+        0, 1, [line for line in section if candidate in line and reason in line], 1, 3, "")
+    assert [line for line in section if candidate in line and reason in line]
 
 
 def test_not_done_exits_2_and_writes_nothing_for_a_reason_outside_the_four_1963(
@@ -610,7 +610,7 @@ def test_list_omits_and_render_shows_once_under_not_done_a_not_done_candidate_th
     code = refactor_owed.main(["render", str(owed)])
     lines = capsys.readouterr().out.splitlines()
     head = lines.index("### Not done")
-    assert (listed, listing, code, sum(candidate in l for l in lines),
+    assert (listed, listing, code, sum(candidate in line for line in lines),
             f"- {candidate} — budget-spent" in lines[head + 1:]) == (
         0, "name the bounds walk once\n", 0, 1, True)
 
@@ -628,7 +628,7 @@ def test_list_omits_and_render_shows_only_under_applied_an_out_of_scope_candidat
     code = refactor_owed.main(["render", str(owed)])
     lines = capsys.readouterr().out.splitlines()
     head = lines.index("### Applied")
-    assert (listed, listing, code, sum(candidate in l for l in lines),
+    assert (listed, listing, code, sum(candidate in line for line in lines),
             f"- {candidate} — abc1234" in lines[head + 1:]) == (
         0, "name the bounds walk once\n", 0, 1, True)
 
@@ -642,8 +642,8 @@ def test_render_emits_no_out_of_scope_heading_and_prints_an_out_of_scope_candida
 
     code = refactor_owed.main(["render", str(owed)])
     lines = capsys.readouterr().out.splitlines()
-    assert (code, [l for l in lines if l.lower().startswith("### out-of-scope")],
-            sum(transform in l for l in lines)) == (0, [], 1)
+    assert (code, [line for line in lines if line.lower().startswith("### out-of-scope")],
+            sum(transform in line for line in lines)) == (0, [], 1)
 
 
 def test_applied_records_the_commit_subject_beside_the_sha_and_render_prints_it_while_a_row_without_one_renders_as_before_and_list_omits_both_1963(
@@ -662,7 +662,7 @@ def test_applied_records_the_commit_subject_beside_the_sha_and_render_prints_it_
     head = lines.index("### Applied")
     applied = lines[head + 1:]
     assert (listed, listing, code,
-            any("extract the parser" in l and "abc1234" in l and subject in l for l in applied),
+            any("extract the parser" in line and "abc1234" in line and subject in line for line in applied),
             "- name the walk once — def5678" in applied) == (0, "keep me\n", 0, True, True)
 
 
@@ -679,7 +679,7 @@ def test_list_omits_and_render_shows_once_under_not_done_an_out_of_scope_candida
     code = refactor_owed.main(["render", str(owed)])
     lines = capsys.readouterr().out.splitlines()
     head = lines.index("### Not done")
-    assert (listed, listing, code, sum(candidate in l for l in lines),
+    assert (listed, listing, code, sum(candidate in line for line in lines),
             f"- {candidate} — budget-spent" in lines[head + 1:]) == (
         0, "name the bounds walk once\n", 0, 1, True)
 

@@ -898,8 +898,8 @@ def test_main_renders_a_ci_repair_green_prompt_judged_by_ci_evidence_and_not_by_
     marked = rendered("zorblat sorts on CI only ⟦ci-repair⟧ ⟦criterion 1⟧")
     unmarked = rendered("zorblat sorts ⟦criterion 1⟧")
 
-    line = next(l for l in (SCRIPTS / "prompts" / "_verify-green-ci-repair.md").read_bytes().splitlines()
-                if l and b"{{" not in l)
+    line = next(line for line in (SCRIPTS / "prompts" / "_verify-green-ci-repair.md").read_bytes().splitlines()
+                if line and b"{{" not in line)
     line = re.sub(rb"\s+", b" ", line)
 
     assert (line in marked, line in unmarked) == (True, False)
@@ -924,8 +924,8 @@ def test_main_renders_the_fixture_repair_paragraph_in_the_green_prompt_of_a_mark
     base = "a" * 40
     prompts = {"marked green": rendered(marked, "green", "case"), "unmarked green": rendered(unmarked, "green", "case"),
                "marked red": rendered(marked, "red", "case"), "marked refactor": rendered(marked, "refactor", base)}
-    line = next(l for l in (SCRIPTS / "prompts" / "_verify-green-fixture-repair.md").read_bytes().splitlines()
-                if l and b"{{" not in l)
+    line = next(line for line in (SCRIPTS / "prompts" / "_verify-green-fixture-repair.md").read_bytes().splitlines()
+                if line and b"{{" not in line)
     line = re.sub(rb"\s+", b" ", line)
 
     assert {key: line in prompt for key, prompt in prompts.items()} == {
@@ -933,7 +933,7 @@ def test_main_renders_the_fixture_repair_paragraph_in_the_green_prompt_of_a_mark
 
 
 def _fragment_line(name):
-    line = next(l for l in (SCRIPTS / "prompts" / name).read_bytes().splitlines() if l.strip() and b"{{" not in l)
+    line = next(line for line in (SCRIPTS / "prompts" / name).read_bytes().splitlines() if line.strip() and b"{{" not in line)
     return re.sub(rb"\s+", b" ", line).strip()
 
 
@@ -2286,8 +2286,8 @@ def test_4709_a_step_only_quoting_fixture_repair_in_its_prose_gets_no_fixture_re
     code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", "green", str(spec),
                                      "tests/zorblat.test.sh", "case"])
     out, _ = capsysbinary.readouterr()
-    line = next(l for l in (SCRIPTS / "prompts" / "_verify-green-fixture-repair.md").read_bytes().splitlines()
-                if l and b"{{" not in l)
+    line = next(line for line in (SCRIPTS / "prompts" / "_verify-green-fixture-repair.md").read_bytes().splitlines()
+                if line and b"{{" not in line)
 
     assert (code, re.sub(rb"\s+", b" ", line) in re.sub(rb"\s+", b" ", out)) == (0, False)
 

@@ -603,7 +603,7 @@ def test_the_merge_commit_refusal_says_what_to_do(tmp_path, fake_processes, monk
 
     code, _, err = join(run_cli, world)
 
-    line = next(l for l in err.splitlines() if "merge commit" in l)
+    line = next(line for line in err.splitlines() if "merge commit" in line)
     assert (code, "must be linear" in line, "Rebase the run's branch onto origin/stack" in line, "join again" in line) == (
         2, True, True, True), err
 

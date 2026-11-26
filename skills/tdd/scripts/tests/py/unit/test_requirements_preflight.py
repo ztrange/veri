@@ -144,7 +144,7 @@ def test_3567_a_missing_unit_heading_prints_no_clash_line_while_a_real_clashing_
 
     code, out, err = run_cli(requirements_preflight, [str(issue), str(ledger)], cwd=tmp_path)
 
-    clash_lines = [l for l in err.splitlines() if l.startswith("Requirement row ID already held")]
+    clash_lines = [line for line in err.splitlines() if line.startswith("Requirement row ID already held")]
     assert code == 2 and "missing/NOTES.md" in err and len(clash_lines) == 1 and clash_lines[0].endswith(": A1"), (code, out, err)
 
 

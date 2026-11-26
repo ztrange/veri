@@ -1398,7 +1398,7 @@ def test_main_renders_a_revise_of_green_declaring_a_suite_exempt_wrong_test_repo
     code = build_develop_prompt.main(["revise", "green", str(spec), "s", "make test", str(reason)])
     out = capsysbinary.readouterr().out.decode()
 
-    declared = [l for l in out.splitlines() if l.startswith("REPORT-FORMAT ") and "keys WRONG_TEST:" in l]
+    declared = [line for line in out.splitlines() if line.startswith("REPORT-FORMAT ") and "keys WRONG_TEST:" in line]
     assert (code, len(declared), "suite exempt" in " ".join(declared)) == (
         0, 2, True)
 
@@ -1467,7 +1467,7 @@ def test_main_declares_a_wrong_test_report_format_in_a_revise_prompt_only_for_gr
     for revised in ("red", "green", "refactor"):
         code = build_develop_prompt.main(["revise", revised, str(spec), "s", "make test", str(reason)])
         out = capsysbinary.readouterr().out
-        formats = [l for l in out.splitlines() if l.startswith(b"REPORT-FORMAT ") and b"keys WRONG_TEST:" in l]
+        formats = [line for line in out.splitlines() if line.startswith(b"REPORT-FORMAT ") and b"keys WRONG_TEST:" in line]
         seen[revised] = (code, len(formats), b"WRONG_TEST" in out)
 
     assert seen == {"red": (0, 0, False), "green": (0, 2, True), "refactor": (0, 0, False)}
@@ -1485,11 +1485,11 @@ def test_main_asks_for_fail_output_and_prediction_note_in_a_revise_prompt_only_w
         code = build_develop_prompt.main(["revise", revised, str(spec), "s", "make test", str(reason)])
         out = capsysbinary.readouterr().out
         lines = out.splitlines()
-        format_line = next(l for l in lines if l.startswith(b"REPORT-FORMAT revise |"))
+        format_line = next(line for line in lines if line.startswith(b"REPORT-FORMAT revise |"))
         seen[revised] = (
             code,
-            any(l.startswith(b"FAIL_OUTPUT:") for l in lines),
-            any(l.startswith(b"PREDICTION_NOTE:") for l in lines),
+            any(line.startswith(b"FAIL_OUTPUT:") for line in lines),
+            any(line.startswith(b"PREDICTION_NOTE:") for line in lines),
             b" FAIL_OUTPUT:" in format_line,
             b" PREDICTION_NOTE:" in format_line,
         )
@@ -2247,8 +2247,8 @@ def test_main_asks_for_a_setup_line_in_a_revise_prompt_only_when_redoing_red_411
     for revised in ("red", "green", "refactor"):
         code = build_develop_prompt.main(["revise", revised, str(spec), "s", "make test", str(reason)])
         lines = capsysbinary.readouterr().out.splitlines()
-        format_line = next(l for l in lines if l.startswith(b"REPORT-FORMAT revise |"))
-        seen[revised] = (code, any(l.startswith(b"SETUP:") for l in lines), b" SETUP:?" in format_line)
+        format_line = next(line for line in lines if line.startswith(b"REPORT-FORMAT revise |"))
+        seen[revised] = (code, any(line.startswith(b"SETUP:") for line in lines), b" SETUP:?" in format_line)
 
     assert seen == {"red": (0, True, True), "green": (0, False, False), "refactor": (0, False, False)}
 

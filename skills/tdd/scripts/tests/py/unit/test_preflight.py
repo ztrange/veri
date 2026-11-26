@@ -79,7 +79,7 @@ def test_3771_c_each_inner_call_prints_a_line_naming_it_and_its_exit_then_its_st
     lines = out.splitlines()
     heads = []
     for i, base in enumerate(calls, 1):
-        idx = next(j for j, l in enumerate(lines) if base in l and "OUT<" not in l and l not in heads)
+        idx = next(j for j, line in enumerate(lines) if base in line and "OUT<" not in line and line not in heads)
         heads.append(lines[idx])
         assert "0" in lines[idx]
         assert lines[idx + 1 + (base == "issue-worktree.sh")] == "OUT<%d>" % i
@@ -752,7 +752,7 @@ def test_3771_t_resumed_run_whose_baseline_full_tier_says_reuse_writes_the_real_
     first, _, _ = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
     code, out, err = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
 
-    written = dict(l.split("=", 1) for l in (wt / ".tdd" / "issue-12-preflight").read_text().splitlines())
+    written = dict(line.split("=", 1) for line in (wt / ".tdd" / "issue-12-preflight").read_text().splitlines())
     assert first == 3
     assert code == 0
     assert written["fast_cmd"] == "make unit"
@@ -798,7 +798,7 @@ def test_3771_u_run_resumed_after_a_full_tier_wait_exit_3_writes_and_prints_the_
     first, _, _ = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
     code, out, err = run_cli(preflight, ["12", "my-slug"], cwd=str(tmp_path))
 
-    written = dict(l.split("=", 1) for l in (wt / ".tdd" / "issue-12-preflight").read_text().splitlines())
+    written = dict(line.split("=", 1) for line in (wt / ".tdd" / "issue-12-preflight").read_text().splitlines())
     assert first == 3
     assert code == 0
     assert written["fast_cmd"] == "make unit"

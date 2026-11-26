@@ -51,8 +51,8 @@ def test_claims_reads_a_table_indented_three_spaces_but_not_four_1991(tmp_path):
     requirements = importlib.import_module("veri.requirements")
     table = "| ID | Requirement | Why |\n|---|---|---|\n| A1 | Says it. | because |\n"
     three, four = tmp_path / "three.md", tmp_path / "four.md"
-    three.write_text("## u\n\n" + "".join("   " + l for l in table.splitlines(True)))
-    four.write_text("## u\n\n" + "".join("    " + l for l in table.splitlines(True)))
+    three.write_text("## u\n\n" + "".join("   " + line for line in table.splitlines(True)))
+    four.write_text("## u\n\n" + "".join("    " + line for line in table.splitlines(True)))
     assert requirements.claims(str(three), "u") == "A1\tSays it.\n"
     try:
         requirements.claims(str(four), "u")

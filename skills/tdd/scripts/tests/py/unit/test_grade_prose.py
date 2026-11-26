@@ -723,7 +723,7 @@ def test_with_no_verdict_retries_0_a_first_reply_leaving_out_one_requirement_id_
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    verdicts = [json.loads(line).get("verdict") for line in (events.read_text().splitlines() if events.exists() else [])]
     assert (code, "PASS" in verdicts) == (0, True), (code, err)
 
 
@@ -783,7 +783,7 @@ def test_a_grades_block_grading_every_wanted_id_and_an_id_outside_the_list_exits
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    verdicts = [json.loads(line).get("verdict") for line in (events.read_text().splitlines() if events.exists() else [])]
     assert (code, verdicts, "A9" in err, len(launched)) == (0, ["PASS"], True, 1), (code, err)
 
 
@@ -896,7 +896,7 @@ def test_a_follow_up_reply_grading_the_missing_id_and_an_id_outside_its_list_kee
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    verdicts = [json.loads(line).get("verdict") for line in (events.read_text().splitlines() if events.exists() else [])]
     assert (code, verdicts, "A9" in err, len(launched)) == (0, ["PASS"], True, 2), (code, err)
 
 
@@ -928,7 +928,7 @@ def test_an_off_list_row_graded_fail_beside_wanted_rows_all_graded_pass_leaves_t
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    verdicts = [json.loads(line).get("verdict") for line in (events.read_text().splitlines() if events.exists() else [])]
     assert (code, verdicts, "A9" in err, len(launched)) == (0, ["PASS"], True, 1), (code, err)
 
 
@@ -962,7 +962,7 @@ def test_a_grades_block_missing_a_wanted_id_while_grading_an_off_list_id_exits_2
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    verdicts = [json.loads(line).get("verdict") for line in (events.read_text().splitlines() if events.exists() else [])]
     assert (code, "missing requirement IDs A2" in err, verdicts) == (2, True, []), (code, err)
 
 
@@ -1102,7 +1102,7 @@ def test_a_first_reply_whose_grades_block_grades_every_wanted_id_plus_an_off_lis
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    verdicts = [json.loads(line).get("verdict") for line in (events.read_text().splitlines() if events.exists() else [])]
     assert (code, len(launched), verdicts) == (0, 1, ["PASS"]), (code, len(launched), err)
 
 
@@ -1224,8 +1224,8 @@ def test_with_three_retries_a_well_formed_grades_block_grading_one_requirement_f
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
-    full = [l for l in launched if l == (True, True)]
-    others = [l for l in launched if l != (True, True)]
+    full = [launch for launch in launched if launch == (True, True)]
+    others = [launch for launch in launched if launch != (True, True)]
     assert (code, len(full), set(others), out.strip()) == (1, 1, {(False, True)}, "A2: FAIL - not round"), (
         code, launched, out, err)
 
@@ -1238,9 +1238,9 @@ def test_every_committed_graded_line_names_the_grader_template_it_was_signed_und
     root = pathlib.Path(__file__).resolve().parents[6]
     renamed = sorted(root.glob("skills/v*/GRADED"))
     files = [root / "skills" / "tdd" / "GRADED", root / "operator" / "GRADED"] + renamed
-    lines = [l for f in files for l in f.read_text().splitlines() if l.strip()]
-    unnamed = [l.split()[0] for l in lines
-               if len(l.split()) < 5 or not re.fullmatch(r"[0-9a-f]{7,64}", l.split()[4])]
+    lines = [line for f in files for line in f.read_text().splitlines() if line.strip()]
+    unnamed = [line.split()[0] for line in lines
+               if len(line.split()) < 5 or not re.fullmatch(r"[0-9a-f]{7,64}", line.split()[4])]
     assert renamed, "skills/v*/GRADED matched none of the renamed skills' GRADED files"
     assert lines and unnamed == [], unnamed
 
@@ -1613,7 +1613,7 @@ def test_a_401_row_unit_whose_relaunch_spends_the_retries_and_omits_a_contiguous
     calls = []
 
     def reply(lines):
-        body = "BEGIN GRADES\n" + "".join(l + "\n" for l in lines) + "VERDICT: PASS\nEND GRADES"
+        body = "BEGIN GRADES\n" + "".join(line + "\n" for line in lines) + "VERDICT: PASS\nEND GRADES"
         return json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": body}) + "\n"
 
     def launch(line, **kwargs):
@@ -1638,7 +1638,7 @@ def test_a_401_row_unit_whose_relaunch_spends_the_retries_and_omits_a_contiguous
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    verdicts = [json.loads(line).get("verdict") for line in (events.read_text().splitlines() if events.exists() else [])]
     follow_ups = sorted(i for asked in calls[2:] for i in asked)
     assert (code, "PASS" in verdicts, follow_ups) == (0, True, sorted(skipped)), (code, err[:200])
 
@@ -1658,7 +1658,7 @@ def test_a_missing_rows_follow_up_after_the_relaunches_are_spent_that_still_leav
     calls = []
 
     def reply(lines):
-        body = "BEGIN GRADES\n" + "".join(l + "\n" for l in lines) + "VERDICT: PASS\nEND GRADES"
+        body = "BEGIN GRADES\n" + "".join(line + "\n" for line in lines) + "VERDICT: PASS\nEND GRADES"
         return json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": body}) + "\n"
 
     def launch(line, **kwargs):
@@ -1710,7 +1710,7 @@ def test_a_grades_block_grading_every_wanted_id_pass_with_a_reason_line_inside_i
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    verdicts = [json.loads(line).get("verdict") for line in (events.read_text().splitlines() if events.exists() else [])]
     assert (code, verdicts) == (0, ["PASS"]), (code, verdicts, err)
 
 
@@ -1742,7 +1742,7 @@ def test_a_first_reply_whose_grades_block_grades_every_wanted_id_pass_with_a_rea
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    verdicts = [json.loads(line).get("verdict") for line in (events.read_text().splitlines() if events.exists() else [])]
     assert (code, len(launched), verdicts) == (0, 1, ["PASS"]), (code, len(launched), err)
 
 
@@ -1771,7 +1771,7 @@ def test_a_grades_block_grading_one_wanted_id_fail_with_a_reason_line_inside_it_
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    verdicts = [json.loads(l).get("verdict") for l in (events.read_text().splitlines() if events.exists() else [])]
+    verdicts = [json.loads(line).get("verdict") for line in (events.read_text().splitlines() if events.exists() else [])]
     assert (code, out.strip(), verdicts) == (1, "R2: FAIL - not round", ["REJECT"]), (code, out, err)
 
 

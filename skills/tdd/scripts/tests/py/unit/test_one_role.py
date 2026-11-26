@@ -21,7 +21,7 @@ def test_issue_4103_a_role_script_given_coord_exits_2_writing_nothing_with_a_usa
 
     code, out, err = run_cli(mod, argv, env={"HOME": str(tmp_path / "home"), "CLAUDE_CODE_SESSION_ID": "sess-1"})
 
-    usage = [l for l in err.splitlines() if l.startswith("usage:")]
+    usage = [line for line in err.splitlines() if line.startswith("usage:")]
     assert (code, out, list(tmp_path.iterdir()), len(usage), usage[0].startswith(DEV_ONLY[module]) if usage else None,
             "coord" in err) == (2, "", [], 1, True, False), err
 

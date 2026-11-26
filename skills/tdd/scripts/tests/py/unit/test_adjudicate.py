@@ -64,7 +64,7 @@ def test_record_on_a_retry_answer_writes_one_adjudicated_event_prints_retry_and_
     leaf.write_text("thinking\nADJUDICATION: retry — CI is queued behind a busy runner\n")
     code, out, err = run_cli(adjudicate, ["record", "7", "ci-timeout", str(leaf)], cwd=tmp_path)
     assert (code, out) == (0, "retry\n")
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     adjudicated = [e for e in events if e.get("event") == "adjudicated"]
     assert len(adjudicated) == 1
     assert {k: adjudicated[0].get(k) for k in ("issue", "cause", "outcome", "reason")} == {
@@ -103,7 +103,7 @@ def test_record_on_a_bail_answer_writes_one_adjudicated_event_prints_bail_and_ex
     leaf.write_text("thinking\nADJUDICATION: bail — the check has been pending for hours\n")
     code, out, err = run_cli(adjudicate, ["record", "7", "ci-timeout", str(leaf)], cwd=tmp_path)
     assert (code, out) == (1, "bail\n")
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     adjudicated = [e for e in events if e.get("event") == "adjudicated"]
     assert len(adjudicated) == 1
     assert {k: adjudicated[0].get(k) for k in ("issue", "cause", "outcome", "reason")} == {
@@ -123,7 +123,7 @@ def test_record_on_a_route_answer_writes_one_adjudicated_event_prints_the_route_
     (tmp_path / ".tdd").mkdir()
     code, out, err = run_cli(adjudicate, ["record", "7", "ci-timeout", str(tmp_path / "leaf.out")], cwd=tmp_path)
     assert (code, out) == (1, "route some-token\n")
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     adjudicated = [e for e in events if e.get("event") == "adjudicated"]
     assert len(adjudicated) == 1
     assert {k: adjudicated[0].get(k) for k in ("issue", "cause", "outcome", "reason")} == {
@@ -144,7 +144,7 @@ def test_record_on_a_leaf_output_with_no_adjudication_line_writes_an_unparsed_ev
     leaf.write_text("thinking, but no answer line\n")
     code, out, err = run_cli(adjudicate, ["record", "7", "ci-timeout", str(leaf)], cwd=tmp_path)
     assert (code, out) == (2, "unparsed\n")
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     adjudicated = [e for e in events if e.get("event") == "adjudicated"]
     assert len(adjudicated) == 1
     assert {k: adjudicated[0].get(k) for k in ("issue", "cause", "outcome")} == {
@@ -165,7 +165,7 @@ def test_record_on_a_missing_leaf_output_file_writes_an_unparsed_event_prints_un
         adjudicate, ["record", "7", "ci-timeout", str(tmp_path / "absent.out")], cwd=tmp_path
     )
     assert (code, out) == (2, "unparsed\n")
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     adjudicated = [e for e in events if e.get("event") == "adjudicated"]
     assert len(adjudicated) == 1
     assert {k: adjudicated[0].get(k) for k in ("issue", "cause", "outcome")} == {
@@ -198,7 +198,7 @@ def test_record_under_ci_timeout_on_route_rebase_which_adjudicate_md_lists_only_
     leaf.write_text("ADJUDICATION: route rebase — the base moved again\n")
     code, out, err = run_cli(adjudicate, ["record", "7", "ci-timeout", str(leaf)], cwd=tmp_path)
     assert (code, out) == (2, "unparsed\n")
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e.get("cause"), e.get("outcome")) for e in events if e.get("event") == "adjudicated"] == [
         ("ci-timeout", "unparsed")
     ]
@@ -214,7 +214,7 @@ def test_record_under_ci_conflict_on_route_rebase_prints_the_route_writes_one_ro
     leaf.write_text("ADJUDICATION: route rebase — the base moved again\n")
     code, out, err = run_cli(adjudicate, ["record", "7", "ci-conflict", str(leaf)], cwd=tmp_path)
     assert (code, out) == (1, "route rebase\n")
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [
         {k: e.get(k) for k in ("issue", "cause", "outcome", "reason")}
         for e in events
@@ -233,7 +233,7 @@ def test_record_under_unreplaced_cases_on_route_replaces_report_prints_the_route
     leaf.write_text("ADJUDICATION: route replaces-report — the report was written late\n")
     code, out, err = run_cli(adjudicate, ["record", "7", "unreplaced-cases", str(leaf)], cwd=tmp_path)
     assert (code, out) == (1, "route replaces-report\n")
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [
         {k: e.get(k) for k in ("issue", "cause", "outcome", "reason")}
         for e in events
@@ -260,7 +260,7 @@ def test_record_writes_one_adjudicated_event_of_the_cause_for_each_of_a_retry_a_
         code, out, err = run_cli(adjudicate, ["record", "7", cause, str(leaf)], cwd=tmp_path)
         results[name] = (code, out)
     assert results == {"retry": (0, "retry\n"), "bail": (1, "bail\n"), "unparsed": (2, "unparsed\n")}
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [
         (e.get("issue"), e.get("cause"), e.get("outcome"), e.get("reason"))
         for e in events
@@ -302,7 +302,7 @@ def test_record_under_graded_edit_outside_skill_edit_on_deviate_prints_deviate_w
     leaf.write_text("thinking\nADJUDICATION: deviate — the criterion names the prose this step changed\n")
     code, out, err = run_cli(adjudicate, ["record", "7", "graded-edit-outside-skill-edit", str(leaf)], cwd=tmp_path)
     assert (code, out) == (4, "deviate\n")
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [
         {k: e.get(k) for k in ("issue", "cause", "outcome", "reason")}
         for e in events
@@ -325,7 +325,7 @@ def test_record_under_tests_frozen_refused_on_deviate_prints_deviate_writes_a_de
     leaf.write_text("thinking\nADJUDICATION: deviate — the fixture the criterion needs moved\n")
     code, out, err = run_cli(adjudicate, ["record", "7", "tests-frozen-refused", str(leaf)], cwd=tmp_path)
     assert (code, out) == (4, "deviate\n")
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [
         {k: e.get(k) for k in ("issue", "cause", "outcome", "reason")}
         for e in events
@@ -348,7 +348,7 @@ def test_record_under_graded_edit_outside_skill_edit_on_retry_records_retry_and_
     leaf.write_text("ADJUDICATION: retry — run it again\n")
     code, out, err = run_cli(adjudicate, ["record", "7", "graded-edit-outside-skill-edit", str(leaf)], cwd=tmp_path)
     assert (code, out) == (0, "retry\n")
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e.get("cause"), e.get("outcome")) for e in events if e.get("event") == "adjudicated"] == [
         ("graded-edit-outside-skill-edit", "retry")
     ]
@@ -364,7 +364,7 @@ def test_record_under_ci_timeout_which_no_waivable_rule_names_on_deviate_writes_
     leaf.write_text("ADJUDICATION: deviate — the runner is slow, carry on\n")
     code, out, err = run_cli(adjudicate, ["record", "7", "ci-timeout", str(leaf)], cwd=tmp_path)
     assert (code, out) == (2, "unparsed\n")
-    events = [json.loads(l) for l in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
     assert [(e.get("cause"), e.get("outcome")) for e in events if e.get("event") == "adjudicated"] == [
         ("ci-timeout", "unparsed")
     ]
