@@ -1418,7 +1418,8 @@ def test_rerecord_earlier_exits_2_only_when_the_targeted_case_is_unchanged_not_f
     monkeypatch.setattr(tests_frozen.case_history, "text_at", lambda rev, name, quiet=False: new)
     old_cases, new_cases = dict(tests_frozen.cut_cases(old)), dict(tests_frozen.cut_cases(new))
     monkeypatch.setattr(tests_frozen.case_history, "cases_at", lambda rev, name: old_cases)
-    record = lambda step: (tmp_path / tests_frozen.record_path(step)).read_text()
+    def record(step):
+        return (tmp_path / tests_frozen.record_path(step)).read_text()
     kept_first, kept_second = record(first), record(second)
 
     run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)

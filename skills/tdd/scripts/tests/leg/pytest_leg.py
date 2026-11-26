@@ -350,8 +350,10 @@ def claim(cleanups=None, cap=None):
     waitfile = ""
     waiter = ""
     cleanups = [] if cleanups is None else cleanups
-    removal = lambda: unmark(waitfile)
-    withdrawal = lambda: unregister(waiter)
+    def removal():
+        return unmark(waitfile)
+    def withdrawal():
+        return unregister(waiter)
     nested = os.environ.get("PYTEST_XDIST_WORKER")
     passes = 0
     try:

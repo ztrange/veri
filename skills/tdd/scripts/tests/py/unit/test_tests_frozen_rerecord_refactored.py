@@ -261,7 +261,8 @@ def _go_refactored(tmp_path, run_cli, tests_frozen, repo, recorded, refactored, 
 def test_rerecord_refactored_prints_one_stderr_line_naming_each_case_it_left_unrecorded_and_still_exits_0_2863(
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
-    chk = lambda m: '\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m
+    def chk(m):
+        return '\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m
     inline = 'func TestOne(t *testing.T) {\n\tx := 1\n' + chk("a") + chk("b") + '}\n'
     dropped = 'func TestOne(t *testing.T) {\n\tx := 1\n' + chk("b") + '}\n'
     green = _go_refactored(tmp_path, run_cli, tests_frozen, repo, inline, dropped)
@@ -277,7 +278,8 @@ def test_rerecord_refactored_names_a_case_gone_at_head_a_digest_mismatch_and_an_
     suite = tmp_path / GO_SUITE
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
     chk = '\tif x != 1 {\n\t\tt.Fatal("a")\n\t}\n'
-    fn = lambda name, body: 'func %s(t *testing.T) {\n%s}\n\n' % (name, body)
+    def fn(name, body):
+        return 'func %s(t *testing.T) {\n%s}\n\n' % (name, body)
     suite.write_text(fn("TestGone", "\tx := 1\n" + chk) + fn("TestMismatch", "\tx := 1\n" + chk) + fn("TestBare", "\tx := 1\n"))
     repo.add(GO_SUITE)
     run_cli(tests_frozen, ["record", "--step", step, GO_SUITE], cwd=tmp_path)
@@ -299,7 +301,8 @@ def test_rerecord_refactored_heals_a_format_2_go_record_cut_with_the_body_runnin
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
     step = STEPS[1]
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
-    chk = lambda m: '\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m
+    def chk(m):
+        return '\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m
     other = '\nfunc other(t *testing.T) {\n\tt.Fatal("z")\n}\n'
     inline = 'func TestOne(t *testing.T) {\n\tx := 1\n' + chk("a") + chk("b") + '}\n' + other
     extracted = ('func TestOne(t *testing.T) {\n\tx := 1\n' + chk("b") + '\tcheck(t, x)\n}\n\n'
@@ -507,7 +510,8 @@ ASSERT_REFUSED_INLINE = ('func TestOne(t *testing.T) {\n\tv := "x"\n' + ASSERT_R
 def test_rerecord_refactored_names_a_go_case_on_a_skipped_line_and_check_earlier_exits_1_when_a_refactor_moved_its_assertions_into_assert_refused_and_dropped_one_2898(
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
-    chk = lambda m: ASSERT_REFUSED_CHECK % m
+    def chk(m):
+        return ASSERT_REFUSED_CHECK % m
     moved = ('func assertRefused(t *testing.T, v string) {\n' + chk("a") + '}\n\n'
              'func TestOne(t *testing.T) {\n\tv := "x"\n\tassertRefused(t, v)\n}\n')
     green = _go_refactored(tmp_path, run_cli, tests_frozen, repo, ASSERT_REFUSED_INLINE, moved)
@@ -521,7 +525,8 @@ def test_rerecord_refactored_names_a_go_case_on_a_skipped_line_and_check_earlier
 def test_rerecord_refactored_names_a_go_case_on_a_skipped_line_and_check_earlier_exits_1_when_a_refactor_moved_its_assertions_into_assert_refused_and_deleted_the_call_2898(
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
-    chk = lambda m: ASSERT_REFUSED_CHECK % m
+    def chk(m):
+        return ASSERT_REFUSED_CHECK % m
     moved = ('func assertRefused(t *testing.T, v string) {\n' + chk("a") + chk("b") + '}\n\n'
              'func TestOne(t *testing.T) {\n\tv := "x"\n\t_ = v\n}\n')
     green = _go_refactored(tmp_path, run_cli, tests_frozen, repo, ASSERT_REFUSED_INLINE, moved)
@@ -535,7 +540,8 @@ def test_rerecord_refactored_names_a_go_case_on_a_skipped_line_and_check_earlier
 def test_rerecord_refactored_exits_3_and_check_earlier_exits_1_when_a_refactor_moved_a_go_cases_assertions_into_assert_refused_and_the_verdict_is_not_0_2898(
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
-    chk = lambda m: ASSERT_REFUSED_CHECK % m
+    def chk(m):
+        return ASSERT_REFUSED_CHECK % m
     moved = ('func assertRefused(t *testing.T, v string) {\n' + chk("a") + chk("b") + '}\n\n'
              'func TestOne(t *testing.T) {\n\tv := "x"\n\tassertRefused(t, v)\n}\n')
     green = _go_refactored(tmp_path, run_cli, tests_frozen, repo, ASSERT_REFUSED_INLINE, moved)
@@ -550,7 +556,8 @@ def test_rerecord_refactored_exits_3_and_check_earlier_exits_1_when_a_refactor_m
 def test_rerecord_refactored_re_records_a_go_case_without_a_skipped_line_and_check_earlier_exits_0_when_a_refactor_moved_its_assertions_into_assert_refused_2898(
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
-    chk = lambda m: ASSERT_REFUSED_CHECK % m
+    def chk(m):
+        return ASSERT_REFUSED_CHECK % m
     moved = ('func assertRefused(t *testing.T, v string) {\n' + chk("a") + chk("b") + '}\n\n'
              'func TestOne(t *testing.T) {\n\tv := "x"\n\tassertRefused(t, "x")\n}\n')
     green = _go_refactored(tmp_path, run_cli, tests_frozen, repo, ASSERT_REFUSED_INLINE, moved)
@@ -565,7 +572,8 @@ def test_rerecord_refactored_leaves_check_earlier_at_exit_1_when_an_assertion_is
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
     suite = tmp_path / GO_SUITE
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
-    chk = lambda m: ASSERT_REFUSED_CHECK % m
+    def chk(m):
+        return ASSERT_REFUSED_CHECK % m
     case = 'func TestOne(t *testing.T) {\n\tv := "x"\n\tassertRefused(t, "x")\n}\n'
     green = _go_refactored(tmp_path, run_cli, tests_frozen, repo, ASSERT_REFUSED_INLINE,
                            'func assertRefused(t *testing.T, v string) {\n' + chk("a") + chk("b") + '}\n\n' + case)

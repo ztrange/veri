@@ -2397,7 +2397,8 @@ def test_main_conductor_launch_limits_what_the_harness_loads_beside_its_permissi
     capfdbinary.readouterr()
     assert code == 0
     argv = launches[0][0]
-    value = lambda flag: argv[argv.index(flag) + 1] if flag in argv else "null"
+    def value(flag):
+        return argv[argv.index(flag) + 1] if flag in argv else "null"
     assert (argv[-4:], "--disable-slash-commands" in argv, "--strict-mcp-config" in argv,
             json.loads(value("--mcp-config")), json.loads(value("--settings")), "--bare" in argv) == (
         ["--permission-mode", "bypassPermissions", "--model", "opus"], True, True, {"mcpServers": {}},
@@ -2533,7 +2534,8 @@ def test_main_a_parent_environment_asking_for_the_five_minute_cache_ttl_reaches_
 
 def stream_of_what_the_real_claude_loads(argv, home, repo):
     """A stream shaped by the 2026-10-18 observation of the real binary under each flag."""
-    flag = lambda name: argv[argv.index(name) + 1] if name in argv else None
+    def flag(name):
+        return argv[argv.index(name) + 1] if name in argv else None
     if "--bare" in argv:
         return [{"type": "result", "subtype": "error", "is_error": True, "result": "Not logged in"}]
     settings = json.loads(flag("--settings") or "{}")
@@ -4044,7 +4046,8 @@ def test_cli_a_launch_leaves_the_skill_clones_head_branch_and_working_tree_uncha
 
     def state():
         git = ["git", "-C", str(clone)]
-        read = lambda *args: run(git + list(args), capture_output=True, text=True).stdout
+        def read(*args):
+            return run(git + list(args), capture_output=True, text=True).stdout
         return (read("rev-parse", "HEAD"), read("symbolic-ref", "-q", "HEAD"), read("status", "--porcelain"),
                 tree_contents(clone))
 

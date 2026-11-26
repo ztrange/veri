@@ -121,7 +121,8 @@ def test_the_signature_stamps_the_effort_level_as_a_fourth_part_and_todays_three
         conf(tmp_path, monkeypatch, grade_prose, "model=sonnet-4\n" + line)
         signed.append(grade_prose.signature("REQUIREMENTS.md", "unit.md"))
 
-    digest = lambda parts: hashlib.sha256("\0".join(parts).encode("utf-8")).hexdigest()
+    def digest(parts):
+        return hashlib.sha256("\0".join(parts).encode("utf-8")).hexdigest()
     assert signed == [digest([text, claims, "sonnet-4", "high"]), digest([text, claims, "sonnet-4"])]
 
 

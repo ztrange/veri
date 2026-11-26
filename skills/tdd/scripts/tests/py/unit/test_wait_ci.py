@@ -142,7 +142,8 @@ def test_main_folds_an_absent_or_null_statuses_or_check_runs_key_as_empty(monkey
 def test_main_folds_null_unfinished_skipped_absent_conflicting_or_foreign_checks_to_a_verdict(
         monkeypatch, capsys, tmp_path, wait_ci, fake_processes):
     other = "def456" * 6 + "def4"
-    done = lambda c: {"status": "completed", "conclusion": c}
+    def done(c):
+        return {"status": "completed", "conclusion": c}
     conflict = f"wait-ci.sh: {PR} conflicts with its base branch; no workflow will start until it is rebased\n"
     pending = (3, "", "", True)
     cases = [
@@ -195,7 +196,8 @@ def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_
     failed = (1, "", gh_err)
     by_sha = f"wait-ci.sh: could not read the checks of {SHA}\n"
     traced = "Traceback (most recent call last):\n"
-    thrice = lambda reads: reads + ["date +%s", "sleep 10"] + reads + ["sleep 20"] + reads + ["date +%s"]
+    def thrice(reads):
+        return reads + ["date +%s", "sleep 10"] + reads + ["sleep 20"] + reads + ["date +%s"]
     cases = [
         ({PULL: head, PAGE_1: one_run, PAGE_2: '{"x": [1], "check_runs":  [  ], "total_count": 1}',
           page_3: failed, STATUS: green},
@@ -652,7 +654,8 @@ def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_a
 
 def test_main_reads_the_rollup_and_legacy_status_contexts_to_pending_green_red_or_unreadable(
         tmp_path, wait_ci, fake_processes, run_cli):
-    run = lambda status, conclusion=None: check_run("gates", SHA, status, conclusion)
+    def run(status, conclusion=None):
+        return check_run("gates", SHA, status, conclusion)
     success, in_progress = run("completed", "success"), run("in_progress")
 
     def waited(name, runs, statuses=()):
@@ -695,7 +698,8 @@ def test_main_reads_the_rollup_and_legacy_status_contexts_to_pending_green_red_o
 
 def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_green_or_never_green_on_all_skipped(
         tmp_path, wait_ci, fake_processes, run_cli):
-    run = lambda name, status, conclusion=None: check_run(name, FULL_SHA, status, conclusion)
+    def run(name, status, conclusion=None):
+        return check_run(name, FULL_SHA, status, conclusion)
     by_sha = f"wait-ci.sh: could not read the checks of {FULL_SHA}\n"
 
     def waited(name, pages, statuses=(), state="pending"):
@@ -731,7 +735,8 @@ def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_gree
 
 def test_main_reads_the_shas_legacy_statuses_and_with_no_head_sha_the_rest_pull_head_whether_graphql_works_or_is_refused(
         tmp_path, wait_ci, fake_processes, run_cli):
-    run = lambda status, conclusion=None: check_run("gates", FULL_SHA, status, conclusion)
+    def run(status, conclusion=None):
+        return check_run("gates", FULL_SHA, status, conclusion)
     by_sha = "gh: error connecting to api.github.com\n" * 3 + f"wait-ci.sh: could not read the checks of {FULL_SHA}\n"
     refusal = ("HTTP 403: GitHub GraphQL is not available from Claude Code sessions; "
                "use the REST API (gh api repos/{owner}/{repo}/...)\n")
@@ -791,7 +796,8 @@ def test_main_reads_the_shas_legacy_statuses_and_with_no_head_sha_the_rest_pull_
 
 def test_main_reads_the_rest_head_large_documents_and_every_check_run_page_and_names_the_sha_on_a_failed_later_page(
         tmp_path, wait_ci, fake_processes, run_cli):
-    run = lambda name, conclusion: check_run(name, FULL_SHA, "completed", conclusion)
+    def run(name, conclusion):
+        return check_run(name, FULL_SHA, "completed", conclusion)
     other = "fedcba9876543210fedcba9876543210fedcba98"
     proxy = ("gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. "
              "Use repos/{owner}/{repo}/... endpoints instead. (HTTP 403)\n")
@@ -857,7 +863,8 @@ def test_main_records_a_deadline_from_the_ci_workflows_recent_runs_or_its_capped
 
     def listed(line, runs):
         args = line.split(" ")[3:]
-        opt = lambda *names: next((args[i + 1] for i, a in enumerate(args[:-1]) if a in names), None)
+        def opt(*names):
+            return next((args[i + 1] for i, a in enumerate(args[:-1]) if a in names), None)
         workflow, status = opt("--workflow", "-w"), opt("--status", "-s")
         runs = [r for r in runs if workflow is None or workflow in (r["workflowName"], r["path"])]
         runs = [r for r in runs if status is None or status in (r["status"], r["conclusion"])]
@@ -881,11 +888,13 @@ def test_main_records_a_deadline_from_the_ci_workflows_recent_runs_or_its_capped
         recorded = int(mark.read_text()) - readings[0] if mark.exists() else None
         return code, out, err, recorded, readings[-1] - readings[0], bool(listings)
 
-    done = lambda conclusion, seconds: ("CI", "completed", conclusion, seconds)
+    def done(conclusion, seconds):
+        return ("CI", "completed", conclusion, seconds)
     mixed = [("CI", "in_progress", "", 3000), ("Pages", "completed", "success", 3000), done("success", 200),
              done("cancelled", 3000), done("failure", 220), done("skipped", 3000), done("success", 160),
              done("success", 230), done("failure", 190), done("success", 3000)]
-    five = lambda *seconds: [done(c, s) for c, s in zip(("success", "failure", "success", "success", "failure"), seconds, strict=True)]
+    def five(*seconds):
+        return [done(c, s) for c, s in zip(("success", "failure", "success", "success", "failure"), seconds, strict=True)]
     few = [done("success", 100), done("cancelled", 3000), done("failure", 120), done("skipped", 3000),
            done("success", 80)]
     fewer = "wait-ci.sh: fewer than 5 success or failure CI runs found; bounding the wait at 540 s\n"
@@ -920,7 +929,8 @@ def test_main_records_a_deadline_from_the_ci_workflows_recent_runs_or_its_capped
 
 def test_main_names_a_conflicting_pr_at_its_first_read_only_while_its_head_has_no_check_and_otherwise_decides_by_its_checks_issue_688(
         tmp_path, wait_ci, fake_processes, run_cli):
-    run = lambda status, conclusion=None: check_run("gates", FULL_SHA, status, conclusion)
+    def run(status, conclusion=None):
+        return check_run("gates", FULL_SHA, status, conclusion)
     other = "0123456789abcdef" * 2 + "01234567"
     conflict = f"wait-ci.sh: {PR} conflicts with its base branch; no workflow will start until it is rebased\n"
     past = f"wait-ci.sh: checks of {PR} still pending past the deadline recorded for {FULL_SHA}\n"
@@ -996,7 +1006,8 @@ def test_main_ends_its_slice_with_3_when_mergeability_is_unknown_and_its_head_ha
 
 def test_main_refuses_a_missing_pr_url_or_a_bad_number_and_records_the_deadline_in_its_own_working_directory_issue_775_776(
         tmp_path, wait_ci, fake_processes, run_cli):
-    bad = lambda which, value: f"wait-ci.sh: {which} '{value}' is not a non-negative whole number\n"
+    def bad(which, value):
+        return f"wait-ci.sh: {which} '{value}' is not a non-negative whole number\n"
     mark = f"ci-deadline-{FULL_SHA}"
 
     def waited(name, argv, status="in_progress", conclusion=None):
@@ -2902,7 +2913,8 @@ def test_4018_the_rerun_filter_drops_only_the_re_run_runs_own_old_checks_and_a_l
         tmp_path, wait_ci, fake_processes, run_cli, config):
     import time
     rerun_at = 1763300000
-    stamp = lambda offset: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(rerun_at + offset))
+    def stamp(offset):
+        return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(rerun_at + offset))
 
     def run(name, run_id, conclusion, offset, status="completed"):
         return dict(check_run(name, FULL_SHA, status, conclusion), completed_at=stamp(offset) if conclusion else None,
@@ -2942,7 +2954,8 @@ def test_4018_while_no_check_of_the_re_run_s_run_is_left_after_the_filter_the_he
         tmp_path, wait_ci, fake_processes, run_cli):
     import time
     rerun_at = 1763300000
-    stamp = lambda offset: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(rerun_at + offset))
+    def stamp(offset):
+        return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(rerun_at + offset))
 
     def run(name, run_id, conclusion, offset):
         return dict(check_run(name, FULL_SHA, "completed", conclusion), completed_at=stamp(offset),
@@ -2987,7 +3000,8 @@ def test_4018_after_a_ci_rerun_event_for_the_head_a_check_run_completed_before_i
         tmp_path, wait_ci, fake_processes, run_cli):
     import time
     rerun_at = 1763300000
-    stamp = lambda offset: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(rerun_at + offset))
+    def stamp(offset):
+        return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(rerun_at + offset))
 
     def run(name, conclusion, offset, status="completed"):
         return dict(check_run(name, FULL_SHA, status, conclusion), completed_at=stamp(offset) if conclusion else None,

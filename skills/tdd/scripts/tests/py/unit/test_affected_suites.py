@@ -1075,7 +1075,8 @@ def test_a_touched_pytest_file_under_tests_py_prints_itself_without_widening(
 
 
 def working_tree_git(touched=(), untracked_=(), counted=(), counted_untracked=()):
-    lines = lambda names: "".join(n + "\n" for n in names)
+    def lines(names):
+        return "".join(n + "\n" for n in names)
 
     def run(args, **kwargs):
         if list(args[:2]) == ["git", "rev-parse"]:

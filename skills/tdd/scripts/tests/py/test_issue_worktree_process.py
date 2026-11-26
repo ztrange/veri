@@ -641,10 +641,11 @@ def test_creating_the_issue_branch_leaves_the_local_default_branch_ref_and_the_c
     (upstream / "landed.txt").write_text("landed while the clone was busy\n")
     scratch_git(upstream, "add", "landed.txt")
     scratch_git(upstream, "commit", "-q", "-m", "landed while the clone was busy")
-    seen = lambda: (scratch_git(clone, "rev-parse", "refs/heads/main"), scratch_git(clone, "rev-parse", "HEAD"),
-                    scratch_git(clone, "branch", "--show-current"),
-                    scratch_git(clone, "status", "--porcelain", "--untracked-files=no"),
-                    (clone / "landed.txt").exists())
+    def seen():
+        return (scratch_git(clone, "rev-parse", "refs/heads/main"), scratch_git(clone, "rev-parse", "HEAD"),
+                scratch_git(clone, "branch", "--show-current"),
+                scratch_git(clone, "status", "--porcelain", "--untracked-files=no"),
+                (clone / "landed.txt").exists())
     before = seen()
 
     code = run_cli(issue_worktree, ["37", "leave-the-clone-alone"], cwd=clone)[0]

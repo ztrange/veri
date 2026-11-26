@@ -173,7 +173,8 @@ def test_a_verify_leaf_gets_the_tools_value_a_develop_leaf_gets_and_no_disallowe
     develop, _ = spec(run_leaf, extra=["--permission-mode", "bypassPermissions"])
     verifier, _ = spec(run_leaf, extra=verify.leaf_args(None))
 
-    given = lambda argv: [argv[at + 1] for at, word in enumerate(argv) if word == "--tools"]
+    def given(argv):
+        return [argv[at + 1] for at, word in enumerate(argv) if word == "--tools"]
     assert (given(verifier), "--disallowedTools" in verifier) == ([tools or run_leaf.DEFAULT_TOOLS], False)
     assert given(develop) == given(verifier)
 

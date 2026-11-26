@@ -80,7 +80,8 @@ def test_a_reason_cell_escapes_each_pipe_with_a_backslash_and_reads_unknown_with
 
 
 def test_below_the_table_one_line_counts_green_rejects_by_route_by_count_descending_then_route_name(tmp_path, monkeypatch, capsys, metrics):
-    reroute = lambda step, kind: {"event": "reroute", "step": step, "phase": "green", "kind": kind}
+    def reroute(step, kind):
+        return {"event": "reroute", "step": step, "phase": "green", "kind": kind}
     write_log(tmp_path, [verdict("1", "green", "1", "REJECT", "a"), {"event": "revise", "step": "1", "phase": "green"},
                          verdict("1", "green", "2", "REJECT", "b"), reroute("1", "later"),
                          verdict("2", "green", "1", "REJECT", "c"), reroute("2", "wrong-test"),

@@ -178,7 +178,8 @@ def test_rerecord_refactored_skips_two_go_cases_whose_refactor_moved_the_checks_
 def test_rerecord_refactored_leaves_the_record_and_check_earlier_exits_1_for_a_go_case_whose_refactor_moved_checks_into_a_helper_after_it_and_dropped_one_2863(
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
-    chk = lambda m: '\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m
+    def chk(m):
+        return '\tif x != 1 {\n\t\tt.Fatal("%s")\n\t}\n' % m
     inline = 'func TestOne(t *testing.T) {\n\tx := 1\n' + chk("a") + chk("b") + chk("c") + '}\n'
     dropped = ('func TestOne(t *testing.T) {\n\tx := 1\n' + chk("b") + '\tcheck(t, x)\n}\n\n'
                'func check(t *testing.T, x int) {\n' + chk("a") + '}\n')
