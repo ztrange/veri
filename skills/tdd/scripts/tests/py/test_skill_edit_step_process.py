@@ -1286,3 +1286,69 @@ def test_a_garbage_trace_answer_exits_2_naming_no_verdict_and_runs_no_grade(tmp_
     calls = roles.read_text().split() if roles.exists() else []
     assert [ran.returncode, "no-verdict" in ran.stderr, calls] == [2, True, ["author", "trace"]], \
         (calls, ran.stderr[-700:])
+
+
+def trace_answering(sed_script):
+    """A stub's trace branch: it logs `trace` and answers each `CLAIM` line through `sed_script`."""
+    return ('\ncase "$prompt" in *"TRACED <id>"*) echo trace >> "$VERI_TEST_CAP/roles"\n'
+            "  reply=$(printf '%s\\n' \"$prompt\" | sed -n '" + sed_script + "'"
+            " | awk '{ printf \"%s%s\", sep, $0; sep = \"\\\\n\" }')\n"
+            "  printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"'\"$reply\"'\"}'\n"
+            "  exit 0 ;; esac\n")
+
+
+UNTRACED_ROWS = trace_answering(r"s/^CLAIM \(S[0-9]*\) .*/NOT-CODE \1/p; s/^CLAIM \([^ ]*\) .*/UNTRACED \1 no code names it/p")
+
+
+def run_added_with_no_author(tmp_path, stub, extra_env=None):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git(repo, "init", "-q", "-b", "main")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "unit.md").write_text("The widget is blue.\nIt stays silent.\n")
+    (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "feat: unit")
+    (repo / "issue.md").write_text(
+        "## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1<reword> | The widget is a deep blue. | shade |\n")
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    claude = tmp_path / "claude"
+    claude.write_text(stub)
+    claude.chmod(0o755)
+    env = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV, "CLAUDE_BIN": str(claude),
+           "VERI_TEST_CAP": str(cap), "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+           "GIT_COMMITTER_EMAIL": "t@t", **(extra_env or {})}
+
+    ran = subprocess.run([str(STEP), "--added", "reword the widget", "issue.md", "unit.md"], cwd=repo,
+                         capture_output=True, text=True, env=env)
+    return repo, cap, ran
+
+
+@pytest.mark.process("skill-edit-step.sh run against a real git repository with a stub claude whose trace leaf answers UNTRACED for every row")
+@pytest.mark.parametrize("path, run, stub, wanted", [
+    ("author", run_on_a_new_skill, STUB_WRITES_UNIT, ["author", "trace"]),
+    ("added_no_author", run_added_with_no_author, STUB_ROLE_LOG, ["trace"]),
+], ids=["author", "added_no_author"])
+def test_an_untraced_row_exits_1_with_a_row_untraced_bail(tmp_path, path, run, stub, wanted):
+    repo, cap, ran = run(tmp_path, stub.replace("\nanswer_trace\n", UNTRACED_ROWS))
+
+    roles = cap / "roles"
+    calls = roles.read_text().split() if roles.exists() else []
+    events = repo / ".tdd" / "events.jsonl"
+    bails = [json.loads(line) for line in (events.read_text().splitlines() if events.exists() else [])
+             if json.loads(line).get("event") == "bail"]
+    assert [ran.returncode, calls, [b.get("cause") for b in bails]] == [1, wanted, ["row-untraced"]], \
+        (path, calls, ran.stderr[-700:])
+
+
+@pytest.mark.process("skill-edit-step.sh --added run against a real git repository with a stub claude whose trace leaf answers garbage")
+def test_a_garbage_trace_answer_on_the_added_path_that_runs_no_author_exits_2_naming_no_verdict_and_runs_no_grade(tmp_path):
+    repo, cap, ran = run_added_with_no_author(
+        tmp_path, STUB_ROLE_LOG.replace("\nanswer_trace\n", trace_answering(r"s/^CLAIM .*/no idea, sorry/p")),
+        {"VERI_NO_VERDICT_RETRIES": "0"})
+
+    roles = cap / "roles"
+    calls = roles.read_text().split() if roles.exists() else []
+    assert [ran.returncode, "no-verdict" in ran.stderr, calls] == [2, True, ["trace"]], (calls, ran.stderr[-700:])
