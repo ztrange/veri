@@ -27,6 +27,9 @@ ALLOWED = {
         "mechanical: each `$S/<script>` refactor-half.py calls is named in the section (PRD 027 FC19), no wording read",
     "unit/test_step_close.py::test_4029_every_inner_call_in_the_ordered_list_is_a_script_the_refactor_loop_section_names":
         "mechanical: each `$S/<script>` step-close.py calls is named in the section (PRD 027 FC19), no wording read",
+    "unit/test_skill_green_split.py::test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and_say_a_split_keeps_its_anchor_s_criterion_the_uncovered_spec_call_passes_criterion_k_read_from_the_issue_s_numbered_acceptance_criteria_one_call_per_criterion_bailing_on_exit_2":
+        "mechanical: the one call after the pending-refactor step passes `--criterion <k>`, no wording read; "
+        "its <k>, one-call-per-criterion and exit-2 prose is graded (RF29, RF31, CY363)",
 }
 
 # A heading named in any case, as a regex or a plain string: `(?i)^#{4}\s+refactor\s+loop`, `#### refactor loop`,
