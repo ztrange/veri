@@ -3,6 +3,8 @@ import contextlib
 import errno
 import gc
 import importlib
+import importlib.abc
+import importlib.util
 import io
 import json
 import os
@@ -80,10 +82,6 @@ for path in (SCRIPTS / "tests" / "leg", SCRIPTS / "veri", SCRIPTS):  # tests/leg
 # still falls to its flat `try`), touch `spec_from_file_location` loads (deliberate separate copies), or make
 # `veri.<name>` of a file outside veri/ (a package, a missing module) anything but the usual lookup. Each
 # pytest-xdist worker imports this conftest and installs its own finder.
-import importlib.abc
-import importlib.util
-
-
 class _FlatAlias(importlib.abc.Loader):
     def create_module(self, spec):
         module = importlib.import_module(spec.name.removeprefix("veri."))

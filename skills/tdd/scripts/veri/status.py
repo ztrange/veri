@@ -13,6 +13,7 @@ import time
 
 import decision_log
 import event_log
+import github
 import markdown_sections
 import paths
 import pid_file
@@ -30,8 +31,6 @@ from run_activity import activity
 from solvable_issues import priority_label, solvable
 
 ISO_UTC = "%Y-%m-%dT%H:%M:%SZ"
-
-import github
 
 
 def run_activity(run, as_json=False, closed=False):

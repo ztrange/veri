@@ -1,5 +1,21 @@
 """The pytest leg's launcher: refuses an interpreter below the Python floor, then runs pytest."""
+import contextlib
+import fcntl
+import hashlib
+import importlib.util
+import io
+import json
+import marshal
+import os
 import os.path as _path
+import platform
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
 
 VERI = _path.join(_path.dirname(_path.dirname(_path.dirname(_path.realpath(__file__)))), "veri")
 if __name__ == "__main__":
@@ -36,23 +52,6 @@ if __name__ == "__main__":
 #            (idle_watch.py, #4254), whatever its cases' outcomes
 #          128 + the signal's number on TERM or HUP: the leg ends its workers, entry and lock the same way, without
 #            waiting on xdist's worker teardown, and prints `pytest leg ended by signal <n>; workers <pid>… ended`
-import contextlib
-import fcntl
-import hashlib
-import importlib.util
-import io
-import json
-import marshal
-import os
-import platform
-import re
-import shutil
-import signal
-import subprocess
-import sys
-import tempfile
-import time
-
 import entry
 import event
 import full_run_lock
