@@ -7,6 +7,7 @@ import sys
 import fused
 import fused_step
 import run_dir
+import tunables
 from ledger import handed_out, has_kind
 
 NAME = "diff-step"
@@ -47,7 +48,8 @@ def run(n):
     if has_kind(step, "⟦test-quality⟧"):
         found = possible_bug(wt, values["leaf"])
         if found:
-            quality_repair(n, wt, found)
+            if int(tunables.get("VERI_QUALITY_REPAIRS")) > 0:
+                quality_repair(n, wt, found)
         else:
             flip(n, wt, step, values)
     fused.checked("tick", fused.script("step-tick.sh"), n, cwd=wt)
