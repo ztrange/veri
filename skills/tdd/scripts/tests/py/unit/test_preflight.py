@@ -593,6 +593,39 @@ def test_3771_q_non_numeric_missing_reroute_budget_stops_at_5_after_refactor_bud
     assert out.splitlines()[-1] == "stopped at 5 VERI_MISSING_REROUTE_BUDGET"
 
 
+@pytest.mark.parametrize("value", ["x", "-1"])
+def test_4760_bad_quality_repairs_stops_at_5_naming_it_exit_2_before_step_budget(monkeypatch, run_cli, tmp_path, value):
+    import types
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+    now = [1000.0]
+    monkeypatch.setattr(preflight, "time", types.SimpleNamespace(monotonic=lambda: now[0]))
+    monkeypatch.setenv("VERI_QUALITY_REPAIRS", value)
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append(base)
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            now[0] += 7.2
+        if base == "gh" and args[-1] == ".default_branch":
+            return 0, "main\n", ""
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, out, err = run_cli(preflight, ["12", "my-slug"])
+
+    assert (code, out.splitlines()[-1], "step-budget.sh" in calls) == (2, "stopped at 5 VERI_QUALITY_REPAIRS", False)
+
+
 def test_3771_r_skip_verify_plan_stops_at_5_after_refactor_budget_issue_0_with_no_step_budget_call(monkeypatch, run_cli, tmp_path):
     import types
     preflight = importlib.import_module("veri.preflight")
