@@ -121,6 +121,8 @@ def verify(n, wt, settled, step, values):
     fused.checked("develop", fused.script("suite-reported.sh"), leaf, cwd=wt, err=".tdd/suite-reported.err")
     fused.checked("develop", fused.script("diff-leaf-deviation.sh"), leaf, values["step_base"], LEDGER % n, cwd=wt,
                   ok=(0, 3))
+    if has_kind(step, "⟦test-quality⟧") and possible_bug(wt, leaf):
+        return None
     if fused_step.verify_switched_off(wt, n, "diff"):
         fused.mark("verify", wt, n, step, "verify-diff-skipped", "reason=switched-off")
         with open(os.path.join(wt, ".tdd", "verdict-diff.exit"), "w") as f:
@@ -129,6 +131,12 @@ def verify(n, wt, settled, step, values):
     launch_verdict("verify", n, wt, settled, step, values)
     fused.save_wait(wt, n, NAME, "verdict-diff", values)
     return "verdict-diff"
+
+
+def possible_bug(wt, leaf):
+    """The last `POSSIBLE-BUG:` line of <leaf>'s report, or None: a strengthened case the leaf found red, reverted and
+    left uncommitted (SG2), so no verdict-diff judges the step."""
+    return fused.report("develop", wt, ".tdd/%s.out" % leaf, "POSSIBLE-BUG")["POSSIBLE-BUG"]
 
 
 def launch_verdict(where, n, wt, settled, step, values):
