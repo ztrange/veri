@@ -366,37 +366,6 @@ def _complaints(argv):
             % (row_id(r), texts[row_id(r)], _row_text(r)) for r in clashes(issue_rows, path, unit)]
 
 
-def _author_attempts(unit, pins, guard, verdict):
-    """The last (code, said) after authoring while the grade fails, within the skill-edit budget."""
-    graded, said = verdict
-    change = _change[0]
-    path = requirements.list_path(unit)
-    file = unit_file(unit)
-    before = _read_existing([file, path, *pins])
-    for attempt in range(1, int(tunables.get("VERI_SKILL_EDIT_BUDGET")) + 1):
-        if graded != 1 and not (change is not None and attempt == 1):
-            break
-        _attempt[0] = attempt
-        _pins[0] = pins
-        tree, present = _tree()
-        if _author(unit, path, said):
-            return 2, ""
-        graded, said = guard()
-        if graded == 1:
-            _restore(tree, *[n for n in said.splitlines()
-                             if n in tree or (os.path.normpath(n) not in present
-                                              and not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep)))])
-        if not graded:
-            rows, sentences = [], []
-            answer = _trace(unit, rows, sentences)
-            graded, said = _grade(path, unit)
-        if change is not None and graded == 0 and all(_read_existing([f]).get(f) == before.get(f) for f in (file, path)):
-            graded, said = 1, "FAIL: the author left the prose and the rows unchanged\n"
-        if graded == 1:
-            _restore(before, *before)
-    return graded, said
-
-
 def main(argv):
     flags = {"--added": None, "--change": None}
     while len(argv) >= 4 and argv[0] in flags:
@@ -452,7 +421,29 @@ def main(argv):
             undo()
             return 2
     _change[0] = change
-    graded, said = _author_attempts(unit, pins, guard, (graded, said))
+    before = _read_existing([file, path, *pins])
+    for attempt in range(1, int(tunables.get("VERI_SKILL_EDIT_BUDGET")) + 1):
+        if graded != 1 and not (change is not None and attempt == 1):
+            break
+        _attempt[0] = attempt
+        _pins[0] = pins
+        tree, present = _tree()
+        if _author(unit, path, said):
+            undo()
+            return 2
+        graded, said = guard()
+        if graded == 1:
+            _restore(tree, *[n for n in said.splitlines()
+                             if n in tree or (os.path.normpath(n) not in present
+                                              and not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep)))])
+        if not graded:
+            rows, sentences = [], []
+            answer = _trace(unit, rows, sentences)
+            graded, said = _grade(path, unit)
+        if change is not None and graded == 0 and all(_read_existing([f]).get(f) == before.get(f) for f in (file, path)):
+            graded, said = 1, "FAIL: the author left the prose and the rows unchanged\n"
+        if graded == 1:
+            _restore(before, *before)
     if graded:
         undo()
         if graded == 1:
