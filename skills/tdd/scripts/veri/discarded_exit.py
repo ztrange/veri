@@ -2,10 +2,10 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import ast
 import re
-import subprocess
 import sys
 
 import entry
+import git
 
 
 USAGE = "usage: discarded-exit.sh"
@@ -13,9 +13,9 @@ EXIT_CODE_CALLS = {"subprocess.run", "subprocess.call", "os.system", "fused.call
 HUNK = re.compile(r"@@ -\S+ \+(\d+)")
 
 
-def _git(*args):
-    """Runs git with args in the current directory; returns (code, stdout)."""
-    done = subprocess.run(["git", *args], capture_output=True, text=True)
+def _head_diff():
+    """Runs `git diff HEAD` in the current directory; returns (code, stdout)."""
+    done = git.git("diff", "HEAD", capture_output=True, text=True)
     return done.returncode, done.stdout
 
 
@@ -118,7 +118,7 @@ def main(argv):
     refused = entry.no_arguments(argv, USAGE)
     if refused is not None:
         return refused
-    code, diff = _git("diff", "HEAD")
+    code, diff = _head_diff()
     if code != 0:
         return entry.refuse(usage=USAGE)
     py = {path: lines for path, lines in _added_lines(diff).items() if path.endswith(".py")}

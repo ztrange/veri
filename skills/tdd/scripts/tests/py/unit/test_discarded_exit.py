@@ -24,7 +24,7 @@ def test_a_diff_touching_no_py_file_prints_nothing_and_exits_3(run_cli, discarde
             "@@ -1 +1,2 @@\n"
             " # Title\n"
             "+subprocess.call([\"x\"])\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, []) == (3, "", "")
 
@@ -54,7 +54,7 @@ def test_each_added_bare_call_discarding_an_exit_code_is_printed_as_file_and_new
             "+subprocess.call([\"b\"])\n"
             "+os.system(\"c\")\n"
             "+fused.call(\"git\", \"status\")\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (
         1, "pkg/mod.py:7\npkg/mod.py:8\npkg/mod.py:9\npkg/mod.py:10\n", "")
@@ -71,7 +71,7 @@ def test_an_added_bare_call_to_any_other_function_prints_nothing_and_exits_0(
             " import os\n"
             "+print(\"x\")\n"
             "+os.getcwd()\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
 
@@ -86,7 +86,7 @@ def test_an_added_fused_call_unpacking_its_exit_code_into_underscore_is_printed_
             "@@ -1 +1,2 @@\n"
             " import fused\n"
             "+_, body, _ = fused.call(\"gh\", \"api\", \"x\")\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:2\n", "")
 
@@ -104,7 +104,7 @@ def test_an_added_exit_code_assigned_whole_to_underscore_is_printed_and_exits_1(
             " import subprocess\n"
             "+_ = subprocess.call([\"x\"])\n"
             "+_ = os.system(\"x\")\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:3\nmod.py:4\n", "")
 
@@ -137,7 +137,7 @@ def test_an_added_exit_code_bound_to_a_name_the_function_never_reads_is_printed_
             "+def run():\n"
             "+    rc = os.system(\"x\")\n"
             "+    return 0\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:5\nmod.py:9\n", "")
 
@@ -164,7 +164,7 @@ def test_an_added_fused_call_whose_exit_code_the_function_reads_prints_nothing_a
             "+    if read:\n"
             "+        return None\n"
             "+    return body\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
 
@@ -187,7 +187,7 @@ def test_an_added_subprocess_run_bound_whole_whose_returncode_is_never_read_is_p
             "+def output():\n"
             "+    proc = subprocess.run([\"x\"], capture_output=True, text=True)\n"
             "+    return proc.stdout\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:4\n", "")
 
@@ -210,7 +210,7 @@ def test_an_added_subprocess_run_with_check_true_whose_returncode_is_never_read_
             "+def output():\n"
             "+    proc = subprocess.run([\"x\"], check=True)\n"
             "+    return proc.stdout\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
 
@@ -237,7 +237,7 @@ def test_an_added_subprocess_run_whose_returncode_the_function_reads_prints_noth
             "+    if proc.returncode:\n"
             "+        return None\n"
             "+    return proc.stdout\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
 
@@ -260,7 +260,7 @@ def test_an_added_subprocess_run_never_bound_whole_is_printed_and_exits_1(
             "+def output():\n"
             "+    out = subprocess.run([\"x\"]).stdout\n"
             "+    return out\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:4\n", "")
 
@@ -283,7 +283,7 @@ def test_an_added_subprocess_run_with_check_true_bare_or_assigned_to_underscore_
             "+def build():\n"
             "+    subprocess.run([\"x\"], check=True)\n"
             "+    _ = subprocess.run([\"x\"], check=True)\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
 
@@ -303,7 +303,7 @@ def test_a_discarded_call_on_a_context_or_removed_line_is_not_printed_while_an_a
             " subprocess.call([\"context\"])\n"
             "-subprocess.call([\"removed\"])\n"
             "+subprocess.call([\"added\"])\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:3\n", "")
 
@@ -326,7 +326,7 @@ def test_an_added_exit_code_assigned_to_underscore_is_printed_even_when_the_func
             "+def call():\n"
             "+    _ = subprocess.call([\"x\"])\n"
             "+    print(_)\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:4\n", "")
 
@@ -349,6 +349,6 @@ def test_an_added_subprocess_run_with_check_true_never_bound_whole_prints_nothin
             "+def output():\n"
             "+    out = subprocess.run([\"x\"], check=True).stdout\n"
             "+    return out\n")
-    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
