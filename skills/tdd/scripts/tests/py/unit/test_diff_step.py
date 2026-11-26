@@ -333,3 +333,20 @@ def test_4760_an_ordinary_diff_checked_step_whose_leaf_reports_a_possible_bug_st
     for _, _, _, fake in (second, third):
         assert "add-ledger-step.sh" not in fake.names()
         assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
+
+
+def test_4760_a_test_quality_step_whose_leaf_reports_neither_a_possible_bug_nor_a_flip_still_launches_verdict_diff(
+        diff):
+    """SG2's counter-case: without a POSSIBLE-BUG line the test-quality step is judged by verify-diff as before, adds no
+    repair step and leaves the run's test-quality record as it was."""
+    record = diff.wt / ".tdd" / "issue-12-test-quality"
+    record.parent.mkdir(parents=True, exist_ok=True)
+    record.write_text("fixes=1\n")
+    diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    code, out, err, fake = diff(step=QUALITY, answers={("wait-leaf.sh", "verdict-diff"): (3, "")}, report="SUITE: ok\n")
+
+    assert (code, out.splitlines()[-1]) == (3, "waiting on verdict-diff")
+    assert fake.launched() == ["verdict-diff"]
+    assert "add-ledger-step.sh" not in fake.names()
+    assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
+    assert record.read_text() == "fixes=1\n"
