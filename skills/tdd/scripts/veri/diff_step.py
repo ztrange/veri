@@ -8,7 +8,7 @@ import fused
 import fused_step
 import run_dir
 import tunables
-from ledger import handed_out, has_kind
+from ledger import STEP_RE, handed_out, has_kind, read_ledger
 
 NAME = "diff-step"
 USAGE = "usage: diff-step.sh <n>"
@@ -48,7 +48,8 @@ def run(n):
     if has_kind(step, "⟦test-quality⟧"):
         found = possible_bug(wt, values["leaf"])
         if found:
-            if int(tunables.get("VERI_QUALITY_REPAIRS")) > 0:
+            steps = [line for line in read_ledger(run_dir.ledger(wt, n)).split("\n") if STEP_RE.fullmatch(line)]
+            if sum(has_kind(line, "⟦quality-repair⟧") for line in steps) < int(tunables.get("VERI_QUALITY_REPAIRS")):
                 quality_repair(n, wt, found)
         else:
             flip(n, wt, step, values)
