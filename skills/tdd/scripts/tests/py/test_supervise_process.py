@@ -764,7 +764,7 @@ def test_main_launches_the_leaf_through_one_sh_wrapper_in_its_own_group_logging_
         code = supervise.main(["verdict-red", *leaf])
         out, err = capsysbinary.readouterr()
 
-        def read(name):
+        def read(name, work=work):
             path = work / ".tdd" / name
             return path.read_bytes() if path.exists() else None
 

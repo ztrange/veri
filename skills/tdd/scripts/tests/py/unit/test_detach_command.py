@@ -318,7 +318,7 @@ def test_wait_parses_the_pid_file_as_bash_kill_does_blanks_a_plus_and_leading_ze
     for pid_text, pid in ((" +007 \t\n", 7), ("\t 0 \n", 0), (" -0012\n", -12)):
         kills = []
         (tdd / "x.pid").write_text(pid_text)
-        monkeypatch.setattr(os, "kill", lambda pid, signum: kills.append((pid, signum)))
+        monkeypatch.setattr(os, "kill", lambda pid, signum, kills=kills: kills.append((pid, signum)))
         code = detach_command.main(["wait", "x", "0"])
         assert (pid_text, code, capsys.readouterr(), kills) == (pid_text, 3, ("", ""), [(pid, 0)])
 

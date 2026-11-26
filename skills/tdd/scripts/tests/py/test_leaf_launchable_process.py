@@ -24,7 +24,7 @@ def test_run_through_a_symlink_to_the_skill_directory_from_another_working_direc
         env = {key: value for key, value in os.environ.items() if key != "CLAUDECODE"}
         env["CLAUDE_BIN"] = str(stub)
 
-        def run(command, cwd):
+        def run(command, cwd, env=env):
             done = subprocess.run([command], cwd=cwd, env=env, capture_output=True)
             return done.returncode, done.stdout, done.stderr
 

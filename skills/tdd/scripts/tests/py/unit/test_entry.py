@@ -17,7 +17,7 @@ def test_run_exits_with_the_code_main_returns_and_lets_a_raised_system_exit_thro
     for code in (0, 1, 2, 3):
         seen = []
 
-        def returns(argv, _code=code):
+        def returns(argv, _code=code, seen=seen):
             seen.append(argv)
             return _code
 

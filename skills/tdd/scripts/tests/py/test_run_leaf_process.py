@@ -127,7 +127,7 @@ def test_main_launches_one_leaf_with_the_prompt_the_model_only_when_non_empty_an
                 monkeypatch.setenv(name, value)
         launches = []
         monkeypatch.setattr(subprocess, "Popen",
-                            lambda argv, *args, **kwargs: _FakeLeaf(launches, argv, **kwargs))
+                            lambda argv, *args, launches=launches, **kwargs: _FakeLeaf(launches, argv, **kwargs))
         run_leaf.main(["prompt.txt", *extra])
         capfd.readouterr()
         tail = want[len(head) + 1:]
@@ -595,7 +595,7 @@ def test_main_reads_the_prompt_from_a_relative_file_or_stdin_as_bytes_and_refuse
         for prompt_arg in ("sub/p.txt", "raw.txt", "-", "nope.txt", "adir"):
             launches = []
             monkeypatch.setattr(subprocess, "Popen",
-                                lambda argv, *args, **kwargs: _FakeLeaf(launches, argv, **kwargs))
+                                lambda argv, *args, launches=launches, **kwargs: _FakeLeaf(launches, argv, **kwargs))
             try:
                 code = run_leaf.main([prompt_arg])
             except Exception as error:
@@ -1385,7 +1385,7 @@ def test_cli_run_leaf_sh_hands_claude_sigpipe_and_sigxfsz_as_its_caller_had_them
 
         class _Caller:
             @staticmethod
-            def main(argv):
+            def main(argv, handed=handed):
                 return subprocess.run(
                     [sys.executable, "-c", _EXEC_WITH_DISPOSITION, handed,
                      str(SCRIPTS / "run-leaf.sh"), *argv],
