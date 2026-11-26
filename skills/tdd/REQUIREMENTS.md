@@ -925,6 +925,7 @@
 | BL180 | Before a bail is classified, a new first sub-step checks whether its cause is one `ADJUDICATE.md`'s *Waivable rules* names; if so, and `adjudicate.sh left <n>` and `adjudicate.sh deviation-left <n>` both exit 0, the adjudicator is run as `ADJUDICATE.md`'s *Procedure* says, and on `deviate` the run takes the rule's resume action instead of bailing. Any other answer, or either budget spent or unreadable, goes on to the bail with its original cause and class. | PRD 043 D1: a deviation is judged at the bail, and a non-waived bail is unchanged. |
 | BL181 | The cause list has a `go-red-probe-unresolvable` bullet: `go-red-step.sh` stopped at its probe with exit **2** because no test file under the worktree defines the ⟦go-red⟧ step's case, or more than one does → **system** failure. (Cause list, `go-red-probe-unresolvable` bullet.) | The bail list names every token `classify-bail.sh` knows; a probe with no file to run is the plumbing, not the methodology. |
 | BL182 | `skills/tdd/BAIL.md` lists no `repin-failed` or `not-checked` cause. | PRD 044 D6: the re-pin route that raised them is removed. |
+| BL183 | BAIL.md lists `row-untraced` among the bail causes, exit 1, a process failure: a `trace-rows` leaf answered `UNTRACED` for a row of the issue. | The row is the issue's and no author edit makes it true; the methodology spoke. |
 
 ## skills/tdd/SCOPE-LOOP.md
 
