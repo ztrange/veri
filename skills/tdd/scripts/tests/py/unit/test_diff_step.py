@@ -377,3 +377,21 @@ def test_4760_a_test_quality_step_whose_leaf_reports_a_possible_bug_and_no_flip_
     assert code == 0, err
     assert "mutation-probe.sh" not in fake.names()
     assert "step-tick.sh" in fake.names()
+
+
+def test_4760_a_test_quality_steps_possible_bug_appends_one_quality_repair_step_last_and_commits_it_as_plan(
+        diff, monkeypatch):
+    """SG4: the finding becomes one ⟦diff-checked⟧ ⟦quality-repair⟧ step after the ledger's last step, outside the growth
+    budget (no ⟦added⟧), carrying the POSSIBLE-BUG line, committed as a plan: commit."""
+    monkeypatch.delenv("VERI_QUALITY_REPAIRS", raising=False)
+    diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    code, out, err, fake = diff(step=QUALITY, report="SUITE: ok\n" + POSSIBLE_BUG)
+
+    steps = [l for l in (diff.wt / ".tdd" / "issue-12.md").read_text().split("\n") if l.startswith("- [")]
+    repairs = [l for l in steps if "⟦quality-repair⟧" in l]
+    commits = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
+    assert code == 0, err
+    assert repairs == [steps[-1]]
+    assert ("⟦diff-checked⟧" in repairs[0], "⟦added⟧" in repairs[0], POSSIBLE_BUG.strip() in repairs[0]) == (
+        True, False, True)
+    assert [a[a.index("-m") + 1].startswith("plan:") for a in commits] == [True]
