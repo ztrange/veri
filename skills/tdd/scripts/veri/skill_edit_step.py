@@ -402,7 +402,8 @@ def main(argv):
             return 2
         return 3
     if os.path.getsize(file):
-        _trace(unit, [], [])
+        if added is not None and change is None:
+            _trace(unit, [], [])
         graded, said = _grade(path, unit)
     else:
         graded, said = 1, "FAIL: unit is empty\n"
