@@ -33,15 +33,23 @@ With no argument the groom is the sweep over every open issue; each argument for
 - `--refactor-owed` — narrow the groom to the refactor-owed consolidation alone (see below).
 
 `/vgroom` typed with no argument is the human's "go" for the run, and their say-so to add the
-opt-in label to every issue the sweep ends ready.
+opt-in label to every issue the sweep ends ready, an issue carrying the `draft` label excepted:
+it is only reported (*The sweep*).
 
 ## The sweep
 
 The sweep's scope is every open issue but the `taken:` ones (*Invocation*): issues without the
 opt-in label (bare or scoped), issues already opted in, the refactor-owed items, which go through
 the `--refactor-owed` consolidation (below) as part of the sweep, and PRD trackers, which go
-through `### Missing PRD parents` and `### PRD trackers`. Every issue in scope ends the run with exactly one outcome and
-one report line; none is skipped or left unlabelled without its reason.
+through `### Missing PRD parents` and `### PRD trackers`. Every issue in scope gets one report
+line, and every one but a `draft` ends the run with exactly one outcome; none is skipped or left
+unlabelled without its reason.
+
+**A `draft` issue is only reported.** The sweep never adds the opt-in label to, rewrites, splits
+or closes an issue carrying the `draft` label, and none of the outcomes in the steps below is
+applied to it. Triage reads the reason under its `## Not ready`, and its report line names it as
+a draft; when that reason no longer holds (a blocker it names closed, a PR it names merged), the
+line also names it as promotable.
 
 1. **Triage** each issue (below).
 2. **`needs-rewrite`**: a subagent rewrites the body into the issue body `../vfile/SKILL.md`
@@ -99,6 +107,8 @@ slices, the `PRD <nnn>.<k>: …` issues it plans.
 - **A planned slice not filed yet** — report the tracker with each unfiled slice named, and leave
   it open.
 
+A slice filed as a `draft` counts as filed and not done, so its tracker stays open.
+
 ## Before labelling ready
 
 Before labelling an issue ready, run `$S/stale-rows.sh <issue>` against it:
@@ -138,6 +148,9 @@ For a batch larger than the 10-line return allows, split the issues across sever
 subagents; never lift the limit.
 
 ## Applying outcomes
+
+In the sweep, nothing in this section opts in, rewrites, splits or closes a `draft` issue
+(*The sweep*).
 
 **Mechanical outcomes are applied at once, without asking** (P14), and reported in one line:
 
