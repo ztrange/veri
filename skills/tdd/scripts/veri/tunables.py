@@ -208,6 +208,7 @@ TUNABLES = {
     "VERI_MODEL_ADJUDICATOR": Tunable(text, "opus"),
     "VERI_MODEL_CONDUCTOR": Tunable(text, "opus"),
     "VERI_MISSING_REROUTE_BUDGET": Tunable(tokens, "3"),
+    "VERI_QUALITY_REPAIRS": Tunable(tokens, "1"),
     "VERI_SETUP_THRESHOLD": Tunable(tokens, "3"),
     "VERI_PLAN_TOUCHING_CASES": Tunable(tokens, "100"),
     "VERI_TEST_LOCK": Tunable(text, ""),
