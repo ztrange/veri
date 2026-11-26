@@ -1,0 +1,24 @@
+# Plan for #4758 — PRD 040.2: omission checks: a step's missing code is caught in that step
+
+- [ ] `discarded-exit.sh` (a new `/bin/sh` shim over the new module `skills/tdd/scripts/veri/discarded_exit.py`) given any argument prints `usage: discarded-exit.sh` on stderr and exits 2 (a small `run_cli` case in `skills/tdd/scripts/tests/py/unit/test_discarded_exit.py`) ⟦criterion 2⟧
+- [ ] `discarded-exit.sh` run with no argument in a directory that is not a git work tree prints the usage line on stderr and exits 2 (a `process("git")` case in `skills/tdd/scripts/tests/py/test_discarded_exit_process.py`, in a `tmp_path` holding no repository) ⟦criterion 2⟧
+- [ ] a `git diff HEAD` that touches no `.py` file (only a `.md` file changed) makes `discarded-exit.sh` print nothing and exit 3 (unit case faking the one git wrapper) ⟦criterion 2⟧
+- [ ] an added `.py` line that is a bare expression statement calling `subprocess.run`, `subprocess.call`, `os.system` or `fused.call` is printed as `<file>:<line>` (the path and the line's number in the new file), one line per such statement, exit 1 (unit case) ⟦criterion 11⟧
+- [ ] an added bare expression statement calling any other function (`print("x")`, `os.getcwd()`) prints nothing and exits 0 (unit case) ⟦criterion 11⟧
+- [ ] an added `_, body, _ = fused.call("gh", "api", "x")`, the exit code unpacked into `_`, is printed as `<file>:<line>`, exit 1 (unit case; watched red before the `_` rule exists) ⟦criterion 3⟧
+- [ ] an added `_ = subprocess.call(["x"])` or `_ = os.system("x")`, the whole exit code assigned to `_`, is printed as `<file>:<line>`, exit 1 (unit case) ⟦criterion 12⟧
+- [ ] an added `code, out, err = fused.call("git", "status")` or `rc = os.system("x")` whose bound exit-code name the enclosing function never reads again is printed as `<file>:<line>`, exit 1 (unit case) ⟦criterion 13⟧
+- [ ] an added `read, body, _ = fused.call("gh", "api", "x")` followed in the same function by `if read:` prints nothing and exits 0 (unit case) ⟦criterion 3⟧
+- [ ] an added `proc = subprocess.run(["x"])` with no `check=True`, whose `proc.stdout` the function reads and `proc.returncode` it never reads, is printed as `<file>:<line>`, exit 1 (unit case) ⟦criterion 14⟧
+- [ ] an added `proc = subprocess.run(["x"], check=True)` whose `.returncode` is never read prints nothing and exits 0 (unit case) ⟦criterion 14⟧
+- [ ] an added `proc = subprocess.run(["x"])` with no `check=True` followed in the same function by `if proc.returncode:` prints nothing and exits 0 (unit case) ⟦criterion 14⟧
+- [ ] an added `out = subprocess.run(["x"]).stdout`, a `subprocess.run` with no `check=True` never bound whole, is printed as `<file>:<line>`, exit 1 (unit case) ⟦criterion 14⟧
+- [ ] a discarded call on a context or removed line of the diff is not printed, while an added one in the same file is: only the added line's `<file>:<line>` (unit case) ⟦criterion 1⟧
+- [ ] `discarded-exit.sh` run in a real git work tree with an uncommitted change adding a bare `subprocess.call(["true"])` line to a tracked `.py` file reads `git diff HEAD` and prints that `<file>:<line>`, exit 1 (a `process("git")` case in `skills/tdd/scripts/tests/py/test_discarded_exit_process.py`) ⟦criterion 1⟧
+- [ ] `build-verify-prompt.sh green` fills `{{DISCARDED_EXIT}}` with the path of `discarded-exit.sh` beside the build script, the built prompt holding that path and no unfilled `{{DISCARDED_EXIT}}` (a case in `skills/tdd/scripts/tests/py/unit/test_build_verify_prompt.py`) ⟦criterion 4⟧
+- [ ] ⟦skill-edit⟧ `skills/tdd/scripts/prompts/verify-green.md` gains a check that runs `{{DISCARDED_EXIT}}` and REJECTs each line it prints unless the spec says that call's failure is ignored, passes on its exit 0 or 3, writes no `VERDICT:` line on its exit 2; check 4 REJECTs a PASS whose reason would name a guard, argument or clause no case of the fast tier plus the `changed` run requires (rows VG22-VG24) ⟦criterion 5⟧
+- [ ] ⟦skill-edit⟧ `skills/tdd/scripts/prompts/verify-red.md` check 3 REJECTs a fixture faking the observable the criterion names, not one setting up input state, and a test whose input sits only in the launch directory or ambient environment when the criterion names another place (rows VR21-VR23) ⟦criterion 6⟧
+- [ ] ⟦skill-edit⟧ `skills/tdd/scripts/prompts/verify-plan.md` REJECTs a plan leaving a dispatch's residual outcome untested, counts a scoped output as a predicate, and REJECTs a plan leaving a stated behaviour untested (rows VL98-VL100) ⟦criterion 7⟧
+- [ ] ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md` names `discarded-exit.sh`, what it prints, its exits and verify-green as its caller (row SC650) ⟦criterion 8⟧
+- [ ] `skills/tdd/SKILL.md` grows by at most 0 B net: its `git diff` against the branch base shows no net byte growth ⟦diff-checked⟧ ⟦criterion 9⟧
+- [ ] The PR body states the cost as $0: no new leaf, a few prompt lines in leaves that already run ⟦human-owed⟧ ⟦criterion 10⟧
