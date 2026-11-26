@@ -352,3 +352,87 @@ def test_an_added_subprocess_run_with_check_true_never_bound_whole_prints_nothin
     monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
+
+
+def _whole_file_added(path, source):
+    """A diff adding every line of source as the new file path."""
+    lines = source.splitlines()
+    return (f"diff --git a/{path} b/{path}\n"
+            "new file mode 100644\n"
+            "index 0000000..2222222\n"
+            "--- /dev/null\n"
+            f"+++ b/{path}\n"
+            f"@@ -0,0 +1,{len(lines)} @@\n"
+            + "".join(f"+{line}\n" for line in lines))
+
+
+def test_a_name_read_only_before_the_exit_code_is_bound_to_it_is_printed_and_exits_1(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    source = ("import subprocess\n"
+              "\n"
+              "def run(rc):\n"
+              "    print(rc)\n"
+              "    rc = subprocess.call([\"x\"])\n"
+              "    return 0\n")
+    (tmp_path / "mod.py").write_text(source)
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, _whole_file_added("mod.py", source)))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:5\n", "")
+
+
+def test_a_name_read_earlier_in_a_loop_body_that_binds_the_exit_code_is_not_printed_and_exits_0(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    source = ("import subprocess\n"
+              "\n"
+              "def run():\n"
+              "    rc = 0\n"
+              "    while rc == 0:\n"
+              "        rc = subprocess.call([\"x\"])\n"
+              "    return 0\n")
+    (tmp_path / "mod.py").write_text(source)
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, _whole_file_added("mod.py", source)))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
+
+
+def test_an_annotated_binding_of_an_exit_code_never_read_is_printed_and_one_read_afterwards_is_not(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    source = ("import subprocess\n"
+              "\n"
+              "def lost():\n"
+              "    rc: int = subprocess.call([\"x\"])\n"
+              "    return 0\n"
+              "\n"
+              "def kept():\n"
+              "    rc: int = subprocess.call([\"x\"])\n"
+              "    return rc\n")
+    (tmp_path / "mod.py").write_text(source)
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, _whole_file_added("mod.py", source)))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:4\n", "")
+
+
+def test_an_attribute_taken_off_a_run_call_nested_in_an_expression_is_printed_and_exits_1(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    source = ("import subprocess\n"
+              "print(subprocess.run([\"x\"], capture_output=True).stdout)\n"
+              "print(subprocess.run([\"x\"], check=True).stdout)\n"
+              "print(subprocess.run([\"x\"]).returncode)\n")
+    (tmp_path / "mod.py").write_text(source)
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, _whole_file_added("mod.py", source)))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:2\n", "")
+
+
+def test_a_diff_only_deleting_a_py_file_touches_it_so_prints_nothing_and_exits_0(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    diff = ("diff --git a/gone.py b/gone.py\n"
+            "deleted file mode 100644\n"
+            "index 1111111..0000000\n"
+            "--- a/gone.py\n"
+            "+++ /dev/null\n"
+            "@@ -1 +0,0 @@\n"
+            "-import subprocess\n")
+    monkeypatch.setattr(discarded_exit, "_head_diff", lambda *args: (0, diff))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
