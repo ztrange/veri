@@ -140,3 +140,30 @@ def test_an_added_exit_code_bound_to_a_name_the_function_never_reads_is_printed_
     monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:5\nmod.py:9\n", "")
+
+
+def test_an_added_fused_call_whose_exit_code_the_function_reads_prints_nothing_and_exits_0(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    (tmp_path / "mod.py").write_text(
+        "import fused\n"
+        "\n"
+        "def fetch():\n"
+        "    read, body, _ = fused.call(\"gh\", \"api\", \"x\")\n"
+        "    if read:\n"
+        "        return None\n"
+        "    return body\n")
+    diff = ("diff --git a/mod.py b/mod.py\n"
+            "index 1111111..2222222 100644\n"
+            "--- a/mod.py\n"
+            "+++ b/mod.py\n"
+            "@@ -1 +1,7 @@\n"
+            " import fused\n"
+            "+\n"
+            "+def fetch():\n"
+            "+    read, body, _ = fused.call(\"gh\", \"api\", \"x\")\n"
+            "+    if read:\n"
+            "+        return None\n"
+            "+    return body\n")
+    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
