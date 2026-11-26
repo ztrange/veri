@@ -824,7 +824,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the
     step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
     cmd = 'make test ZORBLAT=1 -- --only "frob & nitz/quux"'
     test_path, target = "tests/zorblat/test_frob & nitz.sh", "qwixtle seeds a newline-terminated block"
-    touched = "scripts/zorblat.sh, tests/zorblat/test_frob & nitz.sh"
     reason_text = "REJECT: the case asserts on zorblat()'s log line, not its return value — & {tricky}\\chars."
     reason = tmp_path / "reason.md"
     reason.write_bytes(reason_text.encode() + b"\n")
@@ -879,7 +878,6 @@ def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the
 
     red = rendered(["red", s, step, cmd])
     green = rendered(["green", s, step, cmd, test_path, target, "make unit"])
-    refactor = rendered(["refactor", s, step, cmd, touched])
     revise = rendered(["revise", "red", s, step, cmd, r])
 
     rb_onto, rb_pre = "7c1e9a3f5b2d4e6a8c0f1b3d5e7a9c2e4f6b8d0a", "e2b4d6f8a0c1e3b5d7f9a1c3e5b7d9f0a2c4e6b8"

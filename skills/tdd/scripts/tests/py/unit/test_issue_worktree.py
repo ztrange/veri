@@ -644,7 +644,6 @@ def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remo
     symref = ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
     get_url = ("git", "remote", "get-url", "origin")
     ls_remote = ("git", "ls-remote", "--symref", "origin", "HEAD")
-    claims = ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*")
     main = ("git", "show-ref", "--verify", "--quiet", "refs/heads/main")
     master = ("git", "show-ref", "--verify", "--quiet", "refs/heads/master")
     refusal = "issue-worktree: cannot determine the default branch (no origin/HEAD, no local main or master)\n"
@@ -747,7 +746,6 @@ def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_
         ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", path, "origin/trunk"): (0, "", ""),
     }
     ls_remote = ("git", "ls-remote", "--symref", "origin", "HEAD")
-    claims = ("git", "ls-remote", "--heads", "origin", "refs/heads/tdd/7-*")
 
     def run(answer):
         routing_git(fake_processes, {**base, ls_remote: answer})

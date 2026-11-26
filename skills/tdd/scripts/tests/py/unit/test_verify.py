@@ -949,7 +949,6 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
     monkeypatch.setenv("VERI_ISSUE", "7")
     monkeypatch.setenv("VERI_STEP", "2")
     verbs = []
-    started = []
 
     def fake(args, *_, **__):
         words = [str(a) for a in args]
@@ -970,7 +969,6 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
             if verb == "diff-tree":
                 return subprocess.CompletedProcess(args, 0, b"src.txt\0", b"")
             return subprocess.CompletedProcess(args, 0, b"", b"")
-        started.append(words)
         if name == "supervise.sh":
             return subprocess.CompletedProcess(args, 0, b"VERDICT: REJECT\nbad\n", None)
         return subprocess.CompletedProcess(args, 0, b"", b"")
@@ -983,7 +981,6 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
     assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
-    names = [os.path.basename(words[0]) for words in started]
     assert (code, captured.out) == (1, b"bad\n")
     assert [v for v in verbs if v in ("write-tree", "diff-tree", "read-tree", "update-ref")] == []
     assert events.records() == [record("verdict", "verdict=REJECT", "reason=bad", issue="7", step="2")]
@@ -1102,7 +1099,7 @@ def test_main_returns_2_with_no_traceback_when_the_update_ref_restoring_head_fai
 
 
 def test_main_returns_2_not_1_when_the_update_ref_restoring_head_exits_1_1183(
-        tmp_path, monkeypatch, capfdbinary, fake_processes):
+        tmp_path, monkeypatch, fake_processes):
     monkeypatch.chdir(tmp_path)
     write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
@@ -1138,7 +1135,6 @@ def test_main_returns_2_not_1_when_the_update_ref_restoring_head_exits_1_1183(
     code = verify.main([*BRANCH, "--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
     assert_prompt_rendered()
 
-    captured = capfdbinary.readouterr()
     assert ("update-ref" in verbs, code) == (True, 2)
 
 

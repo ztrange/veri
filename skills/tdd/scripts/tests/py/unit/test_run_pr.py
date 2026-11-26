@@ -698,7 +698,7 @@ def _stage_run(monkeypatch, tmp_path, codes):
 def test_4432_with_the_real_fused_call_each_stage_call_line_and_its_output_are_printed_once(
         monkeypatch, run_cli, tmp_path):
     run_pr = importlib.import_module("veri.run_pr")
-    calls = _stage_run(monkeypatch, tmp_path, {})
+    _stage_run(monkeypatch, tmp_path, {})
 
     code, out, err = run_cli(run_pr, ["12"], cwd=str(tmp_path))
     code2, out2, err2 = run_cli(run_pr, ["12"], cwd=str(tmp_path))

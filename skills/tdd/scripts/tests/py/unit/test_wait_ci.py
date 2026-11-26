@@ -325,7 +325,6 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
 def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_refuses_a_deadline_file_without_one_issue_776(
         monkeypatch, capsys, tmp_path, wait_ci, fake_processes):
     mark = f"ci-deadline-{SHA}"
-    past = f"wait-ci.sh: checks of {PR} still pending past the deadline recorded for {SHA}\n"
     tick = ["date +%s", "sleep 10"]
     raised = "raised"
     locked = "locked"

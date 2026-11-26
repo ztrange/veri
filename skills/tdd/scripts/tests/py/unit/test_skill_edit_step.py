@@ -578,7 +578,6 @@ def test_an_added_step_whose_reworded_row_the_prose_does_not_meet_launches_the_a
         return subprocess.CompletedProcess([name], 0, b"", None)
 
     def run(line, **kw):
-        cmd = fake.argvs[-1]
         return 0, "abc1234\n", ""
 
     skill_edit_step = skill_edit(
@@ -590,7 +589,7 @@ def test_an_added_step_whose_reworded_row_the_prose_does_not_meet_launches_the_a
         guard=lambda unit, base, pins: []).step
     leaf = importlib.import_module("veri.leaf")
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
-    fake = fake_processes.answers({"": run})
+    fake_processes.answers({"": run})
     monkeypatch.setattr(leaf, "launch", launch)
 
     code, out, err = run_cli(skill_edit_step, ["--added", "reword A1", str(tmp_path / "issue.md"), "unit.md"])
@@ -1251,7 +1250,6 @@ def test_a_change_step_on_a_unit_already_graded_pass_grades_the_authors_edit_tho
         return subprocess.CompletedProcess([name], 0, b"", None)
 
     def run(line, **kw):
-        cmd = fake.argvs[-1]
         return 0, "abc1234\n", ""
 
     monkeypatch.setattr(grade_prose, "SCRIPTS", str(tmp_path / "skills" / "tdd" / "scripts"))
@@ -1259,7 +1257,7 @@ def test_a_change_step_on_a_unit_already_graded_pass_grades_the_authors_edit_tho
     monkeypatch.setattr(skill_edit_guard, "_git_lines", lambda *a: sorted(
         p.name for p in tmp_path.iterdir() if p.name not in (".tdd", "skills")) if a[0] == "ls-files" else [])
     monkeypatch.setattr(grade_prose, "modern_python_dir", lambda: "")
-    fake = fake_processes.answers({"": run})
+    fake_processes.answers({"": run})
     monkeypatch.setattr(leaf, "launch", launch)
 
     code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
@@ -1442,7 +1440,6 @@ def test_the_author_leaf_is_launched_through_veri_leaf_launch_as_author_skill_ed
         return subprocess.CompletedProcess([name], 0, b"", None)
 
     def run(line, **kw):
-        cmd = fake.argvs[-1]
         return 0, "abc1234\n", ""
 
     skill_edit_step = skill_edit(unit=original, grade=grade, author=None, run=None).step
@@ -1452,7 +1449,7 @@ def test_the_author_leaf_is_launched_through_veri_leaf_launch_as_author_skill_ed
     monkeypatch.setattr(skill_edit_guard, "_git_lines", lambda *a: sorted(
         p.name for p in tmp_path.iterdir()) if a[0] == "ls-files" else [])
     monkeypatch.setattr(skill_edit_step.grade_prose, "modern_python_dir", lambda: "")
-    fake = fake_processes.answers({"": run})
+    fake_processes.answers({"": run})
     monkeypatch.setattr(leaf, "launch", launch)
 
     code, out, err = run_cli(skill_edit_step, ["--change", "delete the bullet - a merge is in flight;",
