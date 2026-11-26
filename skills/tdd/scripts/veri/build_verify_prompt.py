@@ -23,7 +23,7 @@ WANT_PHASES = "|".join(PHASES + INTERFACE_PHASES)
 NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "break": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
          "transform": {"fast-cmd", "base-sha"}, **dict.fromkeys(INTERFACE_PHASES + VERIFY_ONLY_PHASES, {"fast-cmd", "base-sha"})}
 HERE = paths.scripts_of(__file__)
-USAGE = ("usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>]"
+USAGE = ("usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>|--frozen-edit <sha>]"
          " [--branch-base <sha>] [--step-green <sha>]"
          " <phase> <issue-spec-file> <test-path> [<target-test-id>]"
          "\n       build-verify-prompt.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>")
@@ -98,7 +98,7 @@ def _author_less_block(issue):
 
 def main(argv):
     options = {"--step": "", "--fast-cmd": "", "--branch-base": "", "--ledger": "", "--supersede-base": "",
-               "--step-green": ""}
+               "--step-green": "", "--frozen-edit": ""}
     while argv[:1] and argv[0] in options:
         if len(argv) < 2 or not argv[1]:
             return refuse(f"build-verify-prompt: {argv[0]} needs a value")
@@ -117,7 +117,7 @@ def main(argv):
         return refuse(f"build-verify-prompt: --supersede-base needs 7-40 lowercase hex characters, got '{base}'")
     code, out = build(options["--step"], options["--fast-cmd"], *argv, branch_base=options["--branch-base"],
                       ledger=options["--ledger"], supersede_base=options["--supersede-base"],
-                      step_green=options["--step-green"])
+                      step_green=options["--step-green"], frozen_edit=options["--frozen-edit"])
     sys.stdout.buffer.write(out)
     return code
 
@@ -213,11 +213,18 @@ def _refused(message=None):
 
 
 def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base="", ledger="", supersede_base="",
-          root=".", step_green=""):
+          root=".", step_green="", frozen_edit=""):
     if branch_base and not HEX_SHA.fullmatch(branch_base):
         return _refused(f"build-verify-prompt: --branch-base needs 7-40 lowercase hex characters, got '{branch_base}'")
     if step_green and not HEX_SHA.fullmatch(step_green):
         return _refused(f"build-verify-prompt: --step-green needs 7-40 lowercase hex characters, got '{step_green}'")
+    if frozen_edit and not HEX_SHA.fullmatch(frozen_edit):
+        return _refused(f"build-verify-prompt: --frozen-edit needs 7-40 lowercase hex characters, got '{frozen_edit}'")
+    if frozen_edit and phase != "diff":
+        return _refused(f"build-verify-prompt: --frozen-edit is the diff phase's alone, not {phase}'s")
+    if frozen_edit and supersede_base:
+        return _refused("build-verify-prompt: --frozen-edit and --supersede-base each pick the diff under judgement;"
+                        " pass one")
     if step_green and phase != "refactor":
         return _refused(f"build-verify-prompt: --step-green is the refactor phase's alone, not {phase}'s")
     if phase not in PHASES + INTERFACE_PHASES + VERIFY_ONLY_PHASES:
@@ -322,6 +329,9 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
     if supersede_base:
         supersede = _read(f"{prompts}/_verify-diff-supersede.md").replace(
             b"{{SUPERSEDE_BASE}}", os.fsencode(supersede_base)) + b"\n"
+    if frozen_edit:
+        supersede = _read(f"{prompts}/_verify-diff-frozen.md").replace(
+            b"{{FROZEN_EDIT}}", os.fsencode(frozen_edit)) + b"\n"
     out = out.replace(b"{{SUPERSEDE}}", supersede)
     try:
         run_lines = run_line.run_lines(root, branch_base=branch_base)

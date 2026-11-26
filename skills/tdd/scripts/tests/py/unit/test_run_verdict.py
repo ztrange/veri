@@ -373,7 +373,8 @@ def test_main_retries_an_enoexec_exec_under_bash_returns_2_for_any_other_exec_fa
             f"run-verdict.sh: cannot start the verifier: {verifier}: {os.strerror(getattr(errno, raised))}\n")
 
 
-def test_main_takes_diff_as_the_phase_past_a_supersede_base_pair_3104(tmp_path, monkeypatch):
+@pytest.mark.parametrize("flag", ["--supersede-base", "--frozen-edit"])
+def test_main_takes_diff_as_the_phase_past_a_supersede_base_pair_3104(tmp_path, monkeypatch, flag):
     import signal
     scripts = tmp_path / "scripts"
     run_verdict = staged_module(scripts)
@@ -389,7 +390,7 @@ def test_main_takes_diff_as_the_phase_past_a_supersede_base_pair_3104(tmp_path, 
     monkeypatch.setattr(os, "execv", lambda path, args: None)
     monkeypatch.setattr(signal, "signal", lambda signum, handler: None)
 
-    run_verdict.main(["--step", "t", "--fast-cmd", "make unit", "--supersede-base", "abc1234",
+    run_verdict.main(["--step", "t", "--fast-cmd", "make unit", flag, "abc1234",
                       "--branch-base", "base", "diff", "spec.md", "step-base"])
     os.write(spare, b"this verdict's stderr\n")
     os.close(spare)

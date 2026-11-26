@@ -18,7 +18,7 @@ def no_ambient_leaf_args(monkeypatch):
 
 
 BRANCH = ["--branch-base", "0123abc"]  # the run's recorded branch base every phase takes (#4375, #4376)
-USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] [--step-green <sha>]"
+USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>|--frozen-edit <sha>] [--step-green <sha>]"
          b" --branch-base <sha> <phase> <issue-spec-file> <test-path> [<target-test-id>]"
          b"\n       verify.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>")
 
@@ -66,7 +66,7 @@ def test_main_with_fewer_than_three_positionals_returns_2_with_the_usage_line_al
     code = verify.main(list(argv))
 
     captured = capfdbinary.readouterr()
-    assert len(USAGE) == 259
+    assert len(USAGE) == 279
     assert (code, captured.out, captured.err, calls) == (2, b"", USAGE + b"\n", [])
 
 
@@ -1645,6 +1645,23 @@ def test_3104_verify_sh_hands_supersede_base_to_the_diff_prompt_so_the_leaf_judg
     assert code == 0
     assert len(prompts) == 1
     assert f"git diff {sha}" in prompts[0]
+
+
+def test_verify_sh_hands_frozen_edit_to_the_diff_prompt_so_the_leaf_judges_the_snapshot_pair_4730(
+        run_cli, tmp_path, monkeypatch, fake_processes):
+    (tmp_path / "spec.md").write_text(SPEC)
+    sha = "abcdef1234567"
+    argv = ["--step", FLAG_STEP, "--fast-cmd", "make unit", "--frozen-edit", sha,
+            "--branch-base", "0123abc", "diff", str(tmp_path / "spec.md"), "0123abd"]
+    launched = answering_leaf(monkeypatch, fake_processes, GREEN)
+    verify = importlib.import_module("veri.verify")
+
+    code, _, _ = run_cli(verify, argv, env={"HOME": str(tmp_path)}, cwd=tmp_path)
+
+    prompts = [" ".join(prompt.split()) for _, prompt in launched]
+    assert (code, [name for name, _ in launched]) == (0, ["verify-diff"])
+    assert f"git diff {sha}~1 {sha}" in prompts[0]
+    assert "when verify-red judged it" in prompts[0]
 
 
 def test_4544_verify_sh_hands_step_green_to_the_refactor_prompt_as_the_steps_green_commit_not_the_base_sha(
