@@ -2017,3 +2017,31 @@ def test_a_change_step_whose_author_rewrites_requirements_rows_and_is_graded_fai
                              env={"VERI_SKILL_EDIT_BUDGET": "2"})
 
     assert (code, seen, (tmp_path / "REQUIREMENTS.md").read_text(), commits) == (1, [rows, rows], rows, []), (code, out, err)
+
+
+def test_the_trace_prompt_carries_a_claim_line_for_each_row_apply_added_or_changed_and_none_for_a_row_it_left_unchanged_4759(tmp_path, monkeypatch, skill_edit, run_cli, fake_processes):
+    trace = importlib.import_module("veri.skill_edit_step")._trace
+    prompts = []
+
+    def detach(line, **kw):
+        prompts.append((tmp_path / fake.argvs[-1][-1]).read_text())
+        return 0, "", ""
+
+    case = skill_edit(
+        listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n"
+        "| A4 | The widget is light. | weight |\n",
+        issue="## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2<reword> | The widget is square. | corners |\n"
+        "| A3 | The widget is shiny. | gloss |\n",
+        grade=(0, ""))
+    monkeypatch.setattr(case.step, "_trace", trace)
+    fake = fake_processes.answers({"stop-requested.sh": (3, "", ""), "detach-leaf.sh": detach,
+                                   "wait-leaf.sh": (0, "", "")})
+
+    code, out, err = run_cli(case.step, ["--added", "square A2, add A3", "issue.md", "unit.md"])
+
+    claims = [l for p in prompts for l in p.splitlines() if l.startswith("CLAIM A")]
+    assert claims == ["CLAIM A2 The widget is square.", "CLAIM A3 The widget is shiny."], (code, out, err, prompts)
