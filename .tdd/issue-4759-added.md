@@ -12,7 +12,7 @@
 - [x] A trace answer that leaves a claim with no line takes the no-verdict route, exit 2 once the retries are spent, never read as traced ⟦criterion 4⟧
 - [x] An empty trace answer (the leaf wrote nothing) takes the no-verdict route, exit 2 once the retries are spent, never read as `UNTRACED` ⟦criterion 4⟧
 - [x] A `TRACED <id>` line without a `<file>:<line>` is an unparseable line and takes the no-verdict route, exit 2 once the retries are spent ⟦criterion 3⟧
-- [ ] `classify-bail.sh row-untraced` prints `process`, and the bail-cause lists of `veri/event_table.py` and `skills/tdd/JOURNAL.md` carry `row-untraced`, so `VERI_EVENT_STRICT` accepts a `bail` event with that cause ⟦criterion 6⟧
+- [x] `classify-bail.sh row-untraced` prints `process`, and the bail-cause lists of `veri/event_table.py` and `skills/tdd/JOURNAL.md` carry `row-untraced`, so `VERI_EVENT_STRICT` accepts a `bail` event with that cause ⟦criterion 6⟧
 - [ ] An `UNTRACED <row id> <why>` trace answer for a row bails: `skill-edit-step.sh` exits 1 and writes a `bail` event with `cause=row-untraced`, launching no further author and running no grade; the process case `test_an_untraced_row_exits_1_with_a_row_untraced_bail` in `test_skill_edit_step_process.py` drives it with a stub leaf (`CLAUDE_BIN`) ⟦criterion 6⟧
 - [ ] The untraced-row case is watched red with its branch removed, probe `skills/tdd/scripts/veri/skill_edit_step.py` `row-untraced` → `row-traced` on `test_an_untraced_row_exits_1_with_a_row_untraced_bail` ⟦go-red⟧ ⟦criterion 7⟧
 - [ ] An `UNTRACED S<k> <why>` trace answer for a sentence sends the step back to the author with that line among its reasons, spending one attempt of `VERI_SKILL_EDIT_BUDGET`, the grade not run on that attempt ⟦criterion 5⟧
