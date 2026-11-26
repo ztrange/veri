@@ -150,12 +150,17 @@ def develop(n, wt, settled, step):
 def verify(n, wt, settled, step, values):
     """The leaf's checks, then the verifier: suite-reported.sh (its 2, no SUITE: line, stops for the conductor's
     adjudication), diff-leaf-deviation.sh (0 a deviation recorded, 3 none, both going on), then, unless a ⟦test-quality⟧
-    step's leaf reported a POSSIBLE-BUG: line, verdict-diff, or its recorded skip with `diff` switched off (ADR-0033): the leaf launched, or None."""
+    step's leaf reported a POSSIBLE-BUG: line over no commit since the step base (one over a commit is no answer, exit
+    2: the claim that nothing was committed is checked, never trusted), verdict-diff, or its recorded skip with `diff` switched off (ADR-0033): the leaf launched, or None."""
     leaf = values["leaf"]
     fused.checked("develop", fused.script("suite-reported.sh"), leaf, cwd=wt, err=".tdd/suite-reported.err")
     fused.checked("develop", fused.script("diff-leaf-deviation.sh"), leaf, values["step_base"], LEDGER % n, cwd=wt,
                   ok=(0, 3))
     if has_kind(step, "⟦test-quality⟧") and possible_bug(wt, leaf):
+        committed = fused.checked("develop", "git", "diff", "--name-only", "%s..HEAD" % values["step_base"], cwd=wt)
+        if committed.strip():
+            raise fused.Stop("develop", "POSSIBLE-BUG: reported over commits since the step base: %s"
+                             % " ".join(committed.split()), 2)
         return None
     if fused_step.verify_switched_off(wt, n, "diff"):
         fused.mark("verify", wt, n, step, "verify-diff-skipped", "reason=switched-off")
