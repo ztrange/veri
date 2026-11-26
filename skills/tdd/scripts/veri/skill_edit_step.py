@@ -15,6 +15,7 @@ import tunables
 from paths import SCRIPTS
 
 USAGE = "usage: skill-edit-step.sh [--change \"<change>\"] [--added \"<step>\"] <issue-body-file> <unit-file> [<pin-file>...]"
+BUDGET = "VERI_SKILL_EDIT_BUDGET"
 TABLE_HEAD = ["| ID | Requirement | Why |", "|---|---|---|"]
 
 
@@ -341,9 +342,9 @@ def _complaints(argv):
     if len(argv) < 2:
         return [USAGE]
     issue, unit = argv[:2]
-    budget = tunables.get("VERI_SKILL_EDIT_BUDGET")
-    if not tunables.parses("VERI_SKILL_EDIT_BUDGET", budget):
-        return ["VERI_SKILL_EDIT_BUDGET must be a whole number >= 1: " + budget]
+    budget = tunables.get(BUDGET)
+    if not tunables.parses(BUDGET, budget):
+        return [BUDGET + " must be a whole number >= 1: " + budget]
     refusal = _refusal(issue, unit)
     if refusal:
         return [refusal]
@@ -422,7 +423,7 @@ def main(argv):
             return 2
     _change[0] = change
     before = _read_existing([file, path, *pins])
-    for attempt in range(1, int(tunables.get("VERI_SKILL_EDIT_BUDGET")) + 1):
+    for attempt in range(1, int(tunables.get(BUDGET)) + 1):
         if graded != 1 and not (change is not None and attempt == 1):
             break
         _attempt[0] = attempt
