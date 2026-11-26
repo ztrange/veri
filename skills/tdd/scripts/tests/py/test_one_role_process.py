@@ -38,7 +38,7 @@ def test_issue_4103_a_role_script_given_coord_exits_2_with_its_usage_and_leaves_
                                "VERI_POLL": "0.05", "CLAUDE_CODE_SESSION_ID": "sess-1"})
 
     after = {p.name: p.read_text() for p in tdd.iterdir()}
-    usage = [l for l in done.stderr.splitlines() if l.startswith("usage:")]
+    usage = [line for line in done.stderr.splitlines() if line.startswith("usage:")]
     names_dev_alone = bool(usage) and re.search(r"\bdev\b", usage[-1]) is not None and "coord" not in usage[-1]
     assert (done.returncode, done.stdout, after, names_dev_alone) == (2, "", before, True), done.stderr
 

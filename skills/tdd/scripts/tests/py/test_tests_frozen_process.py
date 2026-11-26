@@ -208,4 +208,4 @@ def _plan_repo(repo, monkeypatch):
 
 def _names(repo, tests_frozen, step):
     record = (repo / tests_frozen.record_path(step)).read_text()
-    return sorted(l[6:] for l in record.splitlines() if l.startswith("case: "))
+    return sorted(line[6:] for line in record.splitlines() if line.startswith("case: "))

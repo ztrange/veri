@@ -415,7 +415,7 @@ def test_each_issue_launches_as_supervise_env_run_conductor_with_the_caller_s_fo
     assert (kwargs.get("stdout"), kwargs.get("stderr")) == (subprocess.DEVNULL, None)
     assert kept_at_launch == [earlier]
     assert log.read_bytes().startswith(earlier)
-    assert [l for l in out.splitlines() if l.startswith("context 7 ")] == ["context 7 10"]
+    assert [line for line in out.splitlines() if line.startswith("context 7 ")] == ["context 7 10"]
 
 
 @pytest.mark.parametrize("env, answers, exits, launched, slots, stopped, code", [
@@ -1816,7 +1816,7 @@ def test_a_resumed_conductor_launch_keeps_the_earlier_session_s_log_while_its_co
     conductor.follow()
     out, _ = capsys.readouterr()
 
-    assert (log.read_bytes().startswith(earlier), [l for l in out.splitlines() if l.startswith("context ")]) == (
+    assert (log.read_bytes().startswith(earlier), [line for line in out.splitlines() if line.startswith("context ")]) == (
         True, ["context 7 202"])
 
 
@@ -1933,4 +1933,4 @@ def test_run_from_a_subdirectory_of_the_repo_follows_each_conductor_log_at_the_r
     _boundaries(monkeypatch, tmp_path, on_launch, _exit_every_live_conductor, solvable=(0, "7\n"))
     code, out, err = run_cli(parallel_conductors, [], env={"VERI_GH_JSON": str(gh)}, cwd=sub)
 
-    assert [l for l in out.splitlines() if l.startswith("context ")] == ["context 7 53438"]
+    assert [line for line in out.splitlines() if line.startswith("context ")] == ["context 7 53438"]

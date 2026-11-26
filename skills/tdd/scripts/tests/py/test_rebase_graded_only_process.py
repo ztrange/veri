@@ -472,12 +472,12 @@ def test_3571_regrading_the_one_unit_owed_after_a_both_sides_rebase_makes_it_cur
     git("checkout", "-q", "-b", "work", "HEAD~1")
     commit("first", "last branch", "ab", "branch re-signs a")
     subprocess.run([str(SCRIPTS / "rebase-onto-default.sh"), "--graded-only"], cwd=work, env=env, capture_output=True, text=True)
-    left = [l for l in (work / "guide" / "GRADED").read_text().splitlines() if l.startswith("guide/b.md ")]
+    left = [line for line in (work / "guide" / "GRADED").read_text().splitlines() if line.startswith("guide/b.md ")]
 
     graded = subprocess.run([str(SCRIPTS / "grade-prose.sh"), "guide/REQUIREMENTS.md", "guide/a.md"], cwd=work, env=env,
                             capture_output=True, text=True)
     owed = subprocess.run([str(SCRIPTS / "prose-owed.sh"), str(work)], env=env, capture_output=True, text=True)
 
-    kept = [l for l in (work / "guide" / "GRADED").read_text().splitlines() if l.startswith("guide/b.md ")]
+    kept = [line for line in (work / "guide" / "GRADED").read_text().splitlines() if line.startswith("guide/b.md ")]
     assert (graded.returncode, owed.returncode, owed.stdout, len(left), kept) == (0, 0, "", 1, left), \
         graded.stderr + owed.stderr

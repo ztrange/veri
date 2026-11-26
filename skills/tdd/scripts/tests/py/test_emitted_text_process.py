@@ -22,7 +22,7 @@ def test_3368_reproducing_command_of_a_mismatched_pin_prints_the_cksum_the_test_
         pins.test_usage_output_on_a_missing_argument_is_unchanged(run_cli)
 
     message = "\n".join(failure.traceback[-1].frame.f_locals["problems"])
-    command = [l.split("reproduce:", 1)[1].strip() for l in message.splitlines() if "reproduce:" in l][0]
+    command = [line.split("reproduce:", 1)[1].strip() for line in message.splitlines() if "reproduce:" in line][0]
     computed = pins.cksum(pins.emitted(run_cli, "tick-ledger.sh", []).encode("utf-8", "surrogateescape"))
     ran = subprocess.run(["bash", "-c", command], cwd=SCRIPTS.parents[2], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)
@@ -44,7 +44,7 @@ def _interleaving_pin_reproduce_command(monkeypatch, run_cli, tmp_path):
         pins.test_usage_output_on_a_missing_argument_is_unchanged(run_cli)
 
     message = "\n".join(failure.traceback[-1].frame.f_locals["problems"])
-    command = [l.split("reproduce:", 1)[1].strip() for l in message.splitlines() if "reproduce:" in l][0]
+    command = [line.split("reproduce:", 1)[1].strip() for line in message.splitlines() if "reproduce:" in line][0]
     return pins, command
 
 
@@ -90,7 +90,7 @@ def test_3408_reproducing_command_passes_every_argument_to_the_script_verbatim(m
         pins.test_usage_output_on_a_missing_argument_is_unchanged(run_cli)
 
     message = "\n".join(failure.traceback[-1].frame.f_locals["problems"])
-    command = [l.split("reproduce:", 1)[1].strip() for l in message.splitlines() if "reproduce:" in l][0]
+    command = [line.split("reproduce:", 1)[1].strip() for line in message.splitlines() if "reproduce:" in line][0]
     subprocess.run(["bash", "-c", command], cwd=SCRIPTS.parents[2], stdin=subprocess.DEVNULL,
                    capture_output=True, text=True)
     assert record.read_bytes().split(b"\0")[:-1] == [a.encode() for a in argv]

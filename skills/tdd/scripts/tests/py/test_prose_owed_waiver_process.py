@@ -40,7 +40,7 @@ def test_2081_a_waived_unit_is_logged_as_a_prose_owed_waived_event_naming_the_st
                    capture_output=True, text=True)
 
     log = tmp_path / ".tdd" / "events.jsonl"
-    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
+    events = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
     waived = [(e.get("unit"), "regrade `skills/demo/SKILL.md`" in e.get("step", "")) for e in events
               if e.get("event") == "prose-owed-waived"]
     assert waived == [("skills/demo/SKILL.md", True)]

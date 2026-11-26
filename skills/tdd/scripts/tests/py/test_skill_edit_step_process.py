@@ -44,7 +44,7 @@ def test_changed_ids_that_already_pass_launch_no_author_and_commit_the_list_and_
     owed = subprocess.run([str(OWED), "."], cwd=repo, capture_output=True, text=True, env=env)
 
     log = repo / ".tdd" / "events.jsonl"
-    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
+    events = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
     others = [e for e in events if e.get("event") != "grading"]
     assert [ran.returncode, git(repo, "rev-list", "--count", "HEAD"),
             sorted(git(repo, "show", "--name-only", "--format=", "HEAD").splitlines()),
@@ -107,7 +107,7 @@ def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whos
     ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
 
     log = repo / ".tdd" / "events.jsonl"
-    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
+    events = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
     launches = [e for e in events if e.get("event") == "launch" and e.get("actor") == "author"]
     author = cap / "author.txt"
     prompt = author.read_text() if author.exists() else ""
@@ -165,7 +165,7 @@ def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_befor
 
     at_author = cap / "commits-at-author"
     log = repo / ".tdd" / "events.jsonl"
-    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
+    events = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
     launches = [e for e in events if e.get("event") == "launch" and e.get("actor") == "author"]
     assert [ran.returncode != 3, len(launches), at_author.read_text().strip() if at_author.exists() else None] \
         == [True, 1, "1"], (ran.returncode, ran.stderr[-700:])
@@ -210,7 +210,7 @@ def test_a_grader_that_gives_no_parseable_verdict_exits_2(tmp_path):
     ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
 
     log = repo / ".tdd" / "events.jsonl"
-    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
+    events = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
     assert [ran.returncode, git(repo, "rev-list", "--count", "HEAD"),
             [e.get("event") for e in events if e.get("event") == "skill-edit-no-author"],
             "skill-edit-step.sh:" in ran.stderr, "grade-prose.sh: no verdict obtained" in ran.stderr] \
@@ -260,7 +260,7 @@ def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_o
     ran = subprocess.run([str(STEP), "issue.md", "unit.md"], cwd=repo, capture_output=True, text=True, env=env)
 
     log = repo / ".tdd" / "events.jsonl"
-    events = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
+    events = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
     launches = [e for e in events if e.get("event") == "launch" and e.get("actor") == "author"]
     assert [ran.returncode, len(launches), (cap / "grades").read_text().strip(),
             git(repo, "rev-list", "--count", "HEAD")] == [2, 1, "1", "1"], (ran.stdout, ran.stderr[-700:])
@@ -543,7 +543,7 @@ def test_an_issue_rewording_one_row_of_a_unit_below_the_root_with_its_path_secti
                          text=True, env=env)
 
     text = beside.read_text()
-    rows = [l for l in text.splitlines() if l.startswith("| A")]
+    rows = [line for line in text.splitlines() if line.startswith("| A")]
     assert [ran.returncode, rows, "## SKILL.md" in text.splitlines(), git(repo, "status", "--porcelain")] \
         == [3, ["| A1 | The widget is a deep blue. | shade |", "| A2 | The widget never hums. | quiet |"], False, ""], \
         (ran.stdout, ran.stderr[-700:], text)
@@ -570,7 +570,7 @@ def test_a_new_unit_from_a_path_new_heading_gets_a_requirements_md_section_heade
                          text=True, env=env)
 
     beside = repo / "skills" / "new-skill" / "REQUIREMENTS.md"
-    headings = [l for l in beside.read_text().splitlines() if l.startswith("## ")] if beside.exists() else []
+    headings = [line for line in beside.read_text().splitlines() if line.startswith("## ")] if beside.exists() else []
     assert headings == ["## skills/new-skill/SKILL.md"], (ran.returncode, ran.stdout, ran.stderr[-700:], headings)
 
 
@@ -596,7 +596,7 @@ def test_a_new_unit_from_a_path_new_heading_is_graded_and_signed_exiting_0_or_3_
 
     graded = repo / "skills" / "new-skill" / "GRADED"
     lines = graded.read_text().splitlines() if graded.exists() else []
-    assert [ran.returncode in (0, 3), any("skills/new-skill/SKILL.md" in l for l in lines),
+    assert [ran.returncode in (0, 3), any("skills/new-skill/SKILL.md" in line for line in lines),
             git(repo, "status", "--porcelain")] == [True, True, ""], \
         (ran.returncode, ran.stdout, ran.stderr[-700:], lines)
 
@@ -680,7 +680,7 @@ def test_an_issue_rewording_and_adding_rows_edits_only_the_path_section_leaving_
 
     text = beside.read_text()
     path_part, _, basename_part = text.partition("## SKILL.md\n")
-    assert [ran.returncode, [l for l in path_part.splitlines() if l.startswith("| A")], "## SKILL.md\n" + basename_part] \
+    assert [ran.returncode, [line for line in path_part.splitlines() if line.startswith("| A")], "## SKILL.md\n" + basename_part] \
         == [3, ["| A1 | The widget is a deep blue. | shade |", "| A2 | The widget never hums. | quiet |",
                 "| A3 | The widget never rattles. | steady |"], basename_section], (ran.stdout, ran.stderr[-700:], text)
 
@@ -1075,7 +1075,7 @@ def test_the_skill_edit_step_insert_appends_for_a_graded_pinned_red_amends_the_l
 
     inserted = subprocess.run([str(SCRIPTS / "suite-red-resume.sh"), "insert", str(ledger), str(tmp_path / "red")], cwd=repo,
                               capture_output=True, text=True, env=env)
-    steps = [l[6:] for l in ledger.read_text().splitlines() if l.startswith("- [ ]") and "⟦skill-edit⟧" in l]
+    steps = [line[6:] for line in ledger.read_text().splitlines() if line.startswith("- [ ]") and "⟦skill-edit⟧" in line]
     ran = subprocess.run([str(STEP), "--added", steps[0] if steps else "", "issue.md", "unit.md"], cwd=repo,
                          capture_output=True, text=True, env=env)
 
@@ -1110,7 +1110,7 @@ def test_an_added_step_on_a_pass_unit_signs_it_when_graded_has_only_another_unit
         ran = subprocess.run([str(STEP), "--added", "sign the widget", "issue.md", "unit.md"], cwd=repo,
                              capture_output=True, text=True, env=env)
         signed = (repo / "GRADED").read_text() if (repo / "GRADED").exists() else ""
-        seen[name] = [ran.returncode, any(l.startswith("unit.md ") for l in signed.splitlines()),
+        seen[name] = [ran.returncode, any(line.startswith("unit.md ") for line in signed.splitlines()),
                       git(repo, "status", "--porcelain")]
 
     assert seen == {"other_line": [3, True, ""], "no_file": [3, True, ""]}, seen

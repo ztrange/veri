@@ -33,18 +33,18 @@ def test_skill_md_computes_the_refactor_touched_files_list_through_refactor_touc
     expected = ["lib/alpha.test.sh", "src/zeta.sh"]
     green = git(repo, "rev-parse", "HEAD").strip()
 
-    lines = [l.strip() for l in (SKILL.read_text() + SKILL.with_name('RESUME.md').read_text()).splitlines() if re.match(r'^\s*touched="\$\(', l)]
+    lines = [line.strip() for line in (SKILL.read_text() + SKILL.with_name('RESUME.md').read_text()).splitlines() if re.match(r'^\s*touched="\$\(', line)]
 
     problems = []
     if len(lines) != 2:
         problems.append(f'SKILL.md has {len(lines)} touched="$(…)" computations, expected 2 (cycle loop and Resume)')
-    for l in lines:
-        if "$S/refactor-touched.sh" not in l:
-            problems.append(f"SKILL.md computes touched without $S/refactor-touched.sh: {l}")
+    for line in lines:
+        if "$S/refactor-touched.sh" not in line:
+            problems.append(f"SKILL.md computes touched without $S/refactor-touched.sh: {line}")
         env = {**os.environ, "S": str(SCRIPTS), "step_green": green}
-        run = subprocess.run(["bash", "-c", l + '\nprintf %s "$touched"'], cwd=repo, env=env,
+        run = subprocess.run(["bash", "-c", line + '\nprintf %s "$touched"'], cwd=repo, env=env,
                              capture_output=True, text=True)
         got = [x for x in (run.stdout + run.stderr).replace(",", "\n").split("\n") if x]
         if got != expected:
-            problems.append(f"{l} → {','.join(got)!r}, expected {','.join(expected)!r}")
+            problems.append(f"{line} → {','.join(got)!r}, expected {','.join(expected)!r}")
     assert not problems, "\n".join(problems)

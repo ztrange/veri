@@ -46,11 +46,11 @@ def entry_bypass_problems(scripts):
         for number, line in enumerate(lines, 1):
             if line.startswith("if __name__ == ") and "pycache_prefix.py" not in line:
                 block = []
-                for l in lines[number:]:
-                    if l.strip() and not l[0].isspace():
+                for body_line in lines[number:]:
+                    if body_line.strip() and not body_line[0].isspace():
                         break
-                    block.append(l)
-                if not any("entry.run(" in l.split("#")[0] for l in block):
+                    block.append(body_line)
+                if not any("entry.run(" in block_line.split("#")[0] for block_line in block):
                     problems.append("%s:%d __main__ block does not go through entry.run" % (module.name, number))
     return problems
 

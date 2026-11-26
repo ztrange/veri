@@ -3365,7 +3365,7 @@ def test_cli_an_unpinned_launch_whose_run_has_no_tdd_directory_yet_still_records
     code, _, _ = run_cli(run_conductor, ["4242"], cwd=cwd)
 
     recorded = "".join(f.read_text() for f in sorted((cwd / ".tdd").glob("*")) if f.is_file())
-    assert (code, [l["VERI_SKILL_UNPINNED"] for l in launches],
+    assert (code, [launch["VERI_SKILL_UNPINNED"] for launch in launches],
             str(scratch / "veri-run-4242-") in recorded, str(os.getpid()) in recorded) == (0, ["1"], True, True)
 
 

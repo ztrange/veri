@@ -1029,7 +1029,7 @@ def test_verify_sh_saves_the_same_refusal_diff_whatever_the_global_git_config_sa
 
     saved = list((repo / ".tdd").glob("*.diff"))
     text = saved[0].read_text() if saved else ""
-    assert (code, [l for l in text.splitlines() if not l.startswith("index ")]) == (2, [
+    assert (code, [line for line in text.splitlines() if not line.startswith("index ")]) == (2, [
         "diff --git a/src.txt b/src.txt", "--- a/src.txt", "+++ b/src.txt", "@@ -1 +1 @@",
         "-the developer committed this", "+the verifier rewrote this"])
 

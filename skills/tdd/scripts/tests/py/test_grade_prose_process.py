@@ -193,7 +193,7 @@ def test_the_stub_claude_receives_model_from_grader_conf_and_veri_model_and_veri
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
     conf = SCRIPTS.parents[0] / "grader.conf"
-    lines = [l.strip() for l in conf.read_text().splitlines() if l.strip() and not l.lstrip().startswith("#")] \
+    lines = [line.strip() for line in conf.read_text().splitlines() if line.strip() and not line.lstrip().startswith("#")] \
         if conf.exists() else []
     committed = lines[0].split("=", 1)[-1].strip().strip("'\"") if lines else ""
 
@@ -282,7 +282,7 @@ def test_a_fail_row_is_regraded_twice_against_only_the_failed_rows_and_one_faili
                           env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path), "VERI_VENV": INTERPRETER_VENV,
                                "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt"), "VERI_TEST_STUB_LOG": str(log)})
 
-    asked = [l.split() for l in log.read_text().splitlines()] if log.exists() else []
+    asked = [line.split() for line in log.read_text().splitlines()] if log.exists() else []
     assert [done.returncode, "A2" in done.stdout, "A1" in done.stdout, asked] == [
         1, True, False, [["A1", "A2"], ["A2"], ["A2"]]], (done.returncode, done.stdout, done.stderr, asked)
 
@@ -337,7 +337,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
                                "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt"), "VERI_TEST_STUB_CALLS": str(tmp_path / "calls.txt")})
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if "grading" in l]
+    graded = [line for line in (events.read_text().splitlines() if events.exists() else []) if "grading" in line]
     assert [done.returncode, "A1" in done.stdout, "flaky-teal" in done.stdout, len(graded),
             '"verdict": "PASS"' in graded[0] if graded else None, '"failing": ""' in graded[0] if graded else None] == [
         0, False, False, 1, True, True], (done.returncode, done.stdout, done.stderr, graded)
@@ -544,7 +544,7 @@ def test_a_grader_leaf_that_fails_to_launch_makes_grade_prose_exit_2_say_no_verd
                                "VERI_TIMEOUT": "2", "VERI_STUCK_RETRIES": "0"})
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if "guide/unit.md" in l]
+    graded = [line for line in (events.read_text().splitlines() if events.exists() else []) if "guide/unit.md" in line]
     assert (done.returncode, "no verdict obtained" in done.stderr, graded) == (2, True, []), \
         (done.returncode, done.stderr, graded)
 
@@ -567,7 +567,7 @@ def test_a_usage_limit_reply_from_the_grader_leaf_makes_grade_prose_exit_2_say_n
                                "VERI_STUCK_RETRIES": "0"})
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if "guide/unit.md" in l]
+    graded = [line for line in (events.read_text().splitlines() if events.exists() else []) if "guide/unit.md" in line]
     assert (done.returncode, "no verdict obtained" in done.stderr, graded) == (2, True, []), \
         (done.returncode, done.stderr, graded)
 
@@ -589,7 +589,7 @@ def test_every_grading_appends_one_event_to_events_jsonl_carrying_the_unit_the_v
 
     events = tmp_path / ".tdd" / "events.jsonl"
     lines = events.read_text().splitlines() if events.exists() else []
-    graded = [l for l in lines if "guide/unit.md" in l and "REJECT" in l and "A2" in l and "A1" not in l]
+    graded = [line for line in lines if "guide/unit.md" in line and "REJECT" in line and "A2" in line and "A1" not in line]
     assert len(graded) == 1, lines
 
 
@@ -610,7 +610,7 @@ def test_every_grading_event_records_that_gradings_cost_in_dollars_read_from_the
 
     events = tmp_path / ".tdd" / "events.jsonl"
     lines = events.read_text().splitlines() if events.exists() else []
-    graded = [l for l in lines if "guide/unit.md" in l and "0.04271" in l]
+    graded = [line for line in lines if "guide/unit.md" in line and "0.04271" in line]
     assert len(graded) == 1, lines
 
 
@@ -631,7 +631,7 @@ def test_1874_a_grader_leaf_that_prints_an_all_pass_block_and_then_exits_1_makes
 
     events = tmp_path / ".tdd" / "events.jsonl"
     lines = events.read_text().splitlines() if events.exists() else []
-    graded = [l for l in lines if "guide/unit.md" in l and '"verdict": "PASS"' in l]
+    graded = [line for line in lines if "guide/unit.md" in line and '"verdict": "PASS"' in line]
     assert (done.returncode, done.stdout, graded) == (2, "", []), (done.stderr, lines)
 
 
@@ -656,7 +656,7 @@ def test_1874_a_grader_leaf_whose_reply_carries_a_429_error_alongside_an_all_pas
 
     events = tmp_path / ".tdd" / "events.jsonl"
     lines = events.read_text().splitlines() if events.exists() else []
-    graded = [l for l in lines if "guide/unit.md" in l and '"verdict": "PASS"' in l]
+    graded = [line for line in lines if "guide/unit.md" in line and '"verdict": "PASS"' in line]
     log = (tmp_path / ".tdd" / "grade-prose.log").read_text()
     assert ("API Error: 429" in log, "A2: PASS" in log) == (True, True), log
     assert (done.returncode, done.stdout, graded) == (2, "", []), (done.stderr, lines)
@@ -683,7 +683,7 @@ def test_1874_a_launch_supervise_refuses_with_a_stale_all_pass_log_on_disk_makes
 
     events = tmp_path / ".tdd" / "events.jsonl"
     lines = events.read_text().splitlines() if events.exists() else []
-    graded = [l for l in lines if "guide/unit.md" in l and '"verdict": "PASS"' in l]
+    graded = [line for line in lines if "guide/unit.md" in line and '"verdict": "PASS"' in line]
     assert (done.returncode, done.stdout, graded) == (2, "", []), (done.stderr, lines)
 
 
@@ -724,7 +724,7 @@ def test_1874_a_reply_with_verdict_lines_after_end_grades_makes_grade_prose_exit
                                "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(tmp_path / "record.txt")})
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if '"grading"' in l]
+    graded = [line for line in (events.read_text().splitlines() if events.exists() else []) if '"grading"' in line]
     assert (done.returncode, graded) == (2, []), (done.returncode, done.stdout, done.stderr, graded)
 
 
@@ -758,7 +758,7 @@ def test_1874_the_stub_claude_receives_grader_conf_model_when_veri_model_grader_
     claude.chmod(0o755)
     record = tmp_path / "record.txt"
     conf = SCRIPTS.parents[0] / "grader.conf"
-    lines = [l.strip() for l in conf.read_text().splitlines() if l.strip() and not l.lstrip().startswith("#")] \
+    lines = [line.strip() for line in conf.read_text().splitlines() if line.strip() and not line.lstrip().startswith("#")] \
         if conf.exists() else []
     committed = lines[0].split("=", 1)[-1].strip().strip("'\"") if lines else ""
 
@@ -790,8 +790,8 @@ def test_a_full_pass_writes_one_graded_line_carrying_the_unit_its_signature_the_
                         "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    gradings = [json.loads(l) for l in (events.read_text().splitlines() if events.exists() else [])
-                if '"grading"' in l]
+    gradings = [json.loads(line) for line in (events.read_text().splitlines() if events.exists() else [])
+                if '"grading"' in line]
     graded = tmp_path / "skills" / "guide" / "GRADED"
     lines = graded.read_text().splitlines() if graded.exists() else []
     fields = lines[0].split() if len(lines) == 1 else []
@@ -824,7 +824,7 @@ def test_a_pass_replaces_any_earlier_graded_line_for_the_same_unit_and_leaves_ot
                         "CLAUDE_BIN": str(claude), "VERI_TEST_STUB_RECORD": str(record)})
 
     lines = graded.read_text().splitlines()
-    mine = [l for l in lines if l.startswith("skills/guide/unit.md ")]
+    mine = [line for line in lines if line.startswith("skills/guide/unit.md ")]
     assert [lines.count(other), len(mine), old in lines, len(lines)] == [1, 1, False, 2], lines
 
 
@@ -1141,7 +1141,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
                                "VERI_TEST_STUB_CALLS": str(tmp_path / "calls.txt"), "VERI_STUCK_RETRIES": "0"})
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if "grading" in l]
+    graded = [line for line in (events.read_text().splitlines() if events.exists() else []) if "grading" in line]
     assert (done.returncode, "no verdict obtained" in done.stderr, done.stdout, graded) == (2, True, "", []), \
         (done.returncode, done.stdout, done.stderr, graded)
 
@@ -1171,7 +1171,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
                                "VERI_TEST_STUB_CALLS": str(tmp_path / "calls.txt"), "VERI_STUCK_RETRIES": "0"})
 
     events = tmp_path / ".tdd" / "events.jsonl"
-    graded = [l for l in (events.read_text().splitlines() if events.exists() else []) if "grading" in l]
+    graded = [line for line in (events.read_text().splitlines() if events.exists() else []) if "grading" in line]
     assert (done.returncode, "no verdict obtained" in done.stderr, done.stdout, graded) == (2, True, "", []), \
         (done.returncode, done.stdout, done.stderr, graded)
 
