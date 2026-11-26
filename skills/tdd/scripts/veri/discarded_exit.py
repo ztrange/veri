@@ -48,10 +48,17 @@ def _called_name(call):
 FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
 
 
+def _checks(call):
+    """Whether call passes the literal keyword check=True."""
+    return any(k.arg == "check" and isinstance(k.value, ast.Constant) and k.value.value is True
+               for k in call.keywords)
+
+
 def _drops_exit_code(node, read):
     """Whether node is a statement discarding an exit-code call's code: a bare call, or one whose
     code, the whole result or its unpacked first element, goes to `_` or to a name not in read; a
-    subprocess.run bound whole holds its code in <name>.returncode, so that is what must be read."""
+    subprocess.run bound whole holds its code in <name>.returncode, so that is what must be read,
+    unless it passes check=True, which raises on a non-zero code instead."""
     if not (isinstance(node, (ast.Expr, ast.Assign)) and isinstance(node.value, ast.Call)
             and _called_name(node.value) in EXIT_CODE_CALLS):
         return False
@@ -62,7 +69,7 @@ def _drops_exit_code(node, read):
     if not isinstance(code, ast.Name):
         return False
     if _called_name(node.value) == "subprocess.run" and code is target:
-        return code.id + ".returncode" not in read
+        return not _checks(node.value) and code.id + ".returncode" not in read
     return code.id == "_" or code.id not in read
 
 
