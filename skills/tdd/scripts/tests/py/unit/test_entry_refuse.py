@@ -1,6 +1,5 @@
 """Cases for veri/entry.py's refuse and to_contract: the exit contract's shared edges."""
 import pytest
-
 from veri import entry
 
 

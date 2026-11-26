@@ -10,7 +10,6 @@ import re
 
 import pytest
 
-
 FAKE = "FAKEfake0123"  # 12 letters and digits, mixed case: three make a 36-character classic body
 
 

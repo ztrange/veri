@@ -7,7 +7,6 @@ import pytest
 
 from repo_builder import git, new_repo
 
-
 REF = "refs/remotes/origin/main"
 ABSENT = "0123456789abcdef0123456789abcdef01234567"
 GIT_BOUNDARY = "a real git repository, its clone and a fetch from the clone's origin"

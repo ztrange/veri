@@ -1,6 +1,5 @@
 """A mismatched emitted-text pin's failure output says what bytes the pin covers and how to reproduce its checksum."""
 import pytest
-
 import test_emitted_text as pins
 
 

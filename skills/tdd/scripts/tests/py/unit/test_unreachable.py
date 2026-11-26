@@ -3,8 +3,9 @@ import contextlib
 import functools
 import importlib
 import io
-import pytest
 import sys
+
+import pytest
 
 from conftest import SCRIPTS, fixture_root, script
 

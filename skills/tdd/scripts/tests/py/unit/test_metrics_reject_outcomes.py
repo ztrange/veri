@@ -4,7 +4,6 @@ import importlib
 import json
 
 import pytest
-
 from test_metrics import table, write_log
 
 

@@ -1,8 +1,9 @@
 """In-process cases for veri/wait_leaf.py, the module wait-leaf.sh is a shim over."""
 import importlib
-import pytest
-from conftest import SCRIPTS
 
+import pytest
+
+from conftest import SCRIPTS
 
 USAGE = "usage: wait-leaf.sh <name> [max-seconds]\n"
 

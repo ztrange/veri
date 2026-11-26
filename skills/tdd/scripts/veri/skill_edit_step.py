@@ -2,16 +2,15 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import subprocess
-import tempfile
 import sys
+import tempfile
 
 import event
 import grade_prose
+import leaf
+import requirements
 import skill_edit_guard
 import tunables
-import requirements
-
-import leaf
 from paths import SCRIPTS
 
 USAGE = "usage: skill-edit-step.sh [--change \"<change>\"] [--added \"<step>\"] <issue-body-file> <unit-file> [<pin-file>...]"

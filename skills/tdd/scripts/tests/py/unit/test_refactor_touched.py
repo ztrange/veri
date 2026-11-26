@@ -5,7 +5,6 @@ import sys
 
 import pytest
 
-
 USAGE = "usage: refactor-touched.sh <commit> | --issue <base> [--candidate <text>]\n"
 
 

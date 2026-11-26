@@ -6,7 +6,6 @@ import socket
 import subprocess
 
 import pytest
-
 from veri.popen_command import command_basename, command_words
 
 GUARDED = ("gh", "curl")

@@ -4,8 +4,8 @@ import io
 import os
 import subprocess
 import sys
-import pytest
 
+import pytest
 
 USAGE = "usage: structural-predicate.sh <record>\n"
 

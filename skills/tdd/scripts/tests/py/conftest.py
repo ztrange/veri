@@ -18,18 +18,40 @@ import tempfile
 from time import time_ns
 
 import pytest
+
 import process_fakes
 import repo_builder
 from case_size_guards import (  # noqa: F401  (the guards, registered through this module; tests reach them as conftest.<name>)
-    BELOW_FLOOR_INTERPRETER_EXEMPT, GUARD_WRAPPERS, PATHLIB_SOURCE, PERMISSION_BITS_EXEMPT, PROCESS_CASE_TIMEOUT,
-    RUNS_GIT_WITH_NO_CWD, STARTS_GIT_IN_REPOSITORY_EXEMPT, STARTS_PYTEST_EXEMPT, SUPERVISOR_POLL, SYSTEM_LOCATION_EXEMPT,
-    at_or_under_root, caller_outside_pathlib, case_expects_no_system_location_unreadable_or_unwritable,
-    case_forces_no_failure_through_permission_bits, case_starts_no_test_runner, case_tail, case_waits_no_default_push_backoff,
-    exempt_from, exemption_problems, fail_unbacked_push, in_repository_outside,
+    BELOW_FLOOR_INTERPRETER_EXEMPT,
+    GUARD_WRAPPERS,
+    PATHLIB_SOURCE,
+    PERMISSION_BITS_EXEMPT,
+    PROCESS_CASE_TIMEOUT,
+    RUNS_GIT_WITH_NO_CWD,
+    STARTS_GIT_IN_REPOSITORY_EXEMPT,
+    STARTS_PYTEST_EXEMPT,
+    SUPERVISOR_POLL,
+    SYSTEM_LOCATION_EXEMPT,
+    at_or_under_root,
+    caller_outside_pathlib,
+    case_expects_no_system_location_unreadable_or_unwritable,
+    case_forces_no_failure_through_permission_bits,
+    case_starts_no_test_runner,
+    case_tail,
+    case_waits_no_default_push_backoff,
+    exempt_from,
+    exemption_problems,
+    fail_unbacked_push,
+    in_repository_outside,
     process_case_children_do_not_inherit_ignored_signals,
-    process_case_supervisor_polls_sub_second, process_case_waits_no_default_push_backoff, pytest_collection_modifyitems,
-    reasonless_problems, register_markers, unmarked_case_lists_no_repository_directory,
-    unmarked_case_reads_no_real_process_listing)
+    process_case_supervisor_polls_sub_second,
+    process_case_waits_no_default_push_backoff,
+    pytest_collection_modifyitems,
+    reasonless_problems,
+    register_markers,
+    unmarked_case_lists_no_repository_directory,
+    unmarked_case_reads_no_real_process_listing,
+)
 from tree_index import TestFile, VeriModules, mentioned_names, tests_py_index_of  # noqa: F401  (TestFile, mentioned_names: audits import them from here)
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]

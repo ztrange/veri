@@ -10,6 +10,7 @@ import pathlib
 import re
 
 import pytest
+
 from tree_index import VeriModules
 
 PY = pathlib.Path(__file__).resolve().parents[1]

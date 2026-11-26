@@ -9,7 +9,6 @@ from conftest import SCRIPTS
 from repo_builder import commit_all, new_repo
 from skill_sections import plain
 
-
 DEVELOP = SCRIPTS / "build-develop-prompt.sh"
 VERIFY = SCRIPTS / "build-verify-prompt.sh"
 BOUNDARY = "build-develop-prompt.sh and build-verify-prompt.sh run as real bash processes"

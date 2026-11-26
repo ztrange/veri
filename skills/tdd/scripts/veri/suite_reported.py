@@ -7,8 +7,8 @@ import sys
 import event
 import leaf_role
 import paths
-import tunables
 import report_formats
+import tunables
 from report import report_values
 
 USAGE = "usage: suite-reported.sh <leaf-name>"

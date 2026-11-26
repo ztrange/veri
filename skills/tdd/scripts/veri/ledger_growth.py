@@ -9,9 +9,21 @@ import entry
 import event
 import git
 import tunables
-
 from event_log import read_events
-from ledger import ADDED_MARK, CRITERION_TAG, STEP_RE, added_file, body, has_kind, is_added, is_skill_edit, ledger_steps, open_step_line, read_ledger, replace_ledger
+from ledger import (
+    ADDED_MARK,
+    CRITERION_TAG,
+    STEP_RE,
+    added_file,
+    body,
+    has_kind,
+    is_added,
+    is_skill_edit,
+    ledger_steps,
+    open_step_line,
+    read_ledger,
+    replace_ledger,
+)
 
 RETIRED = ("VERI_STEP_GROWTH is retired: unset it; VERI_STEP_GROWTH_PERCENT (default 50) caps ⟦added⟧ steps"
            " as a percent of the verified plan's steps")

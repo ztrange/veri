@@ -3,7 +3,6 @@ import os
 import subprocess
 
 import pytest
-
 from veri.popen_command import command_basename, command_words
 
 VERI = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))), "veri")

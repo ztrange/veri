@@ -1,6 +1,5 @@
 """The `launch` event records a verifier's effort (PRD 024.8): an `effort` key only when VERI_EFFORT_VERIFIER is set."""
 import pytest
-
 from veri import event_table, supervise
 
 CMD = ["/s/run-leaf.sh", ".tdd/verify-green.prompt", "--effort", "low"]

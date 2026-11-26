@@ -1,7 +1,7 @@
 """Cases for ready-check.sh that start the real entry point."""
 import os
-import shutil
 import re
+import shutil
 import subprocess
 
 import pytest

@@ -6,7 +6,6 @@ import event
 import github
 import tunables
 
-
 USAGE = "usage: pr-ready.sh <pr-number> <sha>"
 
 

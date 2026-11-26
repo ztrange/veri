@@ -4,8 +4,8 @@ import json
 import os
 import pathlib
 import re
-import pytest
 
+import pytest
 
 USAGE = "usage: timed-test-run.sh <tier> <suites> <cmd> [args …]\n"
 

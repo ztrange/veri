@@ -149,8 +149,9 @@ def test_bail_s_cause_values_are_classify_bail_s_categories_and_its_classificati
 
 @pytest.mark.tree_audit("reads every .sh and .md file under skills/ for event.sh call sites")
 def test_every_literal_event_and_key_of_an_event_sh_call_under_skills_is_declared_in_the_table():
-    from event_roster import event_sh_call_sites
     from veri import event_table
+
+    from event_roster import event_sh_call_sites
 
     sites = event_sh_call_sites()
     assert any(keys for _, _, keys in sites), "no event.sh call site with a key found under skills/"

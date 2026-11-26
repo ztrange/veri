@@ -4,9 +4,9 @@ import os
 import sys
 
 import ledger
-from git import git
 import pid_file
 import reorder_ledger_steps
+from git import git
 
 USAGE = "usage: drop-ledger-step.sh <ledger-file> <step-substring>"
 

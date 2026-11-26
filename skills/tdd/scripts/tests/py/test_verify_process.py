@@ -13,7 +13,7 @@ import pytest
 
 from conftest import INTERPRETER_VENV
 from repo_builder import origin_head_at
-from test_supervise_process import checked_step, committed_head, checked_head
+from test_supervise_process import checked_head, checked_step, committed_head
 
 
 def with_origin_head(work):

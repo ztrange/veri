@@ -2,9 +2,10 @@
 import importlib
 import subprocess
 from pathlib import Path
-import pytest
-from repo_builder import commit_all, new_repo
 
+import pytest
+
+from repo_builder import commit_all, new_repo
 
 USAGE = "usage: transform-touches-tests.sh <base-sha> [<bound>] [--touched <list>]\n"
 

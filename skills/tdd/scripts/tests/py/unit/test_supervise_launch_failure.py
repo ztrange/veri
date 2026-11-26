@@ -1,7 +1,6 @@
 """A signal reaching the supervisor while a leaf launches is held until the leaf exists; one after a launch that
 failed is not (#3771, #4303)."""
 import pytest
-
 from veri import supervise
 
 

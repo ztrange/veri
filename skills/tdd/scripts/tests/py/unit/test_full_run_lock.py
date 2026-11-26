@@ -1,8 +1,8 @@
 """The one-full-run lock of veri/full_run_lock.py, driven in-process on a lock file under the case's tmp_path."""
 import fcntl
 import importlib
-from builtins import open as builtins_open
 import os
+from builtins import open as builtins_open
 
 import pytest
 

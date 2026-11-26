@@ -3,7 +3,6 @@ import importlib
 import io
 import os
 import pathlib
-import pytest
 import select
 import shlex
 import shutil
@@ -13,6 +12,9 @@ import sys
 import tempfile
 import threading
 import time
+
+import pytest
+
 from conftest import SCRIPTS
 
 

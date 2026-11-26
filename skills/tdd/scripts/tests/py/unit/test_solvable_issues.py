@@ -7,9 +7,10 @@ import json
 import os
 import pathlib
 import re
-import pytest
-from conftest import fake_pid_file_ps
 
+import pytest
+
+from conftest import fake_pid_file_ps
 
 USAGE = "usage: solvable-issues.sh [--repo owner/name] [--not-running]\n"
 

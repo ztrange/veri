@@ -5,7 +5,9 @@ import subprocess
 import sys
 
 from entry import no_arguments
-from git import GitFailed, git, default_branch as local_default_branch, out as git_value, symref_default
+from git import GitFailed, git, symref_default
+from git import default_branch as local_default_branch
+from git import out as git_value
 from github import NoAnswer, gh_json, open_pulls_text, pulls_in
 from json_documents import items
 

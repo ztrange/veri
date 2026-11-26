@@ -6,9 +6,9 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from ledger import OPEN_STEP, PENDING_MARK, TICKED_STEP
 import entry
 import git
+from ledger import OPEN_STEP, PENDING_MARK, TICKED_STEP
 
 PATHSPEC = ["--", ".", ":!.tdd"]
 

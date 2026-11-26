@@ -8,12 +8,10 @@ import sys
 import urllib.parse
 
 import entry
-import tunables
-
 import github
 import pointer_comment
 import run_dir
-
+import tunables
 
 _refuse = functools.partial(entry.refuse, prefix="unlabel-issue.sh: ")
 

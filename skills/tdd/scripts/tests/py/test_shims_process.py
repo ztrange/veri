@@ -12,7 +12,6 @@ from conftest import INTERPRETER_VENV, SCRIPTS
 from shim_audit import VENV_PREFIX
 
 
-
 def shim(path, *lines):
     path.write_text("#!/bin/sh\n# %s — a shim.\n%s\n" % (path.name, "\n".join(lines)))
 

@@ -4,7 +4,6 @@ import shutil
 from types import SimpleNamespace
 
 import pytest
-
 from veri import merge_lock
 
 

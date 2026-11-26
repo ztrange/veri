@@ -5,8 +5,8 @@ import sys
 
 import entry
 import git
-from case_reader import is_test_path
 import refactor_touched
+from case_reader import is_test_path
 
 USAGE = "usage: near-duplicates.sh <commit>"
 MINIMUM = 3

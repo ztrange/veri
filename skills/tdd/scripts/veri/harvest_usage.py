@@ -5,8 +5,8 @@ import sys
 
 import entry
 import event
-import tunables
 import leaf_role
+import tunables
 from leaf_log import plain, result_records
 
 

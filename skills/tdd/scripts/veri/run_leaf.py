@@ -1,23 +1,23 @@
 """run-leaf.sh's logic, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
-import entry
 import json
-import leaf_timeout
 import os
-import paths
 import re
-import redaction
 import shutil
 import signal
 import subprocess
 import sys
 import tempfile
 
+import entry
+import leaf_timeout
+import paths
+import redaction
+import tunables
 from context_limits import context_limits
 from extract_result import extract
 from session_env import strip_session_env
-import tunables
 
 GUARD = os.path.join(paths.scripts_of(__file__), "leaf-guard")
 DEFAULT_TOOLS = "Bash,Read,Edit,Write,Grep,Glob"

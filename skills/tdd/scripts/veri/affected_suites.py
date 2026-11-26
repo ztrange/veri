@@ -9,11 +9,10 @@ import sys
 
 import case_reader
 import entry
-from git import git
-
 import markdown_sections
 import run_line
 import stem_walk
+from git import git
 
 USAGE = "usage: affected-suites.sh <base>..<head>"
 SCRIPTS = "skills/tdd/scripts"

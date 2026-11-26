@@ -6,8 +6,8 @@ import os
 import pathlib
 import subprocess
 import sys
-import pytest
 
+import pytest
 
 USAGE = "usage: issue-worktree.sh [--take-over] <n> <slug> | --remove <n>\n"
 

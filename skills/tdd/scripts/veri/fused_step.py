@@ -7,11 +7,11 @@ from decimal import Decimal, InvalidOperation
 
 import event
 import event_log
+import ledger
 import run_dir
 import run_pins
 import run_start
 from fused import Stop, call, checked, label, read_settled, script
-import ledger
 from ledger import ledger_steps
 from next_pending_refactor import refactor_pending
 
@@ -102,6 +102,7 @@ def verdict(wt):
     refactor-half record (a skipped verify's leaves the flags out), seam-settle.sh's after a hand refactor, and
     step-close's rewrite of a record settled after another verdict."""
     import hashlib
+
     import extract_result
     from report import report_values
     try:
@@ -205,6 +206,7 @@ def rejected(wt, n, stage, step):
     and is removed."""
     import contextlib
     import json
+
     import fused
     path = fused.wait_record(wt, n, stage + "-rejected")
     try:

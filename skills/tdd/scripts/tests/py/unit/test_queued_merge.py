@@ -6,9 +6,9 @@ import os
 import pathlib
 
 import pytest
+from veri import queued_merge
 
 from process_fakes import HANGS
-from veri import queued_merge
 
 PR = "https://github.com/o/r/pull/7"
 ARGV = [PR, "/wt", "feature", "the capability"]

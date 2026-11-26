@@ -4,7 +4,6 @@ queued_merge._pull, spied in-process, so a read of it shows."""
 import os
 
 import pytest
-
 from veri import queued_merge
 
 PR = "https://github.com/o/r/pull/7"

@@ -1,7 +1,7 @@
 """In-process cases for veri/tests_frozen.py, the module tests-frozen.sh is a shim over."""
-import json
 import hashlib
 import importlib
+import json
 
 import pytest
 

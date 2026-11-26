@@ -2,8 +2,8 @@
 import importlib
 import os
 from pathlib import Path
-import pytest
 
+import pytest
 
 USAGE = b"usage: stop-run.sh [--mode at-ledger|at-leaf|now] <issue> | --all\n"
 

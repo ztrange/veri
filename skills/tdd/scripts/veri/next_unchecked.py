@@ -5,7 +5,6 @@ import sys
 from entry import no_arguments
 from ledger import handed_out, ledger_steps, read_ledger_stdin
 
-
 USAGE = "usage: next-unchecked.sh (the ledger on stdin)"
 
 

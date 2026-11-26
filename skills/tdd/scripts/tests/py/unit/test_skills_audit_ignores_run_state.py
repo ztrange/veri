@@ -1,6 +1,5 @@
 """The skills-are-skills audit does not take a run-state .tdd/ for a skill."""
 import pytest
-
 import test_skills_are_skills as audit
 
 

@@ -12,7 +12,6 @@ import subprocess
 
 import pytest
 
-
 SKILL = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
 
 

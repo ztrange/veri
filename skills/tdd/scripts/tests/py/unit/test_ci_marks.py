@@ -1,6 +1,5 @@
 """ci_marks over a real directory: the file names and contents wait-ci.sh's marks have always had."""
 import pytest
-
 from veri import ci_marks
 from veri.ci_marks import Marks
 

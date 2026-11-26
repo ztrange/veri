@@ -669,8 +669,8 @@ def test_issue_4088_a_tier_whose_run_died_without_recording_an_exit_fails_its_ro
 
 
 def test_issue_4088_both_tiers_share_one_wait_bound_per_call_the_second_waiting_only_what_the_first_left(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
-    import types
     import time
+    import types
     ticks = iter([0.0, 0.0, 0.0, 0.0])
     monkeypatch.setattr(ready_check, "time", types.SimpleNamespace(time=time.time, monotonic=lambda: next(ticks, 400.0)), raising=False)
     fake = fake_processes.answers(holding(**TIERS))
@@ -681,8 +681,8 @@ def test_issue_4088_both_tiers_share_one_wait_bound_per_call_the_second_waiting_
 
 
 def test_issue_4088_one_deadline_from_the_calls_start_bounds_the_permission_probe_and_both_tiers(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
-    import types
     import time
+    import types
     ticks = iter([0.0])
     monkeypatch.setattr(ready_check, "time", types.SimpleNamespace(time=time.time, monotonic=lambda: next(ticks, 400.0)), raising=False)
     timeouts = []
@@ -887,8 +887,8 @@ def test_issue_4088_a_tier_whose_pid_was_reused_by_another_process_died_without_
 
 
 def test_issue_4088_a_deadline_passed_before_the_tiers_starts_none_and_exits_3_naming_the_tiers_not_started(ready_check, run_cli, fake_processes, tmp_path, monkeypatch):
-    import types
     import time
+    import types
     ticks = iter([0.0])
     monkeypatch.setattr(ready_check, "time", types.SimpleNamespace(time=time.time, monotonic=lambda: next(ticks, 600.0)), raising=False)
     fake = fake_processes.answers(holding(**TIERS))

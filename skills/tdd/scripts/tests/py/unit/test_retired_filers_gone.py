@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import pytest
+from veri.git import git
 
 import conftest
-from veri.git import git
 
 REPO = Path(__file__).resolve().parents[6]
 RETIRED = ("tdd-" + "fix", "tdd-" + "candidates")

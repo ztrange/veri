@@ -1,7 +1,6 @@
 """VERI_EVENT_STRICT=1: event.sh and event.mark refuse an event veri/event_table.py does not allow (PRD 030.1, ET3, ET4), and a
 value its key's declared format rejects (PRD 030.6, FS1, FS2)."""
 import pytest
-
 from veri import event
 
 

@@ -3,7 +3,6 @@ import importlib
 
 import pytest
 
-
 REF = "refs/remotes/origin/main"
 ABSENT = "0123456789abcdef0123456789abcdef01234567"
 

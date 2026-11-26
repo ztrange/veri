@@ -1,23 +1,14 @@
 """run-conductor.sh's launch of one conductor, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 # hazard: runs on the python3 it may refuse, so nothing here may need more than Python 3.9.
+import calendar
 import collections
 import contextlib
 import glob
 import io
-import entry
-import leg_tmpdir
-import os
-import paths
-import pinned_scripts
-import pid_file as pids
-import re
-import run_dir
-import run_pins
-import run_records
-import requirements
-import calendar
 import json
+import os
+import re
 import shutil
 import signal
 import subprocess
@@ -26,10 +17,19 @@ import tempfile
 import threading
 import time
 
+import entry
+import leg_tmpdir
+import paths
+import pid_file as pids
+import pinned_scripts
+import requirements
+import run_dir
+import run_pins
+import run_records
+
 # Only the entry-point run switches bytecode off; an importer keeps its own setting.
 sys.dont_write_bytecode = sys.dont_write_bytecode or __name__ == "__main__"
 
-from context_limits import context_limits
 import event
 import event_log
 import github
@@ -37,6 +37,7 @@ import launch_floor
 import leaf_timeout
 import run_end
 import tunables
+from context_limits import context_limits
 from git import symref_default
 from leaf_log import result_text
 from session_env import strip_session_env

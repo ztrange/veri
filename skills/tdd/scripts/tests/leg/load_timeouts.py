@@ -11,7 +11,6 @@ import event
 import tunables
 from ceiling_record import timed_out
 
-
 # The leg's facts while its passes run, which the leg sets and restores: `workers`, the xdist workers it runs with,
 # and `total`, the T it claimed them out of.
 LEG = {}

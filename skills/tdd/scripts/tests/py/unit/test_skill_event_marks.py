@@ -11,7 +11,6 @@ import pathlib
 import re
 import sys
 
-
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 BAIL = SKILL.with_name("BAIL.md")
 RESUME = SKILL.with_name("RESUME.md")

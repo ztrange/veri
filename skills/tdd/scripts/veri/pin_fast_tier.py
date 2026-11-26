@@ -6,7 +6,6 @@ import sys
 
 import event
 
-
 USAGE = "usage: pin-fast-tier.sh <fast-cmd>"
 
 

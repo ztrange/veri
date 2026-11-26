@@ -5,6 +5,7 @@ import sys
 
 import pytest
 
+
 @pytest.fixture
 def refactor_triage():
     return importlib.import_module("veri.refactor_triage")

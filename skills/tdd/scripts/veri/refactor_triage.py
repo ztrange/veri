@@ -7,7 +7,6 @@ import sys
 import candidates
 import entry
 
-
 ACCEPTED = (*candidates.CLASSES, "in-step", "out-of-bounds")
 CLASS_LIST = ", ".join(ACCEPTED[:-1]).encode() + b" or " + ACCEPTED[-1].encode()
 NONE = re.compile(rb"^none\s*$")

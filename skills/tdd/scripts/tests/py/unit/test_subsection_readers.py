@@ -1,7 +1,6 @@
 """Cases of `subsection_readers` over planted indexes, never the real test tree."""
-from conftest import TestFile
-
 import subsection_readers
+from conftest import TestFile
 
 HEADING = "#### Planted step"
 SPEC = subsection_readers.Subsection(HEADING, ("planted-marker.sh",))

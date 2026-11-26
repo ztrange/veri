@@ -4,8 +4,14 @@ import re
 from collections import defaultdict
 
 import pytest
-
-from test_veri_interface_index import _modules, _private, _readme_lines, _shared_modules, _sibling_imports, _users
+from test_veri_interface_index import (
+    _modules,
+    _private,
+    _readme_lines,
+    _shared_modules,
+    _sibling_imports,
+    _users,
+)
 
 # Names a section lists that no other module of veri/ uses, each with why it stays. A ratchet: the set may shrink,
 # never grow; an entry that is used by a sibling after all, or no longer listed, fails the case that checks it.

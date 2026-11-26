@@ -13,12 +13,12 @@ import github
 import paths
 import pid_file
 import restart_marker
-import run_dir as layout
-from role_state import state_path
 import role_state
+import run_dir as layout
 import test_budget
 import tunables
 from dispatch_reads import via
+from role_state import state_path
 
 
 def restart_pending(issue):

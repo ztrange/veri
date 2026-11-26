@@ -5,7 +5,6 @@ import re
 
 import tunables
 
-
 # pytest-timeout's own failure text (PYTEST_FAILURE_MESSAGE, "Timeout (>%ss) from pytest-timeout."), raised in the case
 # by its signal method, the default on POSIX.
 TIMEOUT_TEXT = re.compile(r"\bTimeout \(>[0-9.]+s\) from pytest-timeout\.")

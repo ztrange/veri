@@ -1,9 +1,9 @@
 """Mechanical cases for skills/voutage/: an operator skill read by path, never linked (#4156)."""
 import re
 
-from conftest import ROOT
-
 from veri import install_links
+
+from conftest import ROOT
 
 SKILL_DIR = ROOT / "skills" / "voutage"
 

@@ -4,6 +4,7 @@ What counts is a string literal that starts `#!/bin/sh` anywhere in the file, re
 f-string included), never a mention in a comment. `stub_script.py` holds the one header and is exempt.
 """
 import pytest
+
 from stub_script import holds_an_inline_stub
 
 # The test files (paths under tests/py, sorted, ONE per line) that still hold a string literal starting `#!/bin/sh`.

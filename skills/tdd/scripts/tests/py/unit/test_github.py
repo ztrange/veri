@@ -768,8 +768,8 @@ def test_the_module_is_importable_as_from_veri_import_github_and_as_import_veri_
     monkeypatch.delitem(sys.modules, "veri.github", raising=False)
     monkeypatch.delattr(importlib.import_module("veri"), "github", raising=False)
 
-    from veri import github as from_import
     import veri.github as dotted_import
+    from veri import github as from_import
 
     assert from_import is dotted_import
     assert pathlib.Path(from_import.__file__) == SCRIPTS / "veri" / "github.py"

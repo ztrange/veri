@@ -251,6 +251,7 @@ def _adding_a_script_section():
 
 def test_every_test_file_the_adding_a_script_checklist_names_exists():
     import re
+
     from conftest import SCRIPTS
 
     named = {token for line in _adding_a_script_section() for token in re.findall(r"`(tests/py/[\w/]*test_\w+\.py)`", line)}

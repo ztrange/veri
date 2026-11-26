@@ -6,9 +6,9 @@ import importlib
 from pathlib import Path
 
 import pytest
+from veri.git import git
 
 import conftest
-from veri.git import git
 
 RETIRED = ".veri/test-command"
 REPO = Path(__file__).resolve().parents[6]

@@ -3,9 +3,9 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import sys
 
+import entry
 import step_budget
 import step_cost
-import entry
 
 USAGE = "usage: run-affordable.sh <steps-remaining> (a whole number)"
 

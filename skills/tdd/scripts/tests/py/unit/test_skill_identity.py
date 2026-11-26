@@ -5,7 +5,6 @@ import re
 
 from conftest import ROOT
 
-
 SKILL_DIR = "skills/tdd"
 WANT_NAME = "tdd"
 SKILL_MD = f"{SKILL_DIR}/SKILL.md"

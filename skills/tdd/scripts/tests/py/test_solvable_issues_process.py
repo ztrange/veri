@@ -6,10 +6,16 @@ import pathlib
 import re
 import subprocess
 import tempfile
+
 import pytest
+
 from conftest import fake_pid_file_ps
-from test_run_conductor_process import fake_claude_exiting, past_the_guards, scratch_tmpdir
-from test_run_conductor_process import state_label_clearing_answers_removed  # noqa: F401 -- autouse: the launch's label clearing faked
+from test_run_conductor_process import (
+    fake_claude_exiting,
+    past_the_guards,
+    scratch_tmpdir,
+    state_label_clearing_answers_removed,  # noqa: F401 -- autouse: the launch's label clearing faked
+)
 
 
 @pytest.fixture(autouse=True)

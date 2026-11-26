@@ -8,8 +8,17 @@ import shutil
 import subprocess
 import sys
 import time
+
 import pytest
-from conftest import SCRIPTS, fake_pid_file_ps, listed, live_conductor, serve_listing, started_for_real
+
+from conftest import (
+    SCRIPTS,
+    fake_pid_file_ps,
+    listed,
+    live_conductor,
+    serve_listing,
+    started_for_real,
+)
 
 
 @pytest.fixture(autouse=True)

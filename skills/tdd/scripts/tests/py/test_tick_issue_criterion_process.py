@@ -1,8 +1,8 @@
 """Process cases for veri/tick_issue_criterion.py: the ones that start a real process; the small cases are in unit/test_tick_issue_criterion.py."""
 import os
 import subprocess
-import pytest
 
+import pytest
 
 AC = "## Acceptance criteria\n\n"
 

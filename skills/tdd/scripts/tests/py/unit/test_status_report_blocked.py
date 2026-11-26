@@ -3,7 +3,6 @@ import datetime
 import importlib
 import json
 
-
 TAGS = (("v0.2", 1762000000, "Second capability"), ("v0.1", 1761000000, "First capability"))
 
 

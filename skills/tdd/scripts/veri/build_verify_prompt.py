@@ -2,7 +2,6 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import itertools
 import os
-import paths
 import re
 import sys
 
@@ -10,11 +9,25 @@ import case_reader
 import detect_test_command
 import event_log
 import git
+import paths
 import run_line
 import tunables
 from entry import write
-from prompt_template import IncludeRefused, expand_includes, fill, has_heading, read as _read, spec_text_of
-from ledger import INTERFACE_PHASES, carries_mark, has_kind, ledger_steps, trailing_markers
+from ledger import (
+    INTERFACE_PHASES,
+    carries_mark,
+    has_kind,
+    ledger_steps,
+    trailing_markers,
+)
+from prompt_template import (
+    IncludeRefused,
+    expand_includes,
+    fill,
+    has_heading,
+    spec_text_of,
+)
+from prompt_template import read as _read
 from replaces_case import is_replaces_case_step
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround", "break")

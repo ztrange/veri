@@ -3,7 +3,9 @@ import importlib
 import pathlib
 
 import pytest
-from skill_sections import has, plain_folded as plain
+
+from skill_sections import has
+from skill_sections import plain_folded as plain
 
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 

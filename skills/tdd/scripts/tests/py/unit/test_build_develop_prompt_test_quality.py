@@ -2,6 +2,7 @@
 import importlib
 
 import pytest
+
 from conftest import SCRIPTS
 
 SMELLS = SCRIPTS.parent / "SMELLS.md"

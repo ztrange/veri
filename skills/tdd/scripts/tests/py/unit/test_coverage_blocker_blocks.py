@@ -4,7 +4,6 @@ import json
 import pathlib
 
 import pytest
-
 from veri.blocked_by import blockers
 
 

@@ -5,15 +5,23 @@ import os
 import sys
 import tempfile
 
-from blocked_by import add as block, blockers
+import run_dir
+import tunables
+from blocked_by import add as block
+from blocked_by import blockers
 from detect_test_command import resolved
-from github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_label_exists, gh_rest_list
+from github import (
+    NoAnswer,
+    gh_issue_create,
+    gh_issue_edit,
+    gh_issue_view,
+    gh_label_exists,
+    gh_rest_list,
+)
 from json_documents import documents
 from ledger import ledger_steps, read_ledger
 from ledger_steps import current_or_last_done_record
 from report import report_values
-import run_dir
-import tunables
 
 USAGE = "usage: coverage-blocker.sh <refactor-issue-number>"
 ISSUES = "repos/{owner}/{repo}/issues"

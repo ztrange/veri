@@ -14,6 +14,7 @@ module (`sp = subprocess`) and a `from subprocess import run` name patched on th
 fake_processes fixture itself and is the one file exempt.
 """
 import pytest
+
 from process_fake_detection import installs_a_subprocess_fake
 
 # The test files (paths under tests/py, sorted, ONE per line) that still install their own fake on subprocess. Migrate a

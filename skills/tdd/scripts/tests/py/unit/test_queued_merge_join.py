@@ -3,9 +3,9 @@ prose-owed.sh, sh and git faked as processes; the pull request's state read thro
 import os
 
 import pytest
+from veri import queued_merge
 
 from process_fakes import HANGS
-from veri import queued_merge
 
 PR = "https://github.com/o/r/pull/7"
 BRANCH = "tdd/7-slug"

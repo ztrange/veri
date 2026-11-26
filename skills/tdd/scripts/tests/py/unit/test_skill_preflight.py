@@ -7,7 +7,6 @@ import warnings
 
 import pytest
 
-
 SKILL = pathlib.Path(__file__).resolve().parents[3].parent / "SKILL.md"
 
 PREFLIGHT_MD = SKILL.with_name("PREFLIGHT.md")
