@@ -522,3 +522,29 @@ def test_4707_a_missing_test_line_indented_or_written_as_a_backticked_bullet_sti
     run_cli(verify_branch, ["12"], cwd=str(tmp_path))
     repairs = [line for line in (wt / ".tdd" / "issue-12.md").read_text().split("\n") if "⟦branch-repair⟧" in line]
     assert [("⟦diff-checked⟧" in line) for line in repairs] == [False]
+
+
+def test_4760_a_reject_whose_repair_step_add_ledger_step_refuses_exits_2_not_1(monkeypatch, run_cli, tmp_path):
+    """A refused append is no answer (exit 2), never the clean REJECT exit 1 that would read as a committed repair."""
+    fused = importlib.import_module("veri.fused")
+    verify_branch = importlib.import_module("veri.verify_branch")
+    add_ledger_step = importlib.import_module("veri.add_ledger_step")
+    wt = tmp_path / ".tdd" / "wt" / "12"
+    (wt / ".tdd").mkdir(parents=True)
+    (tmp_path / ".git").mkdir()
+    (wt / ".tdd" / "issue-12-preflight").write_text("worktree=%s\nfast_cmd=make unit\n" % wt)
+    (wt / ".tdd" / "issue-12-spec.md").write_text("spec\n")
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BASE + "\n")
+    (wt / ".tdd" / "issue-12.md").write_text("- [x] a gear meshes ⟦criterion 1⟧\n")
+    monkeypatch.delenv("VERI_BRANCH_REPAIRS", raising=False)
+    commits = []
+
+    monkeypatch.setattr(fused, "launch", lambda *a, **kw: None)
+    monkeypatch.setattr(fused, "run_script",
+                        lambda name, *a, **kw: (1, "", "") if name.endswith("wait-leaf.sh")
+                        else (commits.append(a) or (0, "", "")) if a[:1] == ("commit",) else (0, "", ""))
+    monkeypatch.setattr(add_ledger_step, "add", lambda *a, **kw: 2)
+    code, _, _ = run_cli(verify_branch, ["12"], cwd=str(tmp_path))
+
+    assert (code, commits) == (2, [])
+    assert "⟦branch-repair⟧" not in (wt / ".tdd" / "issue-12.md").read_text()
