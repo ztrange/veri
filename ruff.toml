@@ -1,13 +1,16 @@
 # ruff, the static checker `make test` runs over every tracked Python file (PRD 039,
 # tests/py/test_ruff_tree_audit_process.py): the pyflakes rules (unused imports, undefined and
-# redefined names) and import order. `src` names the flat sibling directories, so their modules sort
-# as first-party.
+# redefined names), import order and the complexity cap (C901). `src` names the flat sibling
+# directories, so their modules sort as first-party.
 target-version = "py312"
 extend-exclude = [".tdd"]
 src = ["skills/tdd/scripts/veri", "skills/tdd/scripts/tests/leg", "skills/tdd/scripts/tests/py"]
 
 [lint]
-select = ["F", "I"]
+select = ["F", "I", "C901"]
+
+[lint.mccabe]
+max-complexity = 46
 
 # Facade modules: other modules and tests reach names through them (`dispatch.subprocess`,
 # `from wait_ci import trigger_lines`), so an import unused inside the file is still used.
