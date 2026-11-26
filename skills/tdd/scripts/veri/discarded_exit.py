@@ -19,9 +19,11 @@ def main(argv):
     refused = entry.no_arguments(argv, USAGE)
     if refused is not None:
         return refused
-    code, _diff = _git("diff", "HEAD")
+    code, diff = _git("diff", "HEAD")
     if code != 0:
         return entry.refuse(usage=USAGE)
+    if not any(line.startswith("+++ b/") and line.endswith(".py") for line in diff.splitlines()):
+        return 3
     return 0
 
 
