@@ -38,8 +38,6 @@ from ledger import body as step_body
 
 SUITE_REPAIR = "suite-repair"
 REPAIR_MARKS = ("ci-repair", SUITE_REPAIR, "branch-repair", "quality-repair")
-# The marks of which one run inserts at most one step: the second is refused (exit 1). Not REPAIR_MARKS, which only exempts.
-ONE_PER_RUN = (SUITE_REPAIR, "lint-repair")
 BYTES = "surrogateescape"
 INSTEAD_OF = "instead-of"
 USAGE = "usage: add-ledger-step.sh [--planned] [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]  (--planned goes with --criterion <k>)"
@@ -174,10 +172,8 @@ def record_insertions(path, steps, awake):
             f.write(event.line([b"step-added"], context, int(time.time()), awake))
 
 
-NOT_DURABLE = "add-ledger-step.sh: the added step is not durable (uncommitted, so a bail's revert would drop it until someone commits it)"
-
-
 def commit_amendment(path):
+    NOT_DURABLE = "add-ledger-step.sh: the added step is not durable (uncommitted, so a bail's revert would drop it until someone commits it)"
     tree = os.path.dirname(os.path.dirname(os.path.abspath(path)))
     live = pid_file.recorded_started(tree)
     if live is None or int(live) in pid_file.ancestors():
@@ -257,6 +253,8 @@ def skill_edit_refusal(path, texts):
 
 
 def one_per_run_exit(path, lines, texts):
+    # The marks of which one run inserts at most one step: the second is refused (exit 1). Not REPAIR_MARKS, which only exempts.
+    ONE_PER_RUN = (SUITE_REPAIR, "lint-repair")
     steps = [line for line in lines if ledger_steps(line)]
     for mark in ONE_PER_RUN:
         earlier = [line for line in steps if is_one_per_run(line, mark) and not is_retired(line)]
