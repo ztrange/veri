@@ -57,9 +57,9 @@ def _checks(call):
 def _drops_exit_code(node, read):
     """Whether node is a statement discarding an exit-code call's code: a bare call, or one whose
     code, the whole result or its unpacked first element, goes to `_` or to a name not in read; a
-    subprocess.run bound whole holds its code in <name>.returncode, so that is what must be read,
-    unless it passes check=True, which raises on a non-zero code instead; one never bound whole,
-    only an attribute other than returncode taken from it, discards its code unless it checks."""
+    subprocess.run bound whole holds its code in <name>.returncode, so that is what must be read;
+    one never bound whole, only an attribute other than returncode taken from it, discards its code.
+    A subprocess.run passing check=True raises on a non-zero code, so it discards nothing."""
     if not isinstance(node, (ast.Expr, ast.Assign)):
         return False
     value = node.value
@@ -68,6 +68,8 @@ def _drops_exit_code(node, read):
         return not _checks(value.value)
     if not (isinstance(value, ast.Call) and _called_name(value) in EXIT_CODE_CALLS):
         return False
+    if _called_name(value) == "subprocess.run" and _checks(value):
+        return False
     if isinstance(node, ast.Expr):
         return True
     target = node.targets[0]
@@ -75,7 +77,7 @@ def _drops_exit_code(node, read):
     if not isinstance(code, ast.Name):
         return False
     if _called_name(node.value) == "subprocess.run" and code is target:
-        return not _checks(node.value) and code.id + ".returncode" not in read
+        return code.id + ".returncode" not in read
     return code.id == "_" or code.id not in read
 
 

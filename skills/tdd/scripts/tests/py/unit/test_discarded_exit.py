@@ -263,3 +263,26 @@ def test_an_added_subprocess_run_never_bound_whole_is_printed_and_exits_1(
     monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:4\n", "")
+
+
+def test_an_added_subprocess_run_with_check_true_bare_or_assigned_to_underscore_prints_nothing_and_exits_0(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    (tmp_path / "mod.py").write_text(
+        "import subprocess\n"
+        "\n"
+        "def build():\n"
+        "    subprocess.run([\"x\"], check=True)\n"
+        "    _ = subprocess.run([\"x\"], check=True)\n")
+    diff = ("diff --git a/mod.py b/mod.py\n"
+            "index 1111111..2222222 100644\n"
+            "--- a/mod.py\n"
+            "+++ b/mod.py\n"
+            "@@ -1 +1,5 @@\n"
+            " import subprocess\n"
+            "+\n"
+            "+def build():\n"
+            "+    subprocess.run([\"x\"], check=True)\n"
+            "+    _ = subprocess.run([\"x\"], check=True)\n")
+    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
