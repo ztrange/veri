@@ -2984,3 +2984,45 @@ def test_3120_verify_sh_diff_with_supersede_base_tells_the_step_to_split_when_th
 
     assert (code, out.strip(), started.exists()) == (
         1, "step renamed and changed test cases, so the step must be split: tests/test_start.py::test_old_3120 -> test_renamed_3120", False)
+
+
+@pytest.mark.process("a real git scratch repository whose frozen-edit snapshot commit the diff check reads instead of HEAD, and a stub claude that records any start")
+def test_4730_verify_sh_diff_with_frozen_edit_judges_the_snapshot_tip_so_a_case_it_deletes_is_named_though_head_still_holds_it(
+        run_cli, tmp_path):
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+
+    def commit(message):
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", message], check=True)
+        return subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True,
+                              capture_output=True).stdout.decode().strip()
+
+    test_file = repo / "tests" / "test_start.py"
+    (repo / ".gitignore").write_text(".tdd/\n")
+    (repo / "tests").mkdir()
+    test_file.write_text("def test_keeps():\n    pass\n")
+    branch_base = commit("branch base")
+    keeps_and_old = "def test_keeps():\n    pass\n\n\ndef test_old_4730():\n    assert 3 == 3\n"
+    test_file.write_text(keeps_and_old)
+    step_base = commit("an earlier step adds test_old_4730")
+    test_file.write_text("def test_keeps():\n    assert True\n")
+    snapshot = commit("the frozen edit's snapshot drops test_old_4730")
+    subprocess.run(["git", "-C", str(repo), "reset", "-q", "--hard", step_base], check=True)
+    started = tmp_path / "started"
+    claude = tmp_path / "claude-record"
+    claude.write_text('#!/bin/sh\necho started >> "%s"\nprintf \'VERDICT: PASS\\nREASON: fine.\'\n' % started)
+    claude.chmod(0o755)
+    (tmp_path / "spec.md").write_text(SPEC)
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(
+        verify, ["--step", "the case names what it asserts ⟦diff-checked⟧", "--fast-cmd", "make unit",
+                 "--frozen-edit", snapshot, "--branch-base", branch_base, "diff", str(tmp_path / "spec.md"), step_base],
+        env={"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"},
+        cwd=repo)
+
+    assert (code, out.strip(), started.exists()) == (
+        1, "step deleted test cases an earlier step added: tests/test_start.py::test_old_4730", False)
