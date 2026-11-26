@@ -747,6 +747,14 @@ def test_cli_never_lists_an_issue_labelled_parked_even_when_it_carries_the_opt_i
     assert answer == (0, "200\n", "")
 
 
+def test_cli_never_lists_an_issue_labelled_draft_even_when_it_carries_the_opt_in_label(fake_processes, tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, fake_processes, [labelled(190, "ready-for-agent", "draft"), opted_in(200)])
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "200\n", "")
+
+
 def test_cli_still_withholds_a_priority_or_bug_issue_that_is_blocked_claimed_or_closed(fake_processes, tmp_path, monkeypatch, run_cli, solvable_issues):
     fixtures, cwd = cli_fixtures(tmp_path, fake_processes, [
         labelled(189), dict(blocked_by(190, "#189"), labels=[{"name": "ready-for-agent"}, {"name": "priority"}]),
