@@ -424,3 +424,20 @@ def test_4760_a_refused_quality_repair_append_makes_no_plan_commit_does_not_tick
     assert code == 2
     assert (commits, "step-tick.sh" in fake.names()) == ([], False)
     assert "⟦quality-repair⟧" not in ledger.read_text()
+
+
+def test_4760_a_spent_quality_repair_budget_appends_no_step_makes_no_plan_commit_and_ticks_exit_0(diff, monkeypatch):
+    """SG5: with VERI_QUALITY_REPAIRS=0 the finding causes no repair step, and a spent budget is not a bail: the step
+    ticks, exit 0."""
+    monkeypatch.setenv("VERI_QUALITY_REPAIRS", "0")
+    ledger = diff.wt / ".tdd" / "issue-12.md"
+    diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    before = [l for l in ledger.read_text().split("\n") if l.startswith("- [")]
+    code, out, err, fake = diff(step=QUALITY, report="SUITE: ok\n" + POSSIBLE_BUG)
+
+    steps = [l for l in ledger.read_text().split("\n") if l.startswith("- [")]
+    commits = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
+    assert code == 0, err
+    assert (len(steps), [l for l in steps if "⟦quality-repair⟧" in l]) == (len(before), [])
+    assert commits == []
+    assert "step-tick.sh" in fake.names()
