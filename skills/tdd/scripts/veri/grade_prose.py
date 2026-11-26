@@ -158,7 +158,8 @@ def unit_text(unit, reader=None):
     try:
         return section(text, heading)
     except HeadingCount as e:
-        raise ValueError("%s: its heading matches %d unfenced heading lines of %s, not one" % (unit, e.count, file))
+        raise ValueError("%s: its heading matches %d unfenced heading lines of %s, not one"
+                         % (unit, e.count, file)) from e
 
 
 def signature(path, unit, text=None, units=None):

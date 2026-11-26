@@ -128,7 +128,7 @@ def answered(*args, **kw):
     try:
         return fused.checked("1", *args, **kw)
     except fused.Stop as stop:
-        raise fused.Stop(stop.where, stop.what, 2)
+        raise fused.Stop(stop.where, stop.what, 2) from None
 
 
 def porcelain(wt):

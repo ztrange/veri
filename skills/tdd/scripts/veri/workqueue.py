@@ -55,7 +55,7 @@ def take_lock(lock):
         os.makedirs(os.path.dirname(lock), exist_ok=True)
     except OSError as error:
         sys.stderr.write("mkdir: %s: %s\n" % (error.filename, error.strerror))
-        raise SystemExit(1)
+        raise SystemExit(1) from error
     tries = lock_tries()
     while True:
         try:

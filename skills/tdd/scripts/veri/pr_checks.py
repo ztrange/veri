@@ -53,7 +53,7 @@ def unwired(wt, n, base):
         fused.checked("unwired", fused.script("unwired.sh"), "--accepted", ".tdd/issue-%s-unwired-accepted" % n, base,
                       ok=(0, 3), cwd=wt, out=".tdd/unwired.out")
     except fused.Stop as stop:
-        raise fused.Stop(stop.where, stop.what, 1 if stop.code == 1 else 2)
+        raise fused.Stop(stop.where, stop.what, 1 if stop.code == 1 else 2) from None
 
 
 def default_branch(wt):
@@ -75,7 +75,7 @@ def answered(where, *args, **kw):
     try:
         return fused.checked(where, *args, **kw)
     except fused.Stop as stop:
-        raise fused.Stop(stop.where, stop.what, 2)
+        raise fused.Stop(stop.where, stop.what, 2) from None
 
 
 def path(wt, name):

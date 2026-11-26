@@ -226,8 +226,8 @@ def report(where, wt, path, *keys, every=False):
     try:
         with open(os.path.join(wt, path), encoding="utf-8", errors="replace") as f:
             stream = f.read()
-    except OSError:
-        raise Stop(where, "no " + path, 2)
+    except OSError as error:
+        raise Stop(where, "no " + path, 2) from error
     code, out, _ = run_script(script("extract-result.sh"), cwd=wt, stdin=stream)
     sys.stdout.write(shown_as + " exit %d\n" % code)
     if code != 0:

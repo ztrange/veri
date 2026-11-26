@@ -86,8 +86,8 @@ class State:
             raise Malformed("n-missing")
         try:
             return int(ns[-1][2:])
-        except ValueError:
-            raise Malformed("n", ns[-1])
+        except ValueError as error:
+            raise Malformed("n", ns[-1]) from error
 
     def timed_ns(self):
         """`(value, expiry epoch)` of each timed-n line, in file order."""
@@ -95,8 +95,8 @@ class State:
         for line in self.items("timed-n"):
             try:
                 found.append(timed_n_format.parse(line.split(None, 3)[3]))
-            except (IndexError, ValueError):
-                raise Malformed("timed-n", line)
+            except (IndexError, ValueError) as error:
+                raise Malformed("timed-n", line) from error
         return found
 
     def override_numbers(self):

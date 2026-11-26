@@ -160,8 +160,8 @@ def conductor(run):
     try:
         with open(log) as f:
             relaunches, bad = launches(f)
-    except (OSError, UnicodeDecodeError):
-        raise Failure("reset-cost.sh: unreadable conductor log %s\n" % log)
+    except (OSError, UnicodeDecodeError) as error:
+        raise Failure("reset-cost.sh: unreadable conductor log %s\n" % log) from error
     rows = []
     measured = []
     for restart in restarts:

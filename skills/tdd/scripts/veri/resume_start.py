@@ -163,8 +163,8 @@ def unserved(n, wt, text):
     try:
         with open(os.path.join(wt, ".tdd", "issue-%s-spec.md" % n)) as f:
             spec = f.read()
-    except OSError:
-        raise fused.Stop("3", "no .tdd/issue-%s-spec.md" % n, 2)
+    except OSError as error:
+        raise fused.Stop("3", "no .tdd/issue-%s-spec.md" % n, 2) from error
     served = {step.criterion for step in ledger_module.ledger_steps(text)}
     for k, (_, line) in enumerate(issue_body.criteria(spec), 1):
         if ledger_module.STEP_RE.fullmatch(line).group(2) == " " and str(k) not in served:

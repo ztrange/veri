@@ -231,7 +231,7 @@ def run_gh(*args, stderr=None):
     while True:
         try:
             return bounded(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
-        except FileNotFoundError:
+        except FileNotFoundError as error:
             retry_sleep = wait_seconds("VERI_TOOL_RETRY_SLEEP", 1)
             fast_wait = wait_seconds("VERI_TOOL_FAST_WAIT", 0)
             slow_sleep = wait_seconds("VERI_TOOL_SLOW_SLEEP", 1)
@@ -242,7 +242,7 @@ def run_gh(*args, stderr=None):
             elapsed = now - first_miss
             if elapsed >= total_wait:
                 print("gh: command not found; gave up after %gs" % elapsed, file=sys.stderr)
-                raise NoAnswer("")
+                raise NoAnswer("") from error
             if elapsed < fast_wait:
                 wait = retry_sleep
             else:
@@ -446,7 +446,7 @@ class RestAdapter:
             issue = json.loads(rest.stdout)
         except json.JSONDecodeError as error:
             print("json.decoder.JSONDecodeError: %s" % error, file=sys.stderr)
-            raise NoAnswer("", rest.stderr or "")
+            raise NoAnswer("", rest.stderr or "") from error
         if rest.returncode != 0:
             raise NoAnswer("", rest.stderr or "")
         if field == "labels":

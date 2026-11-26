@@ -334,7 +334,7 @@ def fresh_base(wt):
         # run_base checks the cut's record against the named stack; with no record it would ask git for the default.
         ref = "origin/" + stack_branch.run_base(wt)[0] if stack_branch.recorded_base(wt) else "origin/HEAD"
     except stack_branch.Refused as refused:
-        raise Stop(3, "branch base: " + str(refused), 2)
+        raise Stop(3, "branch base: " + str(refused), 2) from refused
     # git merge-base exits 1 when there is no common ancestor, so a 0 always printed one.
     code, out, _ = call("git", "merge-base", "HEAD", ref, cwd=wt)
     if code != 0:

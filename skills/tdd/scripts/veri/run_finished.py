@@ -21,8 +21,8 @@ def pr_body(pr):
                                "pr", "view", pr, "--json", "body")
     try:
         return json.loads(page)["body"]
-    except (ValueError, KeyError):
-        raise github.NoAnswer("no PR body")
+    except (ValueError, KeyError) as error:
+        raise github.NoAnswer("no PR body") from error
 
 
 def main(argv):

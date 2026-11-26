@@ -158,10 +158,11 @@ def incidents(timeout, deadline):
     except (OSError, ValueError, http.client.HTTPException) as error:
         reason = error.reason if isinstance(error, urllib.error.URLError) else error
         if isinstance(reason, UnicodeError):
-            raise NoAnswer("%s: the answer cannot be decoded: %s" % (url, reason))
+            raise NoAnswer("%s: the answer cannot be decoded: %s" % (url, reason)) from error
         if isinstance(reason, TimeoutError):
-            raise NoAnswer("%s: no response within %d s (VERI_GITHUB_STATUS_TIMEOUT): %s" % (url, timeout, reason))
-        raise NoAnswer("%s: no response: %s: %s" % (url, type(reason).__name__, reason))
+            raise NoAnswer("%s: no response within %d s (VERI_GITHUB_STATUS_TIMEOUT): %s"
+                           % (url, timeout, reason)) from error
+        raise NoAnswer("%s: no response: %s: %s" % (url, type(reason).__name__, reason)) from error
     if status != 200:
         raise NoAnswer("%s: status %s" % (url, status))
     if len(body) > MAX_BODY:
@@ -232,7 +233,7 @@ def read(components, threshold, timeout, limit=None):
             verdict = judged(incident, components, threshold)
         except (ArithmeticError, LookupError, TypeError, ValueError, AttributeError) as error:
             raise NoAnswer("incident %r (created_at %r): %s: %s" % (incident.get("name"), incident.get("created_at"),
-                                                                    type(error).__name__, error))
+                                                                    type(error).__name__, error)) from error
         if verdict is not None:
             (counting if verdict[0] else young).setdefault(key, verdict[1])
     return (1, list(counting.values())) if counting else (0, list(young.values()) or ["up"])

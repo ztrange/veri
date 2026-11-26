@@ -49,7 +49,8 @@ def _read_after_rate_limit(read, path):
             if failure.kind != "rate-limit":
                 raise
             if waits >= github.refusal_retries():
-                raise RateLimitPersists(f"dispatch.sh: reading {path} failed: {' '.join(detail.split())}\n")
+                raise RateLimitPersists(
+                    f"dispatch.sh: reading {path} failed: {' '.join(detail.split())}\n") from failure
             reset = github.rate_limit_reset(subprocess.run)
             if reset is None:
                 raise
@@ -145,8 +146,8 @@ def answered(what, read, *args, **kwargs):
             if github.refusal_kind(detail) == "rate-limit":
                 limited[what] = limited.get(what, 0) + 1
                 if limited[what] > github.refusal_retries():
-                    raise RateLimitPersists(unreadable)
-            raise watch_runs.QueueUnreadable(unreadable)
+                    raise RateLimitPersists(unreadable) from failure
+            raise watch_runs.QueueUnreadable(unreadable) from failure
 
 
 def overlap_poll():
