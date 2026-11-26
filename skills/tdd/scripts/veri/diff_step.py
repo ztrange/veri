@@ -56,10 +56,12 @@ def run(n):
 
 def quality_repair(n, wt, found):
     """The ⟦diff-checked⟧ ⟦quality-repair⟧ step a POSSIBLE-BUG: line causes (SG4), appended after the ledger's last
-    step and committed as a plan: commit."""
+    step and committed as a plan: commit; add-ledger-step.sh refusing it is no answer, exit 2 before the tick."""
     text = "fix the bug a strengthened test found: POSSIBLE-BUG: %s ⟦diff-checked⟧ ⟦quality-repair⟧" % " ".join(
         found.replace("⟦", "[").replace("⟧", "]").split())
-    fused_step.append_repair("tick", wt, n, text, "plan: quality-repair step")
+    code = fused_step.append_repair("tick", wt, n, text, "plan: quality-repair step")
+    if code != 0:
+        raise fused.Stop("tick", "add-ledger-step.sh exit %d" % code, 2)
 
 
 def flip(n, wt, step, values):

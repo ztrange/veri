@@ -409,3 +409,18 @@ def test_4760_a_test_quality_step_whose_leaf_reports_a_killed_flip_and_no_possib
     assert "mutation-probe.sh" in fake.names()
     assert (len(steps), [l for l in steps if "⟦quality-repair⟧" in l]) == (3, [])
     assert [a for a in commits if any(str(x).startswith("plan:") for x in a)] == []
+
+
+def test_4760_a_refused_quality_repair_append_makes_no_plan_commit_does_not_tick_and_stops_exit_2(diff, monkeypatch):
+    """SG4's failure path: add-ledger-step.sh refusing the append (the ledger's last step carries no ⟦criterion k⟧ tag
+    to inherit) is no answer, so nothing is committed, the step stays open and the run stops exit 2."""
+    monkeypatch.delenv("VERI_QUALITY_REPAIRS", raising=False)
+    ledger = diff.wt / ".tdd" / "issue-12.md"
+    ledger.write_text("# Plan for #12\n\n- [x] zero ⟦criterion 1⟧\n- [ ] %s\n- [ ] two, untagged\n" % QUALITY)
+    diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    code, out, err, fake = diff(step=QUALITY, report="SUITE: ok\n" + POSSIBLE_BUG)
+
+    commits = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
+    assert code == 2
+    assert (commits, "step-tick.sh" in fake.names()) == ([], False)
+    assert "⟦quality-repair⟧" not in ledger.read_text()
