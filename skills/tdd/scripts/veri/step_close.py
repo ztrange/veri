@@ -67,7 +67,7 @@ def run(n):
     except Exception as error:
         # Past the checks the push may have landed: an unforeseen error names 6, so the conductor goes on from 6
         # rather than redoing the branch from its start, which would end the stage and post step-done twice.
-        raise fused.Stop("6", "%s %s" % (type(error).__name__, error), 2)
+        raise fused.Stop("6", "%s %s" % (type(error).__name__, error), 2) from error
 
 
 def ledger_text(wt, n):
@@ -136,8 +136,8 @@ def stage_end(wt, n):
     try:
         with open(os.path.join(wt, ".tdd", "stage-rl.t")) as f:
             started = int(f.read().strip())
-    except (OSError, ValueError):
-        raise fused.Stop("6", "no .tdd/stage-rl.t", 2)
+    except (OSError, ValueError) as error:
+        raise fused.Stop("6", "no .tdd/stage-rl.t", 2) from error
     fused.checked("6", fused.script("event.sh"), "stage-end", "stage=refactor-loop", "status=0",
                   "secs=%d" % (int(time.time()) - started), cwd=wt, env=tunables.with_values(VERI_ISSUE=n))
 

@@ -136,7 +136,7 @@ def answered(where, *args, **kw):
     try:
         return fused.checked(where, *args, **kw)
     except fused.Stop as stop:
-        raise fused.Stop(stop.where, stop.what, 2)
+        raise fused.Stop(stop.where, stop.what, 2) from None
 
 
 def gh_answered(where, *args, wt):
@@ -144,7 +144,7 @@ def gh_answered(where, *args, wt):
     try:
         return plan_publish.gh(where, *args, wt=wt)
     except fused.Stop as stop:
-        raise fused.Stop(stop.where, stop.what, 2)
+        raise fused.Stop(stop.where, stop.what, 2) from None
 
 
 def dirty(where, wt, left=()):
@@ -152,7 +152,7 @@ def dirty(where, wt, left=()):
     try:
         listed = fused.changed_paths(where, wt)
     except fused.Stop as stop:
-        raise fused.Stop(stop.where, stop.what, 2)
+        raise fused.Stop(stop.where, stop.what, 2) from None
     return set(listed) - set(left)
 
 

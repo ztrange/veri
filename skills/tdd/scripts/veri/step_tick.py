@@ -63,7 +63,7 @@ def run(n):
         raise
     except Exception as error:
         # Past the commit the push may have landed: an unforeseen error is no answer, never a redo of the tick.
-        raise fused.Stop("tick", "%s %s" % (type(error).__name__, error), 2)
+        raise fused.Stop("tick", "%s %s" % (type(error).__name__, error), 2) from error
 
 
 if __name__ == "__main__":

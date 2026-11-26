@@ -92,7 +92,7 @@ def added_since_last_resume(path, steps, mark):
     except OSError:
         return True
     except ValueError as error:
-        raise UnreadableLog(f"add-ledger-step.sh: cannot read {log}, line: {error.line}")
+        raise UnreadableLog(f"add-ledger-step.sh: cannot read {log}, line: {error.line}") from error
     names = [event.get("event") for event in events]
     if "resume" not in names:
         return True
@@ -137,8 +137,8 @@ def restates_list(path, unit):
             if heading == unit and line.startswith("|")][2:]
     try:
         current = requirements.claims(requirements.list_path(unit), unit)
-    except FileNotFoundError:
-        raise MissingUnit(unit)
+    except FileNotFoundError as error:
+        raise MissingUnit(unit) from error
     return sorted(current.splitlines()) == sorted("\t".join(row) for row in rows)
 
 

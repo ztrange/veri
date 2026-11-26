@@ -62,8 +62,8 @@ def _owed():
         return {}
     try:
         stored = _load(path)
-    except (OSError, ValueError):
-        raise _Malformed("%s is unreadable or not JSON" % path)
+    except (OSError, ValueError) as error:
+        raise _Malformed("%s is unreadable or not JSON" % path) from error
     if not isinstance(stored, dict):
         raise _Malformed("%s is not a JSON object" % path)
     for prd, entry in stored.items():

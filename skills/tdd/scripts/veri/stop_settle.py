@@ -60,7 +60,7 @@ def answered(where, *args, **kw):
     try:
         return fused.checked(where, *args, **kw)
     except fused.Stop as stop:
-        raise fused.Stop(stop.where, stop.what, 2)
+        raise fused.Stop(stop.where, stop.what, 2) from None
 
 
 def leaves(wt, n):

@@ -73,7 +73,7 @@ def cost_check(wt, step):
     try:
         over = Decimal(out.strip()) > Decimal(budget)
     except InvalidOperation:
-        raise Stop("cost-check", "spent %s budget %s unreadable" % (out.strip(), budget), 2)
+        raise Stop("cost-check", "spent %s budget %s unreadable" % (out.strip(), budget), 2) from None
     if over:
         raise Stop("cost-check", "spent %s over the step budget %s" % (out.strip(), budget), 1)
 
