@@ -26,4 +26,4 @@
 - [x] `skills/tdd/BAIL.md` lists `row-untraced`, exit 1, a process failure: a `trace-rows` leaf answered `UNTRACED` for a row of the issue ⟦skill-edit⟧ ⟦criterion 11⟧
 - [x] `skills/tdd/SKILL-EDIT.md` states the trace, before the grade on both paths and blind to the step's text and the author's report, its three answers and their routes ⟦skill-edit⟧ ⟦criterion 11⟧
 - [x] `skills/tdd/scripts/prompts/verify-diff.md` REJECTs a doc sentence the step's diff adds or changes that states a behaviour no file at `HEAD` shows, finds a site an issue says "wherever" by search, and re-reads the doc sites naming a behaviour the diff changes ⟦skill-edit⟧ ⟦criterion 10⟧
-- [ ] The PR body carries a cost line: one sonnet leaf per `⟦skill-edit⟧` step, none on runs without one, on the subscription; cheaper option not taken: the grader alone. The conductor writes it at the Draft PR step ⟦human-owed⟧ ⟦criterion 12⟧
+- [x] The PR body carries a cost line: one sonnet leaf per `⟦skill-edit⟧` step, none on runs without one, on the subscription; cheaper option not taken: the grader alone. The conductor writes it at the Draft PR step ⟦human-owed⟧ ⟦criterion 12⟧
