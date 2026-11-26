@@ -74,3 +74,18 @@ def test_an_added_bare_call_to_any_other_function_prints_nothing_and_exits_0(
     monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (0, "", "")
+
+
+def test_an_added_fused_call_unpacking_its_exit_code_into_underscore_is_printed_and_exits_1(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    (tmp_path / "mod.py").write_text("import fused\n_, body, _ = fused.call(\"gh\", \"api\", \"x\")\n")
+    diff = ("diff --git a/mod.py b/mod.py\n"
+            "index 1111111..2222222 100644\n"
+            "--- a/mod.py\n"
+            "+++ b/mod.py\n"
+            "@@ -1 +1,2 @@\n"
+            " import fused\n"
+            "+_, body, _ = fused.call(\"gh\", \"api\", \"x\")\n")
+    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:2\n", "")
