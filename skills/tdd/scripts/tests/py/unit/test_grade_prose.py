@@ -1471,7 +1471,7 @@ def test_a_confirming_re_grade_reply_with_no_grades_block_is_relaunched_and_a_va
 
     code, out, err = run_cli(grade_prose, ["REQUIREMENTS.md", "unit.md"], cwd=tmp_path)
 
-    assert code in (0, 1), (code, out, err)
+    assert (code, out) == (1, "A1: FAIL - not blue\n"), (code, out, err)
 
 
 @pytest.mark.tree_audit("the skills directory, for every skills/v*/GRADED file")
