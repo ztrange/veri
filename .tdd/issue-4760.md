@@ -1,7 +1,7 @@
 # Plan for #4760 — PRD 040.4: test quality: a weak test names its bug, and a red strengthened test is a repair
 
 - [x] `add-ledger-step.sh` given a step carrying `⟦quality-repair⟧` appends it with no `⟦added⟧`, `quality-repair` being one of `REPAIR_MARKS` in `skills/tdd/scripts/veri/add_ledger_step.py` (a case in `skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py`) ⟦criterion 2⟧
-- [ ] a ledger line `- [ ] x ⟦diff-checked⟧ ⟦quality-repair⟧ ⟦criterion 3⟧` is read by `KIND_RE` in `skills/tdd/scripts/veri/ledger.py` as kind `diff-checked` with criterion 3 (a case in `skills/tdd/scripts/tests/py/unit/test_ledger.py`) ⟦criterion 2⟧
+- [x] a ledger line `- [ ] x ⟦diff-checked⟧ ⟦quality-repair⟧ ⟦criterion 3⟧` is read by `KIND_RE` in `skills/tdd/scripts/veri/ledger.py` as kind `diff-checked` with criterion 3 (a case in `skills/tdd/scripts/tests/py/unit/test_ledger.py`) ⟦criterion 2⟧
 - [ ] `counted_steps` in `skills/tdd/scripts/veri/ledger_growth.py` leaves a `⟦diff-checked⟧ ⟦quality-repair⟧` step out of both the growth count and the plan size (a case in `skills/tdd/scripts/tests/py/unit/test_ledger_growth.py`) ⟦criterion 2⟧
 - [ ] `tunables.get("VERI_QUALITY_REPAIRS")` with the variable unset reads `1`, its `skills/tdd/scripts/veri/tunables.py` entry stating no refusal (preflight refuses a bad value in its own words, as for `VERI_MISSING_REROUTE_BUDGET`), so the refusing-table cases of `skills/tdd/scripts/tests/py/unit/test_tunables.py` stand unchanged (a case in that file) ⟦criterion 3⟧
 - [ ] preflight with `VERI_QUALITY_REPAIRS=x` or `VERI_QUALITY_REPAIRS=-1` stops at step 5 naming `VERI_QUALITY_REPAIRS`, exit 2, before `step-budget.sh` runs (a case in `skills/tdd/scripts/tests/py/unit/test_preflight.py`) ⟦criterion 4⟧

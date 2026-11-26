@@ -54,6 +54,13 @@ def test_4472_a_branch_repair_step_without_diff_checked_is_read_as_kind_step_wit
 
     assert [(step.kind, step.criterion) for step in steps] == [("step", "3")]
 
+def test_4760_a_quality_repair_step_keeps_its_diff_checked_kind_past_the_quality_repair_mark():
+    ledger = importlib.import_module("veri.ledger")
+
+    steps = ledger.ledger_steps("- [ ] x ⟦diff-checked⟧ ⟦quality-repair⟧ ⟦criterion 3⟧\n")
+
+    assert [(step.kind, step.criterion) for step in steps] == [("diff-checked", "3")]
+
 def test_ledger_steps_marks_added_only_by_lib_ledger_sh_s_suffix_rule():
     text = (
         "- [ ] a ⟦added⟧ b ⟦criterion 2⟧\n"
