@@ -2097,3 +2097,33 @@ def test_the_trace_prompt_carries_neither_the_step_text_nor_the_author_report(tm
 
     assert prompts and "CLAIM S1 It has three legs." in prompts[0], (code, out, err, prompts)
     assert not [p for p in prompts if "STEP-TEXT-ZEBRA" in p or "AUTHOR-REPORT-QUOKKA" in p], prompts
+
+
+@pytest.mark.parametrize("answer", [
+    "TRACED A2 skills/widget.py:12\nTRACED S1 skills/widget.py:30",
+    "TRACED A2 skills/widget.py:12\nNOT-CODE S1",
+])
+def test_a_trace_answer_of_traced_lines_for_every_claim_or_a_mix_with_not_code_goes_on_to_the_grade_4759(tmp_path, monkeypatch, skill_edit, run_cli, fake_processes, answer):
+    trace = importlib.import_module("veri.skill_edit_step")._trace
+
+    def detach(line, **kw):
+        (tmp_path / ".tdd" / "verify-trace-rows.log").write_text(
+            json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": answer}) + "\n")
+        return 0, "", ""
+
+    case = skill_edit(
+        unit="The widget is painted a deep blue.\n",
+        issue="## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n",
+        grade=[(1, "A2: FAIL - no\n"), (0, "")],
+        author=lambda *a: (tmp_path / "unit.md").write_text(
+            "The widget is painted a deep blue. It is round.\n") and 0,
+        guard=lambda unit, base, pins: [])
+    monkeypatch.setattr(case.step, "_trace", trace)
+    fake_processes.answers({"stop-requested.sh": (3, "", ""), "detach-leaf.sh": detach,
+                            "wait-leaf.sh": (0, "", "")})
+
+    code, out, err = run_cli(case.step, ["issue.md", "unit.md"])
+
+    assert (code, len(case.graded)) == (0, 2), (code, out, err)
