@@ -462,10 +462,9 @@ def finish(n, wt, baseline, full, fast, alone, reused, full_secs):
     if not tunables.parses("VERI_STEP_GROWTH_PERCENT", percent):
         sys.stdout.write("VERI_STEP_GROWTH_PERCENT=%s: not a whole number >= 0\n" % percent)
         return stopped(5, "VERI_STEP_GROWTH_PERCENT", 2)
-    if not tunables.get("VERI_MISSING_REROUTE_BUDGET").isdigit():
-        return stopped(5, "VERI_MISSING_REROUTE_BUDGET", 2)
-    if not tunables.get("VERI_QUALITY_REPAIRS").isdigit():
-        return stopped(5, "VERI_QUALITY_REPAIRS", 2)
+    for name in ("VERI_MISSING_REROUTE_BUDGET", "VERI_QUALITY_REPAIRS"):
+        if not tunables.get(name).isdigit():
+            return stopped(5, name, 2)
     checked(5, script("step-budget.sh"), cwd=wt)
     checked(5, script("adjudicate.sh"), "--check-budget", cwd=wt)
     models = [checked(6, script("leaf-model.sh"), leaf, cwd=wt).strip()
