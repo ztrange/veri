@@ -51,6 +51,8 @@ def run(n):
             steps = [line for line in read_ledger(run_dir.ledger(wt, n)).split("\n") if STEP_RE.fullmatch(line)]
             if sum(has_kind(line, "⟦quality-repair⟧") for line in steps) < int(tunables.get("VERI_QUALITY_REPAIRS")):
                 quality_repair(n, wt, found)
+            else:
+                unrepaired(n, wt, found)
         else:
             flip(n, wt, step, values)
     fused.checked("tick", fused.script("step-tick.sh"), n, cwd=wt)
@@ -65,6 +67,14 @@ def quality_repair(n, wt, found):
     code = fused_step.append_repair("tick", wt, n, text, "plan: quality-repair step")
     if code != 0:
         raise fused.Stop("tick", "add-ledger-step.sh exit %d" % code, 2)
+
+
+def unrepaired(n, wt, found):
+    """A POSSIBLE-BUG: value `<file>::<case> <expects X, code yields Y>` past VERI_QUALITY_REPAIRS (SG5), appended to
+    .tdd/issue-<n>-test-quality as the `<kind> | <file>::<case> | <why>` line the PR body's ### Test quality renders."""
+    case, _, why = " ".join(found.split()).partition(" ")
+    with open(os.path.join(wt, ".tdd", "issue-%s-test-quality" % n), "a", encoding="utf-8") as record:
+        record.write("possible-bug | %s | %s; not fixed: past VERI_QUALITY_REPAIRS\n" % (case, why))
 
 
 def flip(n, wt, step, values):
