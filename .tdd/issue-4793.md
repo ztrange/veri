@@ -1,0 +1,3 @@
+# Plan for #4793 — vish lanes die when they end their turn waiting on a child the Agent tool launched asynchronously
+
+- [ ] `skills/vish/SKILL.md` `## Who does what` rewords VSH31: no foreground child is asked for; every child the main thread starts (a cycle agent, a baseline or full-suite runner, the CI watch) may return asynchronously, and after each launch the main thread waits inside its turn with a blocking watch that has its own timeout (a `Monitor` until-loop or an equivalent, on the child's result notice, its commit in the worktree or its output file) until the child completes ⟦skill-edit⟧ ⟦criterion 1⟧
