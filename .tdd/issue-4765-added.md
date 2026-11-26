@@ -1,0 +1,1 @@
+- [ ] Go-red: a variable named `l` planted in a tracked module turns the ruff gate case red (ruff names E741), probe `skills/tdd/scripts/veri/ledger.py` `GO_RED_MARK = "⟦go-red⟧"` → `GO_RED_MARK = l = "⟦go-red⟧"` on `skills/tdd/scripts/tests/py/test_ruff_tree_audit_process.py::test_the_repository_passes_ruff_under_its_config` ⟦go-red⟧ ⟦criterion 2⟧
