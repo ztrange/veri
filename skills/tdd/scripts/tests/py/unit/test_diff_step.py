@@ -350,3 +350,20 @@ def test_4760_a_test_quality_step_whose_leaf_reports_neither_a_possible_bug_nor_
     assert "add-ledger-step.sh" not in fake.names()
     assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
     assert record.read_text() == "fixes=1\n"
+
+
+def test_4760_a_quality_repair_step_whose_leaf_reports_a_possible_bug_still_launches_verdict_diff(diff):
+    """SG2's counter-case: a ⟦quality-repair⟧ step carries no ⟦test-quality⟧ mark, so its POSSIBLE-BUG line is judged
+    by verify-diff like any ordinary diff-checked step's, and the repair adds no further repair step."""
+    repair = "fix the split ⟦diff-checked⟧ ⟦quality-repair⟧ ⟦criterion 1⟧"
+    report = "SUITE: ok\n" + POSSIBLE_BUG
+    diff(step=repair, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    second = diff(step=repair, answers={("wait-leaf.sh", "verdict-diff"): (3, "")}, report=report)
+    third = diff(step=repair, report=report)
+
+    assert (second[0], second[1].splitlines()[-1]) == (3, "waiting on verdict-diff")
+    assert second[3].launched() == ["verdict-diff"]
+    assert third[0] == 0, third[2]
+    for _, _, _, fake in (second, third):
+        assert "add-ledger-step.sh" not in fake.names()
+        assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
