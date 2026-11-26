@@ -78,7 +78,7 @@ def _refusal(issue, unit):
         return "rows for %s are not under ## Requirements" % unit
     if any(heading is None and line.startswith("|") for heading, line in issue_requirements_lines(issue)):
         return "a ## Requirements row is under no ### unit heading"
-    if (any(l.strip() == "## Requirements" for l in requirements.read_lines(issue))
+    if (any(line.strip() == "## Requirements" for line in requirements.read_lines(issue))
             and not any(names_unit(h, unit) for h, _ in issue_requirements_lines(issue))):
         return "## Requirements has no ### heading for unit: " + unit
     if _headerless(issue, unit):
@@ -143,11 +143,11 @@ def _create(unit, path, rows):
 
 def _move_table(unit, path):
     lines = requirements.read_lines(unit)
-    start = next((n for n, l in enumerate(lines) if l.strip() == "## Requirements"), None)
+    start = next((n for n, line in enumerate(lines) if line.strip() == "## Requirements"), None)
     if start is None:
         return False
     end = next((n for n in range(start + 1, len(lines)) if lines[n].startswith("## ")), len(lines))
-    table = [l for l in lines[start:end] if l.startswith("|")]
+    table = [line for line in lines[start:end] if line.startswith("|")]
     if not table:
         return False
     _append_section(path, unit, table)
@@ -229,7 +229,7 @@ def apply(issue, unit):
         row = reworded.get(row_id(line), line)
         lines[number] = None if _row_text(row) == "(dropped)" else row
     lines[last + 1:last + 1] = new
-    _write(path, [l for l in lines if l is not None])
+    _write(path, [line for line in lines if line is not None])
     return moved
 
 

@@ -606,7 +606,7 @@ def _search_issues(args):
             break
         for i in items:
             row = {"state": (i.get("state") or "").upper(),
-                   "labels": [{"name": l["name"]} for l in i.get("labels") or []],
+                   "labels": [{"name": label["name"]} for label in i.get("labels") or []],
                    "closedAt": i.get("closed_at"), "updatedAt": i.get("updated_at"),
                    "createdAt": i.get("created_at"), "body": i.get("body")}
             if "comments" in wanted:

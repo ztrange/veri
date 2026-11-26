@@ -252,7 +252,7 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
                 reason_text):
             return 1
         if event_name == "already-holds-step" and not any(
-            l.startswith("REASON:") and l[7:].strip() for l in reason_text.splitlines()
+            line.startswith("REASON:") and line[7:].strip() for line in reason_text.splitlines()
         ):
             return 1
     ran, ran_command, ran_code = run_case(case) if case else (0, "", 0)
@@ -313,8 +313,8 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
         return_tests_to_head()
     if left is None and reason_file:
         step = step_line
-        reason = next((l[7:].strip() for l in reason_text.splitlines()
-                       if l.startswith("REASON:") and l[7:].strip()), "")
+        reason = next((line[7:].strip() for line in reason_text.splitlines()
+                       if line.startswith("REASON:") and line[7:].strip()), "")
         tdd_parent = os.path.dirname(os.path.dirname(os.path.abspath(ledger_path)))
         return event.append(tdd_parent, event.context(os.environ), event_name,
                             ["step=" + step.split("] ", 1)[1], "reason=" + reason])

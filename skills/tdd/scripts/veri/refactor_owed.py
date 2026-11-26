@@ -42,7 +42,7 @@ def all_tests(bounds):
 
 
 def joined(lines):
-    return "".join(f"{l}\n" for l in lines)
+    return "".join(f"{line}\n" for line in lines)
 
 
 def bullets(transforms):
@@ -100,7 +100,7 @@ def clear(file, reason):
     stale = f"{NOT_DONE_MARK}{reason} | "
     try:
         with open(file, errors="surrogateescape") as owed:
-            kept = [l for l in owed.read().splitlines(keepends=True) if not l.startswith(stale)]
+            kept = [line for line in owed.read().splitlines(keepends=True) if not line.startswith(stale)]
         with open(file, "w", errors="surrogateescape") as owed:
             owed.write("".join(kept))
     except OSError as error:
@@ -132,7 +132,7 @@ def owed_lines(file):
 
 
 def applied_records(lines):
-    rows = (l[len(APPLIED_MARK):].partition(" | ") for l in lines if l.startswith(APPLIED_MARK))
+    rows = (line[len(APPLIED_MARK):].partition(" | ") for line in lines if line.startswith(APPLIED_MARK))
     records = {}
     for sha, _, rest in rows:
         transform, _, subject = rest.partition(SUBJECT_SEP)
@@ -141,7 +141,7 @@ def applied_records(lines):
 
 
 def not_done_records(lines):
-    return [l[len(NOT_DONE_MARK):].partition(" | ") for l in lines if l.startswith(NOT_DONE_MARK)]
+    return [line[len(NOT_DONE_MARK):].partition(" | ") for line in lines if line.startswith(NOT_DONE_MARK)]
 
 
 def render(file):
@@ -149,23 +149,23 @@ def render(file):
     kept, test_only, done = [], [], applied_records(lines)
     skipped = not_done_records(lines)
     skipped_transforms = {t for _, _, t in skipped}
-    for l in lines:
-        if l.startswith(NOT_DONE_MARK):
+    for line in lines:
+        if line.startswith(NOT_DONE_MARK):
             continue
-        if l.startswith(APPLIED_MARK) or (
-                l.startswith("- ") and (l[2:] in done or l[2:] in skipped_transforms)):
+        if line.startswith(APPLIED_MARK) or (
+                line.startswith("- ") and (line[2:] in done or line[2:] in skipped_transforms)):
             continue
-        if l.startswith(OUT_OF_SCOPE_MARK):
-            text = l[len(OUT_OF_SCOPE_MARK):]
+        if line.startswith(OUT_OF_SCOPE_MARK):
+            text = line[len(OUT_OF_SCOPE_MARK):]
             if text not in done and text not in skipped_transforms:
                 kept.append("- " + text)
             continue
-        if l.startswith(TEST_ONLY_MARK):
-            test_only.append(l[len(TEST_ONLY_MARK):])
+        if line.startswith(TEST_ONLY_MARK):
+            test_only.append(line[len(TEST_ONLY_MARK):])
         else:
-            kept.append(l)
-    kept = [l for l, after in zip(kept, kept[1:] + ["### "], strict=False)
-            if not (l.startswith("### ") and after.startswith("### "))]
+            kept.append(line)
+    kept = [line for line, after in zip(kept, kept[1:] + ["### "], strict=False)
+            if not (line.startswith("### ") and after.startswith("### "))]
     sections = test_only or done or skipped
     if not (kept or sections or os.path.isdir(file)):
         return 0
@@ -189,11 +189,11 @@ def structural_lines(file):
     lines = owed_lines(file)
     done = applied_records(lines)
     handled = done.keys() | {t for _, _, t in not_done_records(lines)}
-    counts = Counter(l[2:].removeprefix(OUT_OF_SCOPE_PREFIX) for l in lines
-                     if l.startswith("- ") and not l.startswith(TEST_ONLY_MARK)
-                     and not l.startswith("- " + OUT_OF_BOUNDS_PREFIX)
-                     and l[2:] not in handled
-                     and l[2:].removeprefix(OUT_OF_SCOPE_PREFIX) not in handled)
+    counts = Counter(line[2:].removeprefix(OUT_OF_SCOPE_PREFIX) for line in lines
+                     if line.startswith("- ") and not line.startswith(TEST_ONLY_MARK)
+                     and not line.startswith("- " + OUT_OF_BOUNDS_PREFIX)
+                     and line[2:] not in handled
+                     and line[2:].removeprefix(OUT_OF_SCOPE_PREFIX) not in handled)
     listed = "\n".join(t for t, _ in counts.most_common()).rstrip("\n")
     return (0, listed.split("\n")) if listed else (3, [])
 

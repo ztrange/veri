@@ -93,7 +93,7 @@ def main(argv):
     wt = found[1]
     path = fused.settled_file(wt, n, "run-pr")
     held = open(path).read() if os.path.exists(path) else ""
-    seam = next((l[5:] for l in held.splitlines() if l.startswith("seam=")), "")
+    seam = next((line[5:] for line in held.splitlines() if line.startswith("seam=")), "")
     sha = ledger_sha(wt, n)
     if first is None and sha and "sha=%s\n" % sha in held:
         if seam == "body":
