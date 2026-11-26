@@ -53,14 +53,20 @@ def test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and
         kept[where] = re.search(r"smaller.*⟦criterion (\d+)⟧", ledger.read_text()).group(1)
     assert kept == {"instead-of": "7", "before": "7"}
 
-    uncovered = [(n, line) for n, line in numbered(r'\$S/add-ledger-step\.sh .*after "\$\(\$S/next-pending-refactor\.sh') if in_skill_md(n)]
-    assert len(uncovered) == 1, f"SKILL.md's uncovered-spec add-ledger-step.sh calls: {uncovered}"
-    at, call = uncovered[0]
-    assert "$S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md after" in call, f"SKILL.md's uncovered-spec call: {call.strip()}"
-    near = plain(skill_lines()[at - 1:at + 30])
-    assert re.search(r"<k> is the number of the issue's numbered acceptance criterion the behaviour serves,\s+read from the issue's ## acceptance criteria", near), f"SKILL.md:{at} never says <k> is read from the issue's numbered acceptance criteria"
-    assert re.search(r"one call per criterion when they serve different ones", near), f"SKILL.md:{at} never says one call per criterion"
-    assert re.search(r"add-ledger-step\.sh exit 2 .*bail with cause step-add-refused, calling add-ledger-step\.sh no more", near), f"SKILL.md:{at} never bails step-add-refused on exit 2"
+    after_calls = [(n, line) for n, line in numbered(r'\$S/add-ledger-step\.sh .*after "\$\(\$S/next-pending-refactor\.sh') if in_skill_md(n)]
+    assert len(after_calls) == 1, f"SKILL.md's add-ledger-step.sh calls after the pending-refactor step: {after_calls}"
+    at, call = after_calls[0]
+    assert "$S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md after" in call, f"SKILL.md:{at}'s call after the pending-refactor step: {call.strip()}"
+    ledger = tmp_path / "after" / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir(parents=True)
+    ledger.write_text("# Plan for #42\n\n- [ ] anchor ⟦criterion 7⟧\n")
+    assert add_ledger_step.main(["--criterion", "3", str(ledger), "after", "anchor", "one", "two"]) == 0
+    assert add_ledger_step.main(["--criterion", "5", str(ledger), "after", "anchor", "three"]) == 0
+    tags = dict(re.findall(r"- \[ \] (\w+) .*?⟦criterion (\d+)⟧", ledger.read_text()))
+    assert tags == {"anchor": "7", "one": "3", "two": "3", "three": "5"}, f"--criterion <k> tags each call's steps with its own k, not the anchor's 7: {tags}"
+    before = ledger.read_text()
+    assert add_ledger_step.main(["--criterion", "<k>", str(ledger), "after", "anchor", "four"]) == 2
+    assert ledger.read_text() == before
 
 
 def first_line(needle):
