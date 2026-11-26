@@ -743,6 +743,9 @@
 | CY131 | The prompt lists the ledger's later unchecked steps and tells the verifier to put a `LATER_STEP: <step text>` line before the `VERDICT:` line when a `MISSING_TEST:` behaviour is one of them. | The verifier is the only leaf that sees the Green's gap and the plan together. |
 | VG20 | Where it sends the verifier through `{{MUTATION_PROBE}} <file> <old> <new>`, the template says that a probe exit 2 whose stderr names an allowed address domain means any email address in `<old>`/`<new>` must be on that domain, and the verifier retries with one that is. | Same recovery in verify-green as in verify-pin. |
 | VG21 | The prompt tells the verifier that on a REJECT it puts one `CHECK: <n>` line before the `VERDICT:` line, `<n>` the number of the lowest-numbered of its checks that failed. (The paragraphs after `### Your checks`.) | The failed check classes the reject, so green rejects can be counted by cause without reading every reason (PRD 024.9). |
+| VG22 | A check tells the verifier to run `{{DISCARDED_EXIT}}` in the worktree and to REJECT each `<file>:<line>` it prints, naming the line, unless the issue's spec says that call's failure is ignored; its exit 0 or 3 passes the check. (The check list, *Your checks*.) | A discarded exit code is an omission no mutant of a changed line flips (PR #4462's `_, body, _ = fused.call(…)`). |
+| VG23 | The same check says that on an exit 2 from `{{DISCARDED_EXIT}}` the verifier writes no `VERDICT:` line, so a check that could not run is never a REJECT. (The same check.) | 1 and 2 are never collapsed. |
+| VG24 | Check 4, *Only code a test requires*, says to REJECT when the verifier's own reason for a PASS would name a guard, argument or clause whose removal turns no case of the fast tier plus the `changed` run red. (Check 4.) | A PASS that names unrequired code is a surviving mutant passed off (leak audit class A, PRs #4405, #4436). |
 
 ## skills/tdd/scripts/prompts/verify-refactor.md
 
