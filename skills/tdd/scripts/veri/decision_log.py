@@ -104,7 +104,7 @@ def main(argv):
     if argv[:1] != ["record"] or len(argv) != 5 or not all(a.strip() for a in argv[1:]) or argv[4] not in BY:
         sys.stderr.write(USAGE)
         return 2
-    for name, value in zip(("question", "decision", "rule"), argv[1:4]):
+    for name, value in zip(("question", "decision", "rule"), argv[1:4], strict=True):
         if len(value) > FIELD_MAX:
             sys.stderr.write("decision-log.sh: the %s is over %d characters; record a shorter one\n" % (name, FIELD_MAX))
             return 2

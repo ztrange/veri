@@ -248,7 +248,7 @@ def main(argv):
         warn("head-sha '%s' is not a full 40-hex sha; a full 40-hex sha is required" % want)
         return 2
     numbers = []
-    for which, given in zip(("slice-seconds", "total-seconds"), (argv[1:3] + ["", ""])[:2]):
+    for which, given in zip(("slice-seconds", "total-seconds"), (argv[1:3] + ["", ""])[:2], strict=True):
         value = decimal(given) if given else ""
         if value is None:
             warn("%s '%s' is not a non-negative whole number" % (which, given))

@@ -92,7 +92,7 @@ def run_case(case):
 
 
 def changed_index(text, new):
-    return next(i for i, (old, line) in enumerate(zip(text.split("\n"), new.split("\n"))) if old != line)
+    return next(i for i, (old, line) in enumerate(zip(text.split("\n"), new.split("\n"), strict=True)) if old != line)
 
 
 def changed_line(text, new):

@@ -144,7 +144,7 @@ def _redacted_argv(argv, cleanup):
     themselves are left as they were."""
     copies = _Copies(cleanup)
     out = []
-    for flag, arg in zip([None] + list(argv), argv):
+    for flag, arg in zip([None] + list(argv), argv, strict=False):
         if flag in _FILE_OPTIONS:
             out.append(copies.of(arg) or redact(arg))
             continue

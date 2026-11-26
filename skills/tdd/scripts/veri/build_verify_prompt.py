@@ -381,7 +381,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
                                (b"ONTO_SHA", os.fsencode(slots["ONTO_SHA"])),
                                (b"PRE_REBASE_SHA", os.fsencode(slots["PRE_REBASE_SHA"])),
                                (b"TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh")),
-                               *zip((b"AFFECTED_RUN_LINE", b"RUN_LINE"), run_lines),
+                               *zip((b"AFFECTED_RUN_LINE", b"RUN_LINE"), run_lines, strict=True),
                                (b"MUTATION_PROBE", os.fsencode(f"{HERE}/mutation-probe.sh")),
                                (b"DISCARDED_EXIT", os.fsencode(f"{HERE}/discarded-exit.sh")),
                                (b"NEAR_DUPLICATES", os.fsencode(f"{HERE}/near-duplicates.sh"))))

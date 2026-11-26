@@ -120,7 +120,7 @@ def _held(stack, window):
         return _refuse("reading origin/%s..%s failed: %s; nothing pushed" % (stack, stack, " ".join(str(failed).split())))
     # Each lease is origin's branch as fetched, read before anything is pushed.
     leases = [_rev("refs/remotes/origin/" + branch) or "" for _, _, branch in joins]
-    for (sha, _, branch), lease in zip(joins, leases):
+    for (sha, _, branch), lease in zip(joins, leases, strict=True):
         code = _leased(sha, branch, lease, "the stack not pushed")
         if code:
             return code

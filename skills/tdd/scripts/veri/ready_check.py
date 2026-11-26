@@ -501,7 +501,7 @@ def probe_bypass(scratch):
         return "bypassPermissions", None
     tools = sorted({str(denial.get("tool_name")) for denial in denials if isinstance(denial, dict)})
     said = ", ".join(f"`{tool}`" for tool in tools) or "none listed"
-    missing = [name for name, held in zip(PROBE_FILES, written) if not held]
+    missing = [name for name, held in zip(PROBE_FILES, written, strict=True) if not held]
     places = DENY_PLACES
     if PROBE_FILES[2] in missing:
         places += (", and permissions.ask and permissions.blockReadsOutsideWorkingDirectories, since Claude Code "

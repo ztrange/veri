@@ -281,7 +281,7 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
             return 2
         accepted = _accepted_per_digest(digests, nows, olds) if nows else []
         if case not in exempt and (name, case) not in sanctioned and not (fixture and name == fixture.group(1)) and (
-                not nows or any(d not in held for d, held in zip(digests, accepted))
+                not nows or any(d not in held for d, held in zip(digests, accepted, strict=True))
                 or ((name, case) in helper_digests
                     and _helpers_stale(releg, name, case, helper_digests[(name, case)], text, "\n".join(nows), moved))):
             entry = "%s (%s)" % (case, owner)
@@ -923,7 +923,7 @@ def _main(argv):
     if argv[:1] == ["rerecord-rebased"] and len(argv) == 3:
         return rerecord_rebased(argv[1], argv[2])
     if (argv[:1] == ["check-earlier"] and len(argv) >= 4 and argv[2] == "--step" and argv[3]
-            and len(rest) % 2 == 0 and all(flag == "--except" and name for flag, name in zip(rest[::2], rest[1::2]))):
+            and len(rest) % 2 == 0 and all(flag == "--except" and name for flag, name in zip(rest[::2], rest[1::2], strict=True))):
         return _check_earlier(argv[1], argv[3], rest[1::2])
     mode = argv[0] if argv else ""
     if mode == "check-earlier":

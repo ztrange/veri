@@ -545,7 +545,7 @@ def names(arg, root, nodeid, path):
     held = nodeid.split("::")[1:]
     return len(held) >= len(parts) and all(
         own == part or (index == len(parts) - 1 and own.startswith(part + "["))
-        for index, (own, part) in enumerate(zip(held, parts)))
+        for index, (own, part) in enumerate(zip(held, parts, strict=False)))
 
 
 class Collected:
@@ -724,7 +724,7 @@ def _main(argv):
         load_timeouts.LEG.clear()
         load_timeouts.LEG.update(leg_facts)
         os.close(watch.out)
-        for record, kept in zip(records, saved):
+        for record, kept in zip(records, saved, strict=True):
             record.clear()
             record.update(kept) if isinstance(record, set) else record.extend(kept)
         if serial_seen is None:

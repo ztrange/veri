@@ -74,7 +74,7 @@ def added_step(text, k, planned=False):
 
 
 def repair_following(steps, anchor, mark):
-    return next((following for line, following in zip(steps, steps[1:]) if anchor in line and is_one_per_run(following, mark)), None)
+    return next((following for line, following in zip(steps, steps[1:], strict=False) if anchor in line and is_one_per_run(following, mark)), None)
 
 
 class UnreadableLog(Exception):

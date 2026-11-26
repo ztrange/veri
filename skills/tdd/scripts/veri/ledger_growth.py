@@ -127,7 +127,7 @@ def record_rewordings(ledger, pre_text, text):
     issue = re.fullmatch(r"issue-(\d+)\.md", os.path.basename(ledger))
     run_context = event.context(tunables.with_values(VERI_ISSUE=issue.group(1)) if issue else tunables.environment())
     run = os.path.dirname(os.path.dirname(os.path.abspath(ledger)))
-    for was, now in zip(old, new):
+    for was, now in zip(old, new, strict=True):
         if was != now:
             event.mark(run, run_context, "step-reworded", ["from=" + was, "to=" + now])
 

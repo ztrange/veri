@@ -130,7 +130,7 @@ def changed_paths(tree_before, head_before):
         # -z: git quotes a non-ASCII or odd name otherwise, and os.chmod would get the quoted text (#3087).
         raw = git("diff", "--raw", "-z", "--no-renames", tree_before, tree_after)
         fields_and_paths = raw.stdout.decode("utf-8", "surrogateescape").split("\0") if raw.returncode == 0 else []
-        for meta, path in zip(fields_and_paths[0::2], fields_and_paths[1::2]):
+        for meta, path in zip(fields_and_paths[0::2], fields_and_paths[1::2], strict=False):
             fields = meta[1:].split()
             if len(fields) == 5 and fields[4] == "M" and fields[2] == fields[3] and path in paths \
                     and {fields[0], fields[1]} == {"100755", "100644"}:

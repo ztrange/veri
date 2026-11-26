@@ -13,7 +13,7 @@ def own_words(body):
     """<body> without its quoted lines (`>`) and its code fences, stripped; "" when nothing else is left. A quote or a
     fence holds someone else's words (the park's own question, a leaf's output), never the decision."""
     fenced = markdown_sections.fenced_lines(body)
-    lines = [line for line, f in zip(body.splitlines(), fenced) if not f and not line.lstrip().startswith(">")]
+    lines = [line for line, f in zip(body.splitlines(), fenced, strict=True) if not f and not line.lstrip().startswith(">")]
     return "\n".join(lines).strip("\n")
 
 

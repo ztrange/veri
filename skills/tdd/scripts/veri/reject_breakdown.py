@@ -21,7 +21,7 @@ def phase_verdicts(text):
     header, body = rows[0], rows[2:]
     verdicts = {}
     for row in body:
-        cells = dict(zip(header, row))
+        cells = dict(zip(header, row, strict=True))
         verdicts[cells["phase"]] = (int(cells["PASS"]), int(cells["REJECT"]))
     return verdicts
 

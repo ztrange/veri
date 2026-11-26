@@ -71,7 +71,7 @@ def _spans(text):
 
 def old_cut_cases_all(text, call_form_only=False):
     found, starts, ends = _spans(text)
-    return [(m.group(1) or m.group(3), text[start:end].rstrip()) for m, start, end in zip(found, starts, ends)
+    return [(m.group(1) or m.group(3), text[start:end].rstrip()) for m, start, end in zip(found, starts, ends, strict=False)
             if m.group(3) or not call_form_only or text.startswith("func", start)]
 
 
@@ -156,7 +156,7 @@ def cut_cases(text):
     found, starts, ends = _spans(text)
     lines, def_ends = text.splitlines(keepends=True), _def_ends(text)
     cases = []
-    for m, start, end in zip(found, starts, ends):
+    for m, start, end in zip(found, starts, ends, strict=False):
         body = text[start:end]
         span = def_ends.get(text.count("\n", 0, start) + 1)
         closed = _call_end(text, text.rfind("(", start, m.start(3))) if m.group(3) else None

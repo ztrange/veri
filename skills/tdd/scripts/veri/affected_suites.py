@@ -84,7 +84,7 @@ def heading(line):
 
 def unfenced(lines):
     flat = "\n".join(" ".join(line.splitlines()) for line in lines)
-    for line, fenced in zip(lines, markdown_sections.fenced_lines(flat)):
+    for line, fenced in zip(lines, markdown_sections.fenced_lines(flat), strict=False):
         if not fenced:
             yield line
 
