@@ -492,6 +492,22 @@ def test_4472_split_exits_3_when_a_branch_repair_step_is_the_only_step_past_the_
     assert run_cli(ledger_growth, ["split", str(ledger)], env={"VERI_STEP_GROWTH_PERCENT": "50"}) == (3, "", "")
 
 
+def test_4760_split_leaves_a_quality_repair_step_out_of_the_growth_and_the_plan_size(
+        tmp_path, run_cli, ledger_growth, fake_processes):
+    split_history(fake_processes, SCOPED + "- [ ] fix x::y ⟦diff-checked⟧ ⟦quality-repair⟧ ⟦criterion 2⟧\n")
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text(
+        "# Plan for #42\n\n- [x] a cog exists ⟦criterion 1⟧\n- [ ] a wheel turns ⟦criterion 2⟧\n"
+        "- [ ] a gear meshes ⟦added⟧ ⟦criterion 2⟧\n- [ ] a spring coils ⟦added⟧ ⟦criterion 2⟧\n"
+        "- [ ] fix x::y ⟦diff-checked⟧ ⟦quality-repair⟧ ⟦criterion 2⟧\n"
+        "- [ ] fix z::w ⟦diff-checked⟧ ⟦quality-repair⟧ ⟦criterion 2⟧\n")
+
+    code, out, err = run_cli(ledger_growth, ["split", str(ledger)], env={"VERI_STEP_GROWTH_PERCENT": "50"})
+
+    assert (code, out.split("\n")[0], err) == (
+        0, "plan grew from 2 to 4 steps, past the growth bound of 1 (VERI_STEP_GROWTH_PERCENT 50% of 2, rounded up)", "")
+
+
 def split_second_line(directory, run_cli, ledger_growth, criteria):
     """The second stdout line of `split` over a ledger holding one step per entry of criteria (None: untagged), and a
     repair line that serves criterion 1; the case answers git with split_history."""

@@ -182,9 +182,9 @@ SCOPE_RE = re.compile(r"[0-9a-f]+ plan: scope\b")
 
 
 def counted_steps(text):
-    """The ledger's steps that count toward its size: every step line but a ⟦suite-repair⟧, ⟦ci-repair⟧ or ⟦branch-repair⟧ one."""
+    """The ledger's steps that count toward its size: every step line but a ⟦suite-repair⟧, ⟦ci-repair⟧, ⟦branch-repair⟧ or ⟦quality-repair⟧ one."""
     return [step for step in ledger_steps(text)
-            if not any(has_kind(step.text, mark) for mark in ("⟦suite-repair⟧", "⟦ci-repair⟧", "⟦branch-repair⟧"))]
+            if not any(has_kind(step.text, mark) for mark in ("⟦suite-repair⟧", "⟦ci-repair⟧", "⟦branch-repair⟧", "⟦quality-repair⟧"))]
 
 
 def split(ledger):
