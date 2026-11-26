@@ -127,9 +127,22 @@ A PRD issue that is not itself the work carries no opt-in label.
 
 ## 5. File
 
-File only the children the human names, each through `/vfile`, titled
-`PRD <nnn>.<k>: …`. Never start a run.
+File every sub-PRD of the plan, each through `/vfile` and titled `PRD <nnn>.<k>: …`, so each is
+an issue under the PRD umbrella, the issue titled `PRD <nnn>: …`. Never start a run.
 
-File the named children in dependency order, blockers first, so each child's `## Blocked by`
-names its blocker's real `#N`. A named child whose blocker is neither filed nor named is not
-filed until the human says whether to file the blocker too.
+When the PRD has no open issue titled `PRD <nnn>: …`, file that umbrella first, before any of
+its children, with no opt-in label.
+
+File the sub-PRDs in dependency order, blockers first, so each child's `## Blocked by` names its
+blocker's real `#N`.
+
+- A sub-PRD that is **fully defined** (its rows on the default branch, its blockers filed) is
+  opted in, unless the human said not to.
+- A sub-PRD **not yet fully defined** (an outline, rows on an unmerged PR, an open decision, a
+  measurement still owed) is filed through `/vfile`'s draft mode.
+
+### Settling a draft
+
+A later `/vplan` that settles a draft promotes it in place: rewrite the same issue's body with
+its rows and the issue body `/vfile` defines, remove the `draft` label, and add the opt-in label
+unless the human said not to. File no second issue for it.
