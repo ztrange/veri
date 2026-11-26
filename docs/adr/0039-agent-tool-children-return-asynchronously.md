@@ -2,8 +2,8 @@
 
 A child the Agent tool launches may return asynchronously: the launch answers "Async agent launched
 successfully" and the child's result arrives later as a notice, with no background flag set and no
-foreground mode to ask for. A session or subagent whose turn ends while such a child runs is never
-woken by the child's completion. So `skills/vish/SKILL.md` (`## Who does what`, VSH31) has the main
+foreground mode to ask for. A subagent whose turn ends while such a child runs is never woken by
+the child's completion (a top-level session is: the completion notice starts its next turn). So `skills/vish/SKILL.md` (`## Who does what`, VSH31) has the main
 thread wait inside its turn, on a blocking watch with its own timeout, after every launch. This
 records a property of the Claude Code harness, not of code in this repository; it narrows ADR-0001,
 whose "the parent only waits" assumed a child that blocks the parent's turn.
