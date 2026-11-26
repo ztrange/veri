@@ -6,6 +6,8 @@ tool or the Workflow tool. The decisive property is **control**: the parent owns
 subprocess's lifecycle, so a stuck or distracted leaf can be timed out, killed, and
 inspected (via a `tail -f` progress log) without losing the whole run. The Agent tool
 and Workflow give this up — when a nested agent hangs, the parent only waits.
+(ADR-0039 narrows this: an Agent-tool child may return asynchronously, so a parent that
+ends its turn is not blocked, and a subagent parent is never woken.)
 
 ## Considered options
 
