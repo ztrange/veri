@@ -927,6 +927,17 @@
 | VSD2 | It says the step's own uncommitted implementation and its own recorded Red case are outside the diff under judgement and are no reason to REJECT, and that the rule rejecting a test added by the step's own commits does not apply to that Red case. (Third sentence.) | The step's own case and implementation belong to verify-green, not this diff. |
 | VSD3 | It says a production file touched in that diff, or an assertion removed in it, is still a REJECT. (Last sentence.) | The relaxation covers the step's own work only; weakening an older case still fails. |
 
+## skills/tdd/scripts/prompts/_verify-diff-frozen.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| VDF1 | The fragment opens by saying the step's green edited test cases verify-red already judged, after their red was frozen, and tells the verifier to judge `git diff {{FROZEN_EDIT}}~1 {{FROZEN_EDIT}}` instead of the range above: exactly those edits to the step's frozen test files, nothing else. (First two sentences.) | The verifier judges the frozen-test edit the conductor waived, not the whole step. |
+| VDF2 | It says the step's uncommitted implementation is outside that diff and no reason to REJECT, and that the rule rejecting a test added by the step's own commits does not apply to the step's own Red case. (Third sentence.) | The implementation belongs to verify-green; the Red case is the thing edited, not a stray added test. |
+| VDF3 | It says the step's criterion is not the rule for this diff, that the closing rule's "PASS if the diff satisfies the step's criterion" does not apply to it, and that what verify-red judged is the bar. (Fourth sentence.) | Judged against the criterion, an edit that loosens the Red case until the implementation passes would PASS. |
+| VDF4 | It says PASS only if every edit keeps or strengthens what each edited case asserted when verify-red judged it, naming a moved fixture, import or helper and an added or tightened assertion as such edits. (Fifth sentence.) | A neutral or stronger edit is the only kind the waiver may let through. |
+| VDF5 | It says REJECT any edit that weakens it, naming an assertion loosened, removed or narrowed, an expected value changed, a case skipped or marked expected to fail, and the inputs a case exercises reduced. (Sixth sentence.) | Each is a way to make a frozen red pass without the behaviour it pinned. |
+| VDF6 | It says a production file in that diff is still a REJECT. (Last sentence.) | The snapshot names test files only; a production file there means the diff is not the test edit it claims to be. |
+
 ## skills/tdd/scripts/prompts/_verify-green-replaces-case.md
 
 | ID | Requirement | Why |

@@ -9,7 +9,7 @@ import pytest
 
 from conftest import SCRIPTS
 
-USAGE = (b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>] [--branch-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]"
+USAGE = (b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>|--frozen-edit <sha>] [--branch-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]"
          b"\n       build-verify-prompt.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>\n")
 
 
@@ -1586,6 +1586,46 @@ def test_3104_supersede_base_diff_prompt_judges_git_diff_of_that_sha_and_keeps_o
     assert f"git diff {sha}" in flat
 
 
+def test_frozen_edit_diff_prompt_judges_the_snapshot_pair_against_what_verify_red_judged_not_the_supersede_fragment_4730(
+        tmp_path, run_cli, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    sha = "abcdef1234567"
+
+    code, out, _ = run_cli(build_verify_prompt, [
+        "--step", "s", "--fast-cmd", "m", "--frozen-edit", sha,
+        "--branch-base", "0123abc", "diff", str(spec), "0123abd"])
+    flat = " ".join(out.split())
+
+    assert code == 0
+    assert f"git diff {sha}~1 {sha}" in flat
+    assert "keeps or strengthens what each edited case asserted when verify-red judged it" in flat
+    assert "an assertion loosened, removed or narrowed, an expected value changed" in flat
+    assert "no reason to REJECT" in flat
+    assert "recorded Red case are outside the diff under judgement and are no reason to REJECT" not in flat
+    assert "{{" not in flat
+
+
+def test_frozen_edit_exits_2_off_the_diff_phase_beside_supersede_base_or_when_not_lowercase_hex_4730(
+        tmp_path, run_cli, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    tail = ["--branch-base", "0123abc", "diff", str(spec), "0123abd"]
+
+    for value in ("zz", "0123ABC", "0123abc\nrationale"):
+        code, out, err = run_cli(build_verify_prompt, ["--step", "s", "--fast-cmd", "m", "--frozen-edit", value, *tail])
+        assert (code, out) == (2, "")
+        assert "--frozen-edit needs 7-40 lowercase hex characters" in err
+    code, out, err = run_cli(build_verify_prompt, ["--step", "s", "--fast-cmd", "m", "--frozen-edit", "abcdef1",
+                                                   "--supersede-base", "abcdef2", *tail])
+    assert (code, out) == (2, "")
+    assert "pass one" in err
+    code, out, err = run_cli(build_verify_prompt, ["--step", "s", "--fast-cmd", "m", "--frozen-edit", "abcdef1",
+                                                   "--branch-base", "0123abc", "green", str(spec), "t.py"])
+    assert (code, out) == (2, "")
+    assert "--frozen-edit is the diff phase's alone, not green's" in err
+
+
 def test_main_renders_a_diff_prompt_naming_a_unit_whose_skill_edit_step_ran_author_less_as_already_present_3404(
         tmp_path, capsysbinary, monkeypatch, build_verify_prompt):
     (tmp_path / ".tdd").mkdir()
@@ -2115,7 +2155,7 @@ def test_the_refactor_phase_without_step_green_refuses_with_the_usage_line_it_ha
     out, err = capsysbinary.readouterr()
 
     assert (code, out, err) == (2, b"", b"build-verify-prompt: refactor needs --step-green <sha>, the step's green tick\n"
-                                b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>]"
+                                b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>|--frozen-edit <sha>]"
                                 b" [--branch-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]"
                                 b"\n       build-verify-prompt.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>\n")
 

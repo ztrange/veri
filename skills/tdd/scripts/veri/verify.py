@@ -41,7 +41,7 @@ WRITE_BAN = {"PreToolUse": [{"matcher": "Write|Edit|MultiEdit|NotebookEdit", "ho
      "command": write_ban_command(sys.executable, os.path.join(SCRIPTS, "veri", "verifier_write_ban.py"))}]}]}
 LEAF_ARGS = ["--permission-mode", "bypassPermissions", "--settings", json.dumps({"hooks": WRITE_BAN})]
 USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>']"
-         " [--supersede-base <sha>] [--step-green <sha>] --branch-base <sha> <phase> <issue-spec-file>"
+         " [--supersede-base <sha>|--frozen-edit <sha>] [--step-green <sha>] --branch-base <sha> <phase> <issue-spec-file>"
          " <test-path> [<target-test-id>]"
          "\n       verify.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>")
 
@@ -215,6 +215,8 @@ def diff_gate(words, options):
     tip = "HEAD"
     if options["--supersede-base"]:
         tip = leaf_tree_guard.in_temp_index("write-tree")
+    if options["--frozen-edit"]:
+        tip = options["--frozen-edit"]
     branch, step_base = options["--branch-base"], words[2]
     deleted = deleted_cases(branch, step_base, tip)
     if deleted is None:
@@ -272,7 +274,8 @@ PHASE_GATES = {"diff": diff_gate, "rebase": rebase_gate, "red": red_gate}
 
 
 def main(argv):
-    options = {"--step": "", "--fast-cmd": "", "--supersede-base": "", "--branch-base": "", "--step-green": ""}
+    options = {"--step": "", "--fast-cmd": "", "--supersede-base": "", "--branch-base": "", "--step-green": "",
+               "--frozen-edit": ""}
     words = list(argv)
     while words and takes_a_value(words[0]):
         if len(words) < 2 or not words[1]:
@@ -321,7 +324,8 @@ def main(argv):
     code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words, branch_base=base,
                                             root=event.toplevel() or ".",
                                             ledger=ledger, supersede_base=options["--supersede-base"],
-                                            step_green=options["--step-green"])
+                                            step_green=options["--step-green"],
+                                            frozen_edit=options["--frozen-edit"])
     if code:
         return entry.to_contract(code)
     gate = PHASE_GATES.get(words[0])
