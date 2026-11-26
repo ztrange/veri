@@ -107,3 +107,36 @@ def test_an_added_exit_code_assigned_whole_to_underscore_is_printed_and_exits_1(
     monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
 
     assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:3\nmod.py:4\n", "")
+
+
+def test_an_added_exit_code_bound_to_a_name_the_function_never_reads_is_printed_and_exits_1(
+        tmp_path, run_cli, discarded_exit, monkeypatch):
+    (tmp_path / "mod.py").write_text(
+        "import os\n"
+        "import fused\n"
+        "\n"
+        "def status():\n"
+        "    code, out, err = fused.call(\"git\", \"status\")\n"
+        "    return out\n"
+        "\n"
+        "def run():\n"
+        "    rc = os.system(\"x\")\n"
+        "    return 0\n")
+    diff = ("diff --git a/mod.py b/mod.py\n"
+            "index 1111111..2222222 100644\n"
+            "--- a/mod.py\n"
+            "+++ b/mod.py\n"
+            "@@ -1,2 +1,10 @@\n"
+            " import os\n"
+            " import fused\n"
+            "+\n"
+            "+def status():\n"
+            "+    code, out, err = fused.call(\"git\", \"status\")\n"
+            "+    return out\n"
+            "+\n"
+            "+def run():\n"
+            "+    rc = os.system(\"x\")\n"
+            "+    return 0\n")
+    monkeypatch.setattr(discarded_exit, "_git", lambda *args: (0, diff))
+
+    assert run_cli(discarded_exit, [], cwd=tmp_path) == (1, "mod.py:5\nmod.py:9\n", "")
