@@ -1484,6 +1484,7 @@
 | SC647 | The `pin-reject-route.sh` entry has no `--recheck` mode, and says any other `--` argument is rejected as unknown (exit 2). | PRD 044 D4. |
 | SC648 | The `tick-ledger.sh` `--unpinnable` entry says a retire whose reason has no before-state-green clause also returns every test file differing from HEAD to HEAD (an untracked one deleted, a modified one restored), touching no other path. | The script's effect on the working tree is its contract with the conductor, which then commits only the ledger. |
 | SC649 | The `pin-reject-route.sh` entry says its non-`--missing-reroute` unpinnable retire removes the step's Red test changes when the reason has no before-state-green clause, and keeps them when it has one, with stdout and the `unpinnable-step` event unchanged. | The routing entry is where a reader looks for what a retire leaves behind. |
+| SC650 | SCRIPTS.md names `discarded-exit.sh`: it prints `<file>:<line>` for each added `.py` line of `git diff HEAD` whose `subprocess.run`, `subprocess.call`, `os.system` or `fused.call` exit code is discarded; it exits 1 when it prints, 0 when not, 3 when no `.py` file changed and 2 on any argument or outside a work tree; verify-green runs it. | Docs drift blocks. |
 
 ## skills/tdd/SKILL-EDIT.md
 

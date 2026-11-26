@@ -20,6 +20,6 @@
 - [x] ⟦skill-edit⟧ `skills/tdd/scripts/prompts/verify-green.md` gains a check that runs `{{DISCARDED_EXIT}}` and REJECTs each line it prints unless the spec says that call's failure is ignored, passes on its exit 0 or 3, writes no `VERDICT:` line on its exit 2; check 4 REJECTs a PASS whose reason would name a guard, argument or clause no case of the fast tier plus the `changed` run requires (rows VG22-VG24) ⟦criterion 5⟧
 - [x] ⟦skill-edit⟧ `skills/tdd/scripts/prompts/verify-red.md` check 3 REJECTs a fixture faking the observable the criterion names, not one setting up input state, and a test whose input sits only in the launch directory or ambient environment when the criterion names another place (rows VR21-VR23) ⟦criterion 6⟧
 - [x] ⟦skill-edit⟧ `skills/tdd/scripts/prompts/verify-plan.md` REJECTs a plan leaving a dispatch's residual outcome untested, counts a scoped output as a predicate, and REJECTs a plan leaving a stated behaviour untested (rows VL98-VL100) ⟦criterion 7⟧
-- [ ] ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md` names `discarded-exit.sh`, what it prints, its exits and verify-green as its caller (row SC650) ⟦criterion 8⟧
+- [x] ⟦skill-edit⟧ `skills/tdd/SCRIPTS.md` names `discarded-exit.sh`, what it prints, its exits and verify-green as its caller (row SC650) ⟦criterion 8⟧
 - [ ] `skills/tdd/SKILL.md` grows by at most 0 B net: its `git diff` against the branch base shows no net byte growth ⟦diff-checked⟧ ⟦criterion 9⟧
 - [ ] The PR body states the cost as $0: no new leaf, a few prompt lines in leaves that already run ⟦human-owed⟧ ⟦criterion 10⟧
