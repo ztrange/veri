@@ -731,6 +731,7 @@
 | PF71 | Step 3 states the accepted trade-off beside the CI source: CI is Linux and the machine is macOS, so a test failing only locally can slip past the gate; the owner accepted it, and the local record is the second source for a tip CI never ran. | A reader who sees the skip must also see what it gives up and who accepted it. |
 | PF72 | Step 3 says the fast command is read at the run's recorded branch base: a fresh launch writes the record once the worktree is cut, as the merge base with `origin/<stack>` when the cut recorded a stack, and stops with exit 2 writing nothing when the merge base cannot be read; a resume reads it back and stops with exit 2 when it is missing or invalid. | A resume must not let a rewritten ref choose the base. |
 | PF75 | Step 5 of preflight lists `VERI_BRANCH_REPAIRS` among the tunables it checks, a bad value being exit 2, and `branch` among the phases `VERI_SKIP_VERIFY` may name. | Docs drift blocks; a bad budget is caught before the run spends anything. |
+| PF76 | Step 5 of preflight lists `VERI_QUALITY_REPAIRS` among the tunables it checks, a bad value being exit 2. | A bad budget is caught before the run spends anything. |
 
 ## skills/tdd/PIN.md
 
