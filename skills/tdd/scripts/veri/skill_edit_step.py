@@ -271,12 +271,13 @@ def _trace_prompt(rows, sentences):
 
 
 def _trace(unit, rows, sentences):
-    prompt = ".tdd/verify-trace-rows.prompt"
+    name = "verify-trace-rows"
+    stem = ".tdd/" + name
+    prompt = stem + ".prompt"
     with open(prompt, "w") as f:
         f.write(_trace_prompt(rows, sentences))
-    fused.launch("trace", ".", "verify-trace-rows", "run-leaf.sh", prompt, env=None,
-                 out=".tdd/verify-trace-rows.out", err=".tdd/verify-trace-rows.err")
-    fused.call(fused.script("wait-leaf.sh"), "verify-trace-rows")
+    fused.launch("trace", ".", name, "run-leaf.sh", prompt, env=None, out=stem + ".out", err=stem + ".err")
+    fused.call(fused.script("wait-leaf.sh"), name)
     return []
 
 
