@@ -211,6 +211,73 @@ def drop_replaced_records(tdd, n, replaced, was_open):
         os.remove(path)
 
 
+def argument_refusal(path, where, anchor, texts):
+    if "" in (path, where, anchor):
+        return USAGE
+    if where not in ("after", "before", "instead-of"):
+        return "add-ledger-step.sh: position must be after, before or instead-of: " + where
+    for text in texts:
+        if CRITERION_TAG in text:
+            return "add-ledger-step.sh: the text already holds a criterion tag: " + text
+        if step_body(text) != text:
+            return "add-ledger-step.sh: the text holds the refactor-pending delimiter ' ⟂ ': " + text
+    return None
+
+
+def planned_refusal(path, lines, criterion):
+    known, ticked = spec_criteria(path)
+    if known is None:
+        return "add-ledger-step.sh: --planned: cannot read the spec file " + spec_path(path)
+    if criterion in ticked:
+        return f"add-ledger-step.sh: --planned: criterion {criterion} is already ticked in the issue body"
+    if int(criterion) > known:
+        return f"add-ledger-step.sh: --planned: criterion {criterion} is not in the issue body ({known} criteria)"
+    if any(criterion_of(line) == criterion for line in lines if ledger_steps(line)):
+        return "add-ledger-step.sh: --planned: a step already serves criterion " + criterion
+    return None
+
+
+def skill_edit_refusal(path, texts):
+    for text in texts:
+        if not (is_skill_edit(text.strip())):
+            continue
+        unit = unit_of(text)
+        if unit is None and "`" in text:
+            return "add-ledger-step.sh: no unit path was found in step: " + text.replace("\n", " ")
+        if unit is None:
+            return "add-ledger-step.sh: a skill-edit step must name its unit path in backticks: " + text.replace("\n", " ")
+        try:
+            restated = restates_list(path, unit)
+        except MissingUnit:
+            return f"add-ledger-step.sh: {unit}: the unit file does not exist"
+        if restated:
+            return f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed"
+    return None
+
+
+def one_per_run_exit(path, lines, texts):
+    steps = [line for line in lines if ledger_steps(line)]
+    for mark in ONE_PER_RUN:
+        earlier = [line for line in steps if is_one_per_run(line, mark) and not is_retired(line)]
+        try:
+            this_run = added_since_last_resume(path, steps, mark) if earlier else False
+        except UnreadableLog as unreadable:
+            return entry.refuse(str(unreadable))
+        if this_run and any(is_one_per_run(text, mark) for text in texts):
+            warn(f"add-ledger-step.sh: this run already inserted a {mark} step: " + (earlier[0] if this_run is True else this_run))
+            return 1
+    return None
+
+
+def write_owed_steps(path, lines, terminated, texts):
+    headings = [line for line in lines if line.startswith("## ")]
+    owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
+    if not owed and lines is not terminated:
+        owed = "\n"
+    owed += "".join(f"- {text}\n" for text in texts)
+    write_ledger(path, read_ledger(path), owed)
+
+
 def main(argv):
     criterion = None
     planned = argv[:1] == ["--planned"]
@@ -242,15 +309,9 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
     conductor is live. Prints refusals and notes to stderr, as the script does; an empty path, position or anchor
     is refused with the usage line (exit 2), as on the command line.
     """
-    if "" in (path, where, anchor):
-        return entry.refuse(USAGE)
-    if where not in ("after", "before", "instead-of"):
-        return entry.refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
-    for text in texts:
-        if CRITERION_TAG in text:
-            return entry.refuse("add-ledger-step.sh: the text already holds a criterion tag: " + text)
-        if step_body(text) != text:
-            return entry.refuse("add-ledger-step.sh: the text holds the refactor-pending delimiter ' ⟂ ': " + text)
+    refusal = argument_refusal(path, where, anchor, texts)
+    if refusal:
+        return entry.refuse(refusal)
     try:
         lines = read_ledger(path).split("\n")
     except OSError as error:
@@ -263,45 +324,21 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
     refusal = multi_tag_refusal(records)
     if refusal:
         return entry.refuse("add-ledger-step.sh: " + refusal)
-    known, ticked = spec_criteria(path) if planned else (None, set())
-    if planned and known is None:
-        return entry.refuse("add-ledger-step.sh: --planned: cannot read the spec file " + spec_path(path))
-    if criterion in ticked:
-        return entry.refuse(f"add-ledger-step.sh: --planned: criterion {criterion} is already ticked in the issue body")
-    if known is not None and int(criterion) > known:
-        return entry.refuse(f"add-ledger-step.sh: --planned: criterion {criterion} is not in the issue body ({known} criteria)")
-    if planned and any(criterion_of(line) == criterion for line in lines if ledger_steps(line)):
-        return entry.refuse("add-ledger-step.sh: --planned: a step already serves criterion " + criterion)
+    refusal = planned_refusal(path, lines, criterion) if planned else None
+    if refusal:
+        return entry.refuse(refusal)
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return entry.refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     for text in texts:
         if has_mark(text, ("replaces-case",)) and replaces_case.parse(text) is None:
             warn("add-ledger-step.sh: cannot read the case names of step: " + text.replace("\n", " "))
             return 1
-    for text in texts:
-        if not (is_skill_edit(text.strip())):
-            continue
-        unit = unit_of(text)
-        if unit is None and "`" in text:
-            return entry.refuse("add-ledger-step.sh: no unit path was found in step: " + text.replace("\n", " "))
-        if unit is None:
-            return entry.refuse("add-ledger-step.sh: a skill-edit step must name its unit path in backticks: " + text.replace("\n", " "))
-        try:
-            restated = restates_list(path, unit)
-        except MissingUnit:
-            return entry.refuse(f"add-ledger-step.sh: {unit}: the unit file does not exist")
-        if restated:
-            return entry.refuse(f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed")
-    steps = [line for line in lines if ledger_steps(line)]
-    for mark in ONE_PER_RUN:
-        earlier = [line for line in steps if is_one_per_run(line, mark) and not is_retired(line)]
-        try:
-            this_run = added_since_last_resume(path, steps, mark) if earlier else False
-        except UnreadableLog as unreadable:
-            return entry.refuse(str(unreadable))
-        if this_run and any(is_one_per_run(text, mark) for text in texts):
-            warn(f"add-ledger-step.sh: this run already inserted a {mark} step: " + (earlier[0] if this_run is True else this_run))
-            return 1
+    refusal = skill_edit_refusal(path, texts)
+    if refusal:
+        return entry.refuse(refusal)
+    code = one_per_run_exit(path, lines, texts)
+    if code is not None:
+        return code
     if tunables.is_set("VERI_STEP_GROWTH"):
         return entry.refuse("add-ledger-step.sh: " + ledger_growth.RETIRED)
     percent = tunables.get("VERI_STEP_GROWTH_PERCENT")
@@ -327,12 +364,7 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
         return entry.refuse("add-ledger-step.sh: no plan commit holds " + os.path.basename(path)
                             + " (git log names no plan: scope or plan: rewrite commit that git show can read)")
     if not planned and added > ledger_growth.growth_cap(int(percent), plan_size):
-        headings = [line for line in lines if line.startswith("## ")]
-        owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
-        if not owed and lines is not terminated:
-            owed = "\n"
-        owed += "".join(f"- {text}\n" for text in texts)
-        write_ledger(path, read_ledger(path), owed)
+        write_owed_steps(path, lines, terminated, texts)
         return 1
     bare = next((line for line in inserted_lines if has_kind(line, "⟦diff-checked⟧") and CRITERION_TAG not in line), None)
     if bare:
