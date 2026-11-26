@@ -80,7 +80,7 @@ def test_make_n_watch_its_own_phony_target_separate_from_test_unit_and_merge_gat
     assert ran.returncode == 0, ran.stderr
     rules = {}
     lines = ran.stdout.splitlines()
-    for before, line in zip([""] + lines, lines):
+    for before, line in zip([""] + lines, lines, strict=False):
         if line.startswith("#  Phony target") and ":" in before:
             rules[before.split(":")[0]] = before.split(":", 1)[1].split()
     assert "watch" in rules

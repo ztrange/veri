@@ -171,7 +171,7 @@ def ledger_history(ledger_path, texts, tails=None):
     """Answers for a ledger committed as c1, c2, ...: its log, each revision's text, and rev-list ranges."""
     revs = ["c%d" % (i + 1) for i in range(len(texts))]
     answers = {("log", "--reverse", "--format=%H", "--", ledger_path): (0, ("\n".join(revs) + "\n").encode(), b"")}
-    for rev, text in zip(revs, texts):
+    for rev, text in zip(revs, texts, strict=True):
         answers[("show", "%s:%s" % (rev, ledger_path))] = (0, text.encode(), b"")
     for (first, last), listed in (tails or {}).items():
         answers[("rev-list", "%s..%s" % (first, last))] = (0, listed.encode(), b"")

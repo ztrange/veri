@@ -263,7 +263,7 @@ class FedCommits:
         later revision staying readable by its name (detached, as the commits a rebase replaces stay), and the index
         and the work tree's tracked files are set to `rev`'s tree; untracked files are left alone."""
         names = [name for name, _, _ in self.revisions]
-        for parent, name in zip(names[names.index(rev):], names[names.index(rev) + 1:]):
+        for parent, name in zip(names[names.index(rev):], names[names.index(rev) + 1:], strict=False):
             self.detached[name] = self.snapshots[name] + (parent,)
         self.revisions = self.revisions[:names.index(rev) + 1]
         old, self.tree = self.tree, dict(self.snapshots[rev][1])

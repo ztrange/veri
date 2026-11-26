@@ -14,7 +14,7 @@ def test_2750_report_queue_etas_are_ranges_from_the_fastest_to_the_slowest_quart
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
     runs = home / "runs" / "acme-widgets"
     runs.mkdir(parents=True)
-    for n, hours in zip(range(11, 19), (1, 1, 1, 1, 4, 4, 4, 4)):
+    for n, hours in zip(range(11, 19), (1, 1, 1, 1, 4, 4, 4, 4), strict=True):
         wall = hours * 3600
         events = [{"ts": 1793613600, "awake": 0, "event": "conductor-start", "pid": 99999999, "started": "x"},
                   {"ts": 1793613600 + wall, "awake": wall, "event": "done", "pr": str(n)},
@@ -46,7 +46,7 @@ def test_2750_report_queue_eta_range_scales_each_quartile_by_the_number_of_queue
     monkeypatch.setenv("VERI_LABEL", "agent-ok")
     runs = home / "runs" / "acme-widgets"
     runs.mkdir(parents=True)
-    for n, hours in zip(range(11, 19), (1, 1, 1, 1, 4, 4, 4, 4)):
+    for n, hours in zip(range(11, 19), (1, 1, 1, 1, 4, 4, 4, 4), strict=True):
         wall = hours * 3600
         events = [{"ts": 1793613600, "awake": 0, "event": "conductor-start", "pid": 99999999, "started": "x"},
                   {"ts": 1793613600 + wall, "awake": wall, "event": "done", "pr": str(n)},

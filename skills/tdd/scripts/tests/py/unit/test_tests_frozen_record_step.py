@@ -218,7 +218,7 @@ def _ledger(root, **state):
     """The ledger in its real shapes: open, pending (ticked, ledger.PENDING_MARK appended) and done."""
     marks = {"open": "- [ ] %s", "pending": "- [x] %s ⟂ refactor pending", "done": "- [x] %s"}
     (root / LEDGER).write_text("".join(
-        marks[state.get(name, "open")] % text + "\n" for name, text in zip("ZAB", STEPS)))
+        marks[state.get(name, "open")] % text + "\n" for name, text in zip("ZAB", STEPS, strict=True)))
 
 
 @pytest.fixture

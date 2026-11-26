@@ -261,7 +261,7 @@ def case_starts_no_test_runner(request, monkeypatch):
             return True
         if not names[0].startswith("python"):
             return False
-        return names[1:2] == ["pytest_leg.py"] or any(a == "-m" and b == "pytest" for a, b in zip(names, names[1:]))
+        return names[1:2] == ["pytest_leg.py"] or any(a == "-m" and b == "pytest" for a, b in zip(names, names[1:], strict=False))
 
     def from_exempt_helper():
         frame = sys._getframe()
@@ -284,7 +284,7 @@ def case_starts_no_test_runner(request, monkeypatch):
             return None
         if directory is None:
             directory = os.getcwd()
-        for flag, value in zip(rest, rest[1:]):
+        for flag, value in zip(rest, rest[1:], strict=False):
             if flag == "-C":
                 directory = os.path.join(directory, value) if directory else value
         return directory

@@ -188,7 +188,7 @@ def _ledger(repo, **state):
     """The ledger in its real shapes: open, pending (ticked, ledger.PENDING_MARK appended) and done."""
     marks = {"open": "- [ ] %s", "pending": "- [x] %s ⟂ refactor pending", "done": "- [x] %s"}
     (repo / ".tdd/issue-9.md").write_text("".join(
-        marks[state.get(name, "open")] % text + "\n" for name, text in zip("ZAB", STEPS)))
+        marks[state.get(name, "open")] % text + "\n" for name, text in zip("ZAB", STEPS, strict=True)))
 
 
 def _commit(repo, message):

@@ -55,7 +55,7 @@ def event_sh_call_sites():
             continue
         for n, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
             calls = list(SH_SITE.finditer(line))
-            for found, after in zip(calls, calls[1:] + [None]):
+            for found, after in zip(calls, calls[1:] + [None], strict=False):
                 rest = line[found.end():after.start() if after else len(line)]
                 sites.append((f"{path.relative_to(SKILLS)}:{n}", found.group(1), _literal_keys(rest)))
     return sites

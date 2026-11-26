@@ -106,7 +106,7 @@ def table(out, heading):
     for line in lines[at + 2:]:
         if not line.startswith("|"):
             break
-        rows.append(dict(zip(head, (cell.strip() for cell in line[1:-1].split("|")))))
+        rows.append(dict(zip(head, (cell.strip() for cell in line[1:-1].split("|")), strict=True)))
     return rows
 
 
@@ -619,7 +619,7 @@ def conductor(step, ts, event, phase="", **fields):
 
 def cost(turns, dollars, tokens, api_ms="0"):
     return dict(zip(["input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"],
-                    map(str, tokens)),
+                    map(str, tokens), strict=True),
                 duration_ms="0", duration_api_ms=str(api_ms), num_turns=str(turns), total_cost_usd=dollars)
 
 
@@ -985,7 +985,7 @@ def test_main_reads_walls_off_the_awake_clock_and_falls_back_to_the_wall_clock_s
             if awake is not None:
                 event["awake"] = awake
             events.append(event)
-        for (ts, awake), kind in zip(rest, ["step-done", "done"] if done else ["step-done"]):
+        for (ts, awake), kind in zip(rest, ["step-done", "done"] if done else ["step-done"], strict=False):
             extra = {"pr": "https://github.com/ztrange/veri/pull/998"} if kind == "done" else {}
             events += conductor("s", ts, kind, **extra)
             if awake is not None:

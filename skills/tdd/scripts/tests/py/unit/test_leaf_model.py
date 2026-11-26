@@ -380,7 +380,7 @@ LEAF_MODEL_USAGE = "usage: leaf-model.sh <leaf-name>\n"
 @pytest.fixture
 def model_call(run_cli, monkeypatch, leaf_model):
     def call(model, developer, verifier, name):
-        for variable, value in zip(MODEL_VARIABLES, (model, developer, verifier)):
+        for variable, value in zip(MODEL_VARIABLES, (model, developer, verifier), strict=True):
             if value == "unset":
                 monkeypatch.delenv(variable, raising=False)
             else:

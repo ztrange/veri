@@ -1403,7 +1403,7 @@ def test_main_records_one_step_added_event_per_inserted_line_on_exit_0_and_none_
     inserted = [line for line in ledger.read_text().split("\n") if "⟦added⟧" in line]
     recorded = [json.loads(raw) for raw in events.read_text().splitlines()] if events.exists() else []
     assert [(e["event"], e["actor"]) for e in recorded] == [("step-added", "add-ledger-step")] * 2
-    assert [line in e.values() for e, line in zip(recorded, inserted)] == [True, True]
+    assert [line in e.values() for e, line in zip(recorded, inserted, strict=True)] == [True, True]
 
     before = events.read_bytes()
     cap_at(monkeypatch, "2")

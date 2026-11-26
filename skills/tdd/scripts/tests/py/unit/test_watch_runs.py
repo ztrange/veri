@@ -845,7 +845,7 @@ def test_main_with_target_waits_for_the_rate_limit_reset_without_a_gh_call_then_
     after_refusal = [t for t in reads[1:]] + [t for t, argv in gh_calls if "rate_limit" not in argv]
     assert (code, capsys.readouterr().out) == (0, "slot-free 1/2 next 12\n")
     assert all(epoch + t >= reset for t in after_refusal) and len(reads) == 2
-    assert [b - a for a, b in zip(ticks[1:], ticks[2:])] == [2] * (len(ticks) - 2)
+    assert [b - a for a, b in zip(ticks[1:], ticks[2:], strict=False)] == [2] * (len(ticks) - 2)
 
 
 def test_main_with_target_waits_for_the_rate_limit_reset_after_an_http_429_refusal_as_after_a_403_2958(
@@ -950,8 +950,8 @@ def test_main_with_target_below_it_and_nothing_solvable_reads_the_queue_at_most_
     code = watch_runs.main(["--target", "2", "--max-wait", "600"])
 
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
-    assert [b - a for a, b in zip(checks[1:], checks[2:])] == [2] * (len(checks) - 2) and len(checks) > 290
-    assert all(b - a >= 60 for a, b in zip(reads, reads[1:])) and len(reads) <= 11
+    assert [b - a for a, b in zip(checks[1:], checks[2:], strict=False)] == [2] * (len(checks) - 2) and len(checks) > 290
+    assert all(b - a >= 60 for a, b in zip(reads, reads[1:], strict=False)) and len(reads) <= 11
 
 
 def test_main_with_target_reads_the_queue_at_most_once_per_the_interval_VERI_WATCH_QUEUE_INTERVAL_sets_2958(
@@ -977,7 +977,7 @@ def test_main_with_target_reads_the_queue_at_most_once_per_the_interval_VERI_WAT
     code = watch_runs.main(["--target", "2", "--max-wait", "600"])
 
     assert (code, capsys.readouterr().out) == (3, "timeout\n")
-    assert all(b - a >= 120 for a, b in zip(reads, reads[1:])) and len(reads) <= 6
+    assert all(b - a >= 120 for a, b in zip(reads, reads[1:], strict=False)) and len(reads) <= 6
 
 
 def test_main_exits_2_naming_VERI_WATCH_QUEUE_INTERVAL_before_any_listing_or_queue_read_when_it_is_not_a_whole_number_of_at_least_1_2958(
@@ -1035,7 +1035,7 @@ def test_main_with_target_waits_the_interval_before_the_next_queue_read_when_the
     with pytest.raises(StopIteration):
         watch_runs.main(["--target", "2", "--max-wait", "100000"])
 
-    assert len(reads) >= 2 and all(b - a >= 60 for a, b in zip(reads, reads[1:]))
+    assert len(reads) >= 2 and all(b - a >= 60 for a, b in zip(reads, reads[1:], strict=False))
 
 
 def test_3186_main_reports_exited_for_a_conductor_first_seen_live_after_the_watch_started_and_gone_before_it_returns(

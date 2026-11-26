@@ -67,7 +67,7 @@ def test_main_appends_the_nine_fixed_keys_then_one_key_per_argument_in_argument_
     monkeypatch.setattr("time.clock_gettime", lambda clock: 4242.7)
 
     def context(values):
-        for name, value in zip(CONTEXT, values):
+        for name, value in zip(CONTEXT, values, strict=True):
             if value is None:
                 monkeypatch.delenv(name, raising=False)
             else:

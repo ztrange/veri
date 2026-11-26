@@ -18,7 +18,7 @@ def _event(ts, actor, phase, step, event, attempt="", **fields):
 
 def _usage(model, turns, dollars, tokens, api_ms):
     return dict(zip(["input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"],
-                    map(str, tokens)),
+                    map(str, tokens), strict=True),
                 duration_ms="0", duration_api_ms=str(api_ms), num_turns=str(turns), total_cost_usd=dollars,
                 model=model)
 

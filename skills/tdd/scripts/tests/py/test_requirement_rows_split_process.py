@@ -15,7 +15,7 @@ from conftest import ROOT
 
 def row_problems(path, requirements):
     lines = requirements.read_lines(str(ROOT / path))
-    for number, (line, fenced) in enumerate(zip(lines, requirements.fence_flags(lines)), 1):
+    for number, (line, fenced) in enumerate(zip(lines, requirements.fence_flags(lines), strict=False), 1):
         if fenced or not line.startswith("|") or not requirements.is_row(line):
             continue
         cells = requirements.table_cells(line)

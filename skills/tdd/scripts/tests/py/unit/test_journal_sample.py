@@ -27,7 +27,7 @@ def test_two_runs_with_a_different_clock_environment_and_current_directory_print
 def test_the_committed_sample_is_what_journal_sample_py_builds():
     committed = SAMPLE.read_bytes().splitlines()
     built = journal_sample.sample().splitlines()
-    first = next((n for n, (ours, theirs) in enumerate(zip(committed, built), 1) if ours != theirs),
+    first = next((n for n, (ours, theirs) in enumerate(zip(committed, built, strict=False), 1) if ours != theirs),
                  min(len(committed), len(built)) + 1 if len(committed) != len(built) else None)
 
     assert first is None, (f"fixtures/journal/sample.jsonl line {first} differs from what journal_sample.py builds:"

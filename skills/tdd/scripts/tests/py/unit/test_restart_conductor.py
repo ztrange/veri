@@ -55,7 +55,7 @@ def test_3223_a_growth_knob_that_is_not_a_whole_number_of_at_least_1_exits_2_nam
     assert (
         [code for code, _, _ in results],
         [out for _, out, _ in results],
-        [("VERI_RESET_GROWTH_CONDUCTOR" in err, repr(v) in err) for (_, _, err), v in zip(results, values)],
+        [("VERI_RESET_GROWTH_CONDUCTOR" in err, repr(v) in err) for (_, _, err), v in zip(results, values, strict=True)],
         list(tmp_path.iterdir()),
     ) == ([2] * 5, [""] * 5, [(True, True)] * 5, [])
 

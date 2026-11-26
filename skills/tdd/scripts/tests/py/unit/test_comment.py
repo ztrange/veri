@@ -774,7 +774,7 @@ def test_the_red_metrics_family_pattern_matches_the_emoji_heading_text_each_red_
     assert headings == ["### 🔴 Red", "### 🔎 verify-red — PASS"]
     matched = [re.search(pattern, heading).group(0) for heading in headings]
     assert matched == ["🔴 Red", "🔎 verify-red"]
-    assert all(heading.startswith("### " + text) for heading, text in zip(headings, matched))
+    assert all(heading.startswith("### " + text) for heading, text in zip(headings, matched, strict=True))
     assert not re.search(pattern, "### Red")
     assert not re.search(pattern, "### verify-red — PASS")
 
@@ -1531,7 +1531,7 @@ def test_every_heading_comment_sh_posts_for_plan_verify_plan_and_resuming_falls_
         "### ▶️ Resuming",
     ]
     families = dict(metrics.COMMENT_FAMILIES)
-    for heading, hand_heading, family in zip(headings, hand, ["🗺️ Plan", "🗺️ verify-plan", "🗺️ verify-plan", "▶️ Resuming"]):
+    for heading, hand_heading, family in zip(headings, hand, ["🗺️ Plan", "🗺️ verify-plan", "🗺️ verify-plan", "▶️ Resuming"], strict=True):
         assert re.search(families[family], heading)
         assert re.search(families[family], hand_heading)
 
@@ -1956,7 +1956,7 @@ def test_every_heading_comment_sh_posts_for_bailed_and_stopped_falls_in_the_metr
         "### ⛔ Bailed — plan (system failure)",
     ]
     families = dict(metrics.COMMENT_FAMILIES)
-    for heading, hand_heading, family in zip(headings, hand, ["⛔ Bailed", "⏹️ Stopped", "⛔ Bailed"]):
+    for heading, hand_heading, family in zip(headings, hand, ["⛔ Bailed", "⏹️ Stopped", "⛔ Bailed"], strict=True):
         assert re.search(families[family], heading)
         assert re.search(families[family], hand_heading)
 

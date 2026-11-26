@@ -503,7 +503,7 @@ def trailers(world):
     """The --trailer values of the offline join's one amend."""
     amended = [argv for argv in world.fake.argvs if argv[3:5] == ["commit", "--amend"]]
     assert len(amended) == 1, amended
-    return [value for flag, value in zip(amended[0], amended[0][1:]) if flag == "--trailer"]
+    return [value for flag, value in zip(amended[0], amended[0][1:], strict=False) if flag == "--trailer"]
 
 
 def test_with_no_all_tier_command_the_amend_writes_veri_suite_not_gated(tmp_path, fake_processes, monkeypatch, run_cli):

@@ -113,7 +113,7 @@ def test_main_runs_the_predicate_through_bash_and_writes_the_record_only_on_a_no
     fake = fake_processes.answers({"bash": observe})
 
     def observed():
-        return [(argv, rest) + seen for argv, rest, seen in zip(fake.argvs, fake.rests, runs)]
+        return [(argv, rest) + seen for argv, rest, seen in zip(fake.argvs, fake.rests, runs, strict=True)]
 
     def call(value):
         return (

@@ -44,7 +44,7 @@ def _body_value(node):
 
 def _verb_pairs(node):
     runs = [node.args] + [arg.elts for arg in node.args if isinstance(arg, (ast.List, ast.Tuple))]
-    return any((_text(a), _text(b)) in CLI_VERBS for run in runs for a, b in zip(run, run[1:]))
+    return any((_text(a), _text(b)) in CLI_VERBS for run in runs for a, b in zip(run, run[1:], strict=False))
 
 
 class _Audit(ast.NodeVisitor):

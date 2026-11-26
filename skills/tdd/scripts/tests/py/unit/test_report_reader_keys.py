@@ -127,7 +127,7 @@ class Reader:
         if isinstance(func, ast.Lambda):
             raise Unfollowed(f"{self.module}:{func.lineno}: a lambda's parameter {name}")
         values = set()
-        defaults = dict(zip([a.arg for a in func.args.args][::-1], func.args.defaults[::-1]))
+        defaults = dict(zip([a.arg for a in func.args.args][::-1], func.args.defaults[::-1], strict=False))
         if name in defaults:
             values |= self.resolve(defaults[name])
         calls = [c for c in ast.walk(self.tree) if isinstance(c, ast.Call) and _name(c.func) == func.name]

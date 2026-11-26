@@ -21,7 +21,7 @@ def first_stages(calls):
     names = [c if isinstance(c, str) else c[0] for c in calls]
     if "verify-branch.sh" in names:
         assert names[names.index("verify-branch.sh") - 1] == "pr-checks.sh"
-    return [c for c, n in zip(calls, names) if n != "verify-branch.sh"]
+    return [c for c, n in zip(calls, names, strict=True) if n != "verify-branch.sh"]
 
 
 def test_4432_the_first_call_runs_the_three_stages_then_stops_at_the_title_seam(monkeypatch, run_cli, tmp_path):

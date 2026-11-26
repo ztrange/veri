@@ -32,7 +32,7 @@ def table(out, heading):
     for line in lines[at + 2:]:
         if not line.startswith("|"):
             break
-        rows.append(dict(zip(head, (cell.strip() for cell in line[1:-1].split("|")))))
+        rows.append(dict(zip(head, (cell.strip() for cell in line[1:-1].split("|")), strict=True)))
     return rows
 
 

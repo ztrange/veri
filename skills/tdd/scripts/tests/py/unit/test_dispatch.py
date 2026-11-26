@@ -1265,7 +1265,7 @@ def test_main_with_a_zero_or_non_integer_target_prints_the_usage_on_stderr_and_e
     worlds = [FakeWorld({"queue": ["12"]}) for _ in range(2)]
 
     results = [(dispatch.main(argv, world=world), world.said, world.complained)
-               for argv, world in zip((["--target", "abc"], ["--target"]), worlds)]
+               for argv, world in zip((["--target", "abc"], ["--target"]), worlds, strict=True)]
 
     usage = (2, [], [_USAGE_LINE])
     assert (results, [world.launched for world in worlds]) == ([usage, usage], [[], []])
@@ -1276,7 +1276,7 @@ def test_main_with_a_negative_or_non_integer_target_prints_the_usage_on_stderr_a
     worlds = [FakeWorld({"queue": ["12"]}) for _ in range(3)]
 
     results = [(dispatch.main(["--target", value], world=world), world.said, world.complained)
-               for value, world in zip(("-1", "abc", "1.5"), worlds)]
+               for value, world in zip(("-1", "abc", "1.5"), worlds, strict=True)]
 
     usage = (2, [], [_USAGE_LINE])
     assert (results, [world.launched for world in worlds]) == ([usage, usage, usage], [[], [], []])
