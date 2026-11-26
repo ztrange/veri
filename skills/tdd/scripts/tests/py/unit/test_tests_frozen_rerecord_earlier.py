@@ -298,7 +298,7 @@ def test_rerecord_earlier_leaves_one_helpers_line_from_head_for_a_go_case_whose_
     run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)
     checked = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)[:2]
 
-    assert ([l for l in record.read_text().splitlines() if l.startswith("helpers: ")], checked) == (
+    assert ([line for line in record.read_text().splitlines() if line.startswith("helpers: ")], checked) == (
         ["helpers: suite_test.go\tTestX\t%s" % held], (0, ""))
 
 
@@ -325,7 +325,7 @@ def test_rerecord_earlier_rewrites_body_and_helpers_lines_together_from_head_whe
 
     rerecorded = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
-    held = [l.split("\t")[-1] for l in record.read_text().splitlines() if l.startswith("helpers: ")]
+    held = [line.split("\t")[-1] for line in record.read_text().splitlines() if line.startswith("helpers: ")]
     code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", later], cwd=tmp_path)
 
     assert (rerecorded, held, code, out) == (0, [head], 0, "")
@@ -351,6 +351,6 @@ def test_rerecord_earlier_leaves_no_helpers_line_for_a_case_that_calls_no_helper
 
     rerecorded = run_cli(tests_frozen, ["rerecord-earlier", str(ledger), "--step", edit], cwd=tmp_path)[0]
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
-    held = [l for l in record.read_text().splitlines() if l.startswith("helpers: ")]
+    held = [line for line in record.read_text().splitlines() if line.startswith("helpers: ")]
 
     assert (rerecorded, held) == (0, [])

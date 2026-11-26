@@ -870,7 +870,7 @@ def test_check_earlier_exits_0_when_a_step_recorded_only_the_first_of_two_same_n
     suite, ledger = _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, fake_processes, edited_first=True)
     recorded = run_cli(tests_frozen, ["record", "--step", "step A", "test_dup.py"], cwd=tmp_path)[0]
     path = run_cli(tests_frozen, ["path", "step A"], cwd=tmp_path)[1].strip()
-    digests = [l for l in (tmp_path / path).read_text().splitlines() if l.startswith("body: ")]
+    digests = [line for line in (tmp_path / path).read_text().splitlines() if line.startswith("body: ")]
 
     answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", "step B"], cwd=tmp_path)[:2]
 
@@ -882,7 +882,7 @@ def test_check_earlier_exits_0_when_a_step_recorded_only_the_second_of_two_same_
     suite, ledger = _twins_one_edited_since_head(tmp_path, tests_frozen, monkeypatch, fake_processes, edited_first=False)
     recorded = run_cli(tests_frozen, ["record", "--step", "step A", "test_dup.py"], cwd=tmp_path)[0]
     path = run_cli(tests_frozen, ["path", "step A"], cwd=tmp_path)[1].strip()
-    digests = [l for l in (tmp_path / path).read_text().splitlines() if l.startswith("body: ")]
+    digests = [line for line in (tmp_path / path).read_text().splitlines() if line.startswith("body: ")]
 
     answer = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", "step B"], cwd=tmp_path)[:2]
 
@@ -912,7 +912,7 @@ def _rerecord_fixture(tmp_path, tests_frozen, monkeypatch):
 
 def _recorded_names(tmp_path, tests_frozen, step):
     record = (tmp_path / tests_frozen.record_path(step)).read_text()
-    return sorted(l[6:] for l in record.splitlines() if l.startswith("case: "))
+    return sorted(line[6:] for line in record.splitlines() if line.startswith("case: "))
 
 
 def test_rerecord_on_head_keeps_every_recorded_case_still_there_and_never_one_a_later_step_added_to_the_file_2673(

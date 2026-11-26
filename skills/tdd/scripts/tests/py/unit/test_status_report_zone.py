@@ -133,7 +133,7 @@ def test_3059_report_landed_line_shows_the_tag_date_in_the_local_zone_not_the_ta
         monkeypatch.undo()
         time.tzset()
 
-    lines = [l.strip() for l in out.splitlines()]
+    lines = [line.strip() for line in out.splitlines()]
     landed = lines[lines.index("Landed") + 1]
     assert (code, landed.split()) == (0, ["v0.2", "2026-01-14", "15:30", "Second", "capability"]), (out, err)
 
@@ -185,7 +185,7 @@ def test_3059_report_shows_the_zone_on_the_first_line_only_and_no_time_carries_i
         time.tzset()
 
     lines = out.splitlines()
-    zoned = [l for l in lines[1:] if re.search(r"CST|UTC|\d{2}:\d{2}(:\d{2})?\s*(Z\b|[+\-−]\d{2}:?\d{2}\b)", l)]
+    zoned = [line for line in lines[1:] if re.search(r"CST|UTC|\d{2}:\d{2}(:\d{2})?\s*(Z\b|[+\-−]\d{2}:?\d{2}\b)", line)]
     assert (code, "CST (UTC−6)" in lines[0], zoned) == (0, True, []), (out, err)
 
 

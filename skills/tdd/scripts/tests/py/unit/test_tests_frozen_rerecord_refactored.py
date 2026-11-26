@@ -29,7 +29,7 @@ VERDICT = ".tdd/verdict-refactor.exit"
 
 
 def _skip_lines(err, what):
-    return sum(1 for l in err.splitlines() if l == "skipped: " + what or l.startswith("skipped: " + what + " ("))
+    return sum(1 for line in err.splitlines() if line == "skipped: " + what or line.startswith("skipped: " + what + " ("))
 
 
 def _ledger(root, **state):
@@ -293,7 +293,7 @@ def test_rerecord_refactored_names_a_case_gone_at_head_a_digest_mismatch_and_an_
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
-    assert (code, sorted(l.split(" (")[0] for l in err.splitlines() if l.startswith("skipped:"))) == (1, [
+    assert (code, sorted(line.split(" (")[0] for line in err.splitlines() if line.startswith("skipped:"))) == (1, [
         "skipped: suite_test.go TestBare", "skipped: suite_test.go TestGone", "skipped: suite_test.go TestMismatch"])
 
 
@@ -682,9 +682,9 @@ def test_rerecord_refactored_names_the_body_digest_guard_in_parentheses_on_the_s
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
-    lines = [l for l in err.splitlines() if l.startswith("skipped: suite_test.go TestX")]
-    assert (code, len(lines), [l.startswith("skipped: suite_test.go TestX (") and l.endswith(")")
-                               and len(l) > len("skipped: suite_test.go TestX ()") for l in lines]) == (
+    lines = [line for line in err.splitlines() if line.startswith("skipped: suite_test.go TestX")]
+    assert (code, len(lines), [line.startswith("skipped: suite_test.go TestX (") and line.endswith(")")
+                               and len(line) > len("skipped: suite_test.go TestX ()") for line in lines]) == (
         1, 1, [True])
 
 
@@ -696,9 +696,9 @@ def test_rerecord_refactored_names_the_assertionless_shape_guard_in_parentheses_
 
     code, _, err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
 
-    lines = [l for l in err.splitlines() if l.startswith("skipped: suite_test.go TestX")]
-    assert (code, len(lines), [l.startswith("skipped: suite_test.go TestX (") and l.endswith(")")
-                               and len(l) > len("skipped: suite_test.go TestX ()") for l in lines]) == (
+    lines = [line for line in err.splitlines() if line.startswith("skipped: suite_test.go TestX")]
+    assert (code, len(lines), [line.startswith("skipped: suite_test.go TestX (") and line.endswith(")")
+                               and len(line) > len("skipped: suite_test.go TestX ()") for line in lines]) == (
         1, 1, [True])
 
 

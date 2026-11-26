@@ -585,7 +585,7 @@ PLAN_LEDGER = ".tdd/issue-9.md"
 
 
 def _skip_lines(err, what):
-    return sum(1 for l in err.splitlines() if l == "skipped: " + what or l.startswith("skipped: " + what + " ("))
+    return sum(1 for line in err.splitlines() if line == "skipped: " + what or line.startswith("skipped: " + what + " ("))
 
 
 def _ledger(root, **state):

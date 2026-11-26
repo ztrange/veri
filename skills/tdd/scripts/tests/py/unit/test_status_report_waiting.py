@@ -31,7 +31,7 @@ def test_2750_report_waiting_lists_each_bail_since_status_last_with_its_cause(tm
 
     lines = [line.strip() for line in out.splitlines()]
     waiting = lines[lines.index("Waiting") + 1:]
-    assert (code, [l.split()[:2] for l in waiting if l]) == (0, [["#2750", "needs-user"]]), waiting
+    assert (code, [line.split()[:2] for line in waiting if line]) == (0, [["#2750", "needs-user"]]), waiting
 
 
 def test_2750_report_waiting_lists_every_bail_when_there_is_no_status_last(tmp_path, monkeypatch, run_cli, fake_processes):
@@ -58,7 +58,7 @@ def test_2750_report_waiting_lists_every_bail_when_there_is_no_status_last(tmp_p
 
     lines = [line.strip() for line in out.splitlines()]
     waiting = lines[lines.index("Waiting") + 1:]
-    assert (code, [l.split()[:2] for l in waiting if l]) == (0, [["#2750", "needs-user"], ["#2751", "stuck"]]), waiting
+    assert (code, [line.split()[:2] for line in waiting if line]) == (0, [["#2750", "needs-user"], ["#2751", "stuck"]]), waiting
 
 
 def test_2750_report_waiting_lists_each_pr_ready_to_merge(tmp_path, monkeypatch, run_cli, fake_processes):
@@ -84,8 +84,8 @@ def test_2750_report_waiting_lists_each_pr_ready_to_merge(tmp_path, monkeypatch,
     code, out, err = run_cli(status, ["--report"])
 
     lines = [line.strip() for line in out.splitlines()]
-    waiting = [l for l in lines[lines.index("Waiting") + 1:] if l.startswith("#")]
-    assert (code, [(l.split()[0], "99" in l) for l in waiting]) == (0, [("#2750", True)]), (waiting, err)
+    waiting = [line for line in lines[lines.index("Waiting") + 1:] if line.startswith("#")]
+    assert (code, [(line.split()[0], "99" in line) for line in waiting]) == (0, [("#2750", True)]), (waiting, err)
 
 
 def test_2750_report_waiting_names_the_latest_pr_after_the_last_merged_and_skips_done_without_pr(tmp_path, monkeypatch, run_cli, fake_processes):
@@ -109,8 +109,8 @@ def test_2750_report_waiting_names_the_latest_pr_after_the_last_merged_and_skips
     code, out, err = run_cli(status, ["--report"])
 
     out_lines = [line.strip() for line in out.splitlines()]
-    waiting = [l for l in out_lines[out_lines.index("Waiting") + 1:] if l.startswith("#")]
-    assert (code, [(l.split()[0], "42" in l, "41" in l) for l in waiting]) == (0, [("#2750", True, False)]), (waiting, err)
+    waiting = [line for line in out_lines[out_lines.index("Waiting") + 1:] if line.startswith("#")]
+    assert (code, [(line.split()[0], "42" in line, "41" in line) for line in waiting]) == (0, [("#2750", True, False)]), (waiting, err)
 
 
 def test_3250_report_waiting_skips_a_pr_whose_issue_subject_is_on_local_main_without_a_merged_event(tmp_path, monkeypatch, run_cli, fake_processes):
@@ -131,7 +131,7 @@ def test_3250_report_waiting_skips_a_pr_whose_issue_subject_is_on_local_main_wit
     code, out, err = run_cli(status, ["--report"])
 
     lines = [line.strip() for line in out.splitlines()]
-    waiting = [l for l in lines[lines.index("Waiting") + 1:] if l.startswith("#")]
+    waiting = [line for line in lines[lines.index("Waiting") + 1:] if line.startswith("#")]
     assert (code, waiting) == (0, []), (waiting, err)
 
 
@@ -153,8 +153,8 @@ def test_3250_report_waiting_lists_a_pr_whose_issue_subject_is_not_on_local_main
     code, out, err = run_cli(status, ["--report"])
 
     lines = [line.strip() for line in out.splitlines()]
-    waiting = [l for l in lines[lines.index("Waiting") + 1:] if l.startswith("#")]
-    assert (code, [(l.split()[0], "99" in l) for l in waiting]) == (0, [("#2750", True)]), (waiting, err)
+    waiting = [line for line in lines[lines.index("Waiting") + 1:] if line.startswith("#")]
+    assert (code, [(line.split()[0], "99" in line) for line in waiting]) == (0, [("#2750", True)]), (waiting, err)
 
 
 def test_3250_report_waiting_skips_a_pr_whose_own_number_subject_is_on_local_main_without_a_merged_event(tmp_path, monkeypatch, run_cli, fake_processes):
@@ -175,7 +175,7 @@ def test_3250_report_waiting_skips_a_pr_whose_own_number_subject_is_on_local_mai
     code, out, err = run_cli(status, ["--report"])
 
     lines = [line.strip() for line in out.splitlines()]
-    waiting = [l for l in lines[lines.index("Waiting") + 1:] if l.startswith("#")]
+    waiting = [line for line in lines[lines.index("Waiting") + 1:] if line.startswith("#")]
     assert (code, waiting) == (0, []), (waiting, err)
 
 

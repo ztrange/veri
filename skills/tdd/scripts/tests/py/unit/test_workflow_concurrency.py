@@ -6,7 +6,7 @@ CI = Path(__file__).resolve().parents[6] / ".github" / "workflows" / "ci.yml"
 
 
 def evaluate(line_prefix, event_name, pull_request):
-    line = next(l for l in CI.read_text().splitlines() if l.strip().startswith(line_prefix))
+    line = next(line for line in CI.read_text().splitlines() if line.strip().startswith(line_prefix))
     expr = line.split(":", 1)[1].strip()
     match = re.search(r"\$\{\{(.*)\}\}", expr)
     expr = match.group(1).strip() if match else expr

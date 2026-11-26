@@ -439,7 +439,7 @@ def test_rerecord_rebased_drops_the_helpers_line_of_a_recorded_go_case_never_com
     def stale_helpers_line():
         (record,) = (repo / ".tdd").glob("tests-frozen-*.record")
         lines = record.read_text().splitlines(keepends=True)
-        at = next(i for i, l in enumerate(lines) if l.startswith("case: TestGhost")) + 1
+        at = next(i for i, line in enumerate(lines) if line.startswith("case: TestGhost")) + 1
         record.write_text("".join(lines[:at + 1] + ["helpers: tests/suite_test.go\tTestGhost\t%s\n" % ("a" * 64)]
                                   + lines[at + 1:]))
 

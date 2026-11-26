@@ -21,7 +21,7 @@ def test_2750_report_notes_a_live_conductor_pid_run_with_no_journal(tmp_path, mo
 
     code, out, err = run_cli(status, ["--report"])
 
-    notes = [l.strip() for l in out.splitlines() if "journal" in l]
+    notes = [line.strip() for line in out.splitlines() if "journal" in line]
     assert (code, [("2760" in n, "2761" in n) for n in notes]) == (0, [(True, False)]), (out, err)
 
 
@@ -43,5 +43,5 @@ def test_2750_report_does_not_note_a_live_conductor_pid_run_that_has_a_journal(t
 
     code, out, err = run_cli(status, ["--report"])
 
-    notes = [l.strip() for l in out.splitlines() if "journal" in l]
+    notes = [line.strip() for line in out.splitlines() if "journal" in line]
     assert (code, [("2760" in n, "2762" in n) for n in notes]) == (0, [(True, False)]), (out, err)

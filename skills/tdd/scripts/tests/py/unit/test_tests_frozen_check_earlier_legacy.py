@@ -43,7 +43,7 @@ def _legacy_recorded(root, run_cli, tests_frozen, text, edited=None):
     suite.write_text(OLDER + "\n\n" + now)
     (record,) = (root / ".tdd").glob("tests-frozen-*.record")
     legacy = tests_frozen.body_digest("\n".join(sorted(tests_frozen._assertion_lines(now))))
-    kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
+    kept = [line for line in record.read_text().splitlines(keepends=True) if not line.startswith("helpers:")]
     record.write_text("".join(kept) + "helpers: %s\ttest_a\t%s\n" % (SUITE, legacy))
     ledger = root / ".tdd/ledger.md"
     ledger.write_text("- [x] %s\n- [ ] %s\n" % (EARLIER, CURRENT))
@@ -66,7 +66,7 @@ def test_check_earlier_leaves_one_helpers_line_equal_to_the_current_digest_after
     now = tests_frozen._helper_digest(suite.read_text(), tests_frozen._bodies_of(suite.read_text(), "test_a")[0])
 
     code = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", CURRENT], cwd=tmp_path)[0]
-    held = [l.split("\t")[-1] for l in record.read_text().splitlines() if l.startswith("helpers: ")]
+    held = [line.split("\t")[-1] for line in record.read_text().splitlines() if line.startswith("helpers: ")]
 
     assert (code, held) == (0, [now])
 

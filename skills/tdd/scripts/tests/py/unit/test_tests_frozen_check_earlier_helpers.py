@@ -322,7 +322,7 @@ def test_check_earlier_exits_0_for_a_go_case_after_two_rerecord_refactored_each_
     repo.commit("A third refactor rewords the helper's assertion again", all=True)
     run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
-    held = [l for l in record.read_text().splitlines() if l.startswith("helpers:")]
+    held = [line for line in record.read_text().splitlines() if line.startswith("helpers:")]
 
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
@@ -341,14 +341,14 @@ def test_check_earlier_exits_1_for_a_python_case_after_a_later_rerecord_refactor
     _refactored(tmp_path, run_cli, tests_frozen, repo, ROOT_SUITE, PY_INLINE, PY_EXTRACTED,
                 "A refactor moves the asserts into a helper")
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
-    rerecorded = [l for l in record.read_text().splitlines() if l.startswith("helpers:")]
+    rerecorded = [line for line in record.read_text().splitlines() if line.startswith("helpers:")]
     suite.write_text("def check_one(x):\n    assert x == 1\n\n\ndef test_one():\n    x = 1\n    check_one(x)\n")
     later_green = repo.commit("later commit drops an assert from the helper", all=True)
     suite.write_text(suite.read_text().replace("    assert x == 1\n", "    y = x\n    assert x == 1\n"))
     repo.commit("a second refactor touches only the helper", all=True)
 
     run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, later_green], cwd=tmp_path)
-    held = [l for l in record.read_text().splitlines() if l.startswith("helpers:")]
+    held = [line for line in record.read_text().splitlines() if line.startswith("helpers:")]
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
     assert (held, checked) == (rerecorded, (1, "test_one (%s)\n" % step))
@@ -450,7 +450,7 @@ def test_check_earlier_exits_1_naming_the_case_and_leaves_the_record_untouched_w
     run_cli(tests_frozen, ["record", "--step", earlier, SUITE], cwd=tmp_path)
     (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
     legacy = tests_frozen.body_digest("\n".join(sorted(tests_frozen._assertion_lines(text))))
-    kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
+    kept = [line for line in record.read_text().splitlines(keepends=True) if not line.startswith("helpers:")]
     record.write_text("".join(kept) + "helpers: %s\ttest_a\t%s\n" % (SUITE, legacy))
     suite.write_text(OLDER + "\n\n" + text.replace("    assert 1 == 1\n", "    pass\n"))
     before = record.read_text()
@@ -523,7 +523,7 @@ def _with_helpers_digest(tmp_path, digest_of):
     text = (tmp_path / GO_SUITE).read_text()
     identity = importlib.import_module("veri.case_identity")
     body = "\n".join(identity.bodies_of(text, "TestX"))
-    kept = [l for l in record.read_text().splitlines(keepends=True) if not l.startswith("helpers:")]
+    kept = [line for line in record.read_text().splitlines(keepends=True) if not line.startswith("helpers:")]
     record.write_text("".join(kept) + "helpers: %s\tTestX\t%s\n" % (GO_SUITE, digest_of(identity, text, body)))
     return record
 
