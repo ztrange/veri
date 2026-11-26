@@ -4,11 +4,10 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import os
 import sys
 
-import add_ledger_step
 import fused
 import fused_step
 import run_dir
-from ledger import STEP_RE, added_file, handed_out, has_kind, read_ledger
+from ledger import handed_out, has_kind
 
 NAME = "diff-step"
 USAGE = "usage: diff-step.sh <n>"
@@ -58,14 +57,9 @@ def run(n):
 def quality_repair(n, wt, found):
     """The ⟦diff-checked⟧ ⟦quality-repair⟧ step a POSSIBLE-BUG: line causes (SG4), appended after the ledger's last
     step and committed as a plan: commit."""
-    ledger = run_dir.ledger(wt, n)
-    steps = [line for line in read_ledger(ledger).split("\n") if STEP_RE.fullmatch(line)]
     text = "fix the bug a strengthened test found: POSSIBLE-BUG: %s ⟦diff-checked⟧ ⟦quality-repair⟧" % " ".join(
         found.replace("⟦", "[").replace("⟧", "]").split())
-    add_ledger_step.add(ledger, "after", steps[-1], [text])
-    paths = [ledger, added_file(ledger)]
-    fused.checked("tick", "git", "add", "--", *paths, cwd=wt)
-    fused.checked("tick", "git", "commit", "-q", "-m", "plan: quality-repair step", "--", *paths, cwd=wt)
+    fused_step.append_repair("tick", wt, n, text, "plan: quality-repair step")
 
 
 def flip(n, wt, step, values):

@@ -5,6 +5,7 @@ import re
 import sys
 from decimal import Decimal, InvalidOperation
 
+import add_ledger_step
 import event
 import event_log
 import ledger
@@ -12,7 +13,7 @@ import run_dir
 import run_pins
 import run_start
 from fused import Stop, call, checked, label, read_settled, script
-from ledger import ledger_steps
+from ledger import STEP_RE, added_file, ledger_steps, read_ledger
 from next_pending_refactor import refactor_pending
 
 
@@ -229,3 +230,18 @@ def branch_base(where, wt, n):
         return run_pins.branch_base(n, main)
     except OSError:
         raise Stop(where, "branch-base record of issue %s" % n, 2) from None
+
+
+def append_repair(where, wt, n, text, subject):
+    """<text> appended as a step after the ledger's last step through add-ledger-step.sh, then the ledger and its
+    added-steps record committed as one plan: commit, <subject>, stopping at <where>: add-ledger-step.sh's exit code,
+    nothing committed unless 0."""
+    path = run_dir.ledger(wt, n)
+    steps = [line for line in read_ledger(path).split("\n") if STEP_RE.fullmatch(line)]
+    code = add_ledger_step.add(path, "after", steps[-1], [text])
+    if code != 0:
+        return code
+    paths = [path, added_file(path)]
+    checked(where, "git", "add", "--", *paths, cwd=wt)
+    checked(where, "git", "commit", "-q", "-m", subject, "--", *paths, cwd=wt)
+    return 0
