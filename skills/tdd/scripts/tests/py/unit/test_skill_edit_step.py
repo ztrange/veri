@@ -2271,3 +2271,27 @@ def test_an_untraced_sentence_on_the_last_attempt_of_the_budget_launches_no_furt
     after = {name: (tmp_path / name).read_bytes() for name in before}
     assert (code, len(case.launched), len(case.graded)) == (1, 2, 1), (code, out, err)
     assert after == before
+
+
+def test_the_verify_trace_rows_leaf_is_launched_as_detach_leaf_sh_supervise_sh_verify_trace_rows_run_leaf_sh_4759(tmp_path, monkeypatch, skill_edit, run_cli, fake_processes):
+    trace = importlib.import_module("veri.skill_edit_step")._trace
+    launches = []
+
+    def detach(line, **kw):
+        launches.append([a.rsplit("/", 1)[-1] for a in map(str, fake.argvs[-1])])
+        return 0, "", ""
+
+    case = skill_edit(
+        listing="## unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | because |\n",
+        issue="## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n",
+        grade=(0, ""))
+    monkeypatch.setattr(case.step, "_trace", trace)
+    fake = fake_processes.answers({"stop-requested.sh": (3, "", ""), "detach-leaf.sh": detach,
+                                   "wait-leaf.sh": (0, "", "")})
+
+    code, out, err = run_cli(case.step, ["--added", "add A2", "issue.md", "unit.md"])
+
+    assert [argv[:4] for argv in launches] == [["detach-leaf.sh", "supervise.sh", "verify-trace-rows", "run-leaf.sh"]], (
+        code, out, err, launches)
