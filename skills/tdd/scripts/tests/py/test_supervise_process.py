@@ -71,7 +71,9 @@ def test_2377_a_verify_leaf_whose_mutation_breaks_the_full_suite_lock_wait_is_ki
                               "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
                               "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"})
 
-    assert ran.returncode == 2, ran.stderr
+    status = [l for l in ran.stderr.splitlines() if l.startswith("supervise[verify-rebase]: killed-")]
+    assert (ran.returncode, status) == (
+        2, ["supervise[verify-rebase]: killed-stuck — hard timeout 2s exceeded"]), ran.stderr
 
 
 SHORT_FULL_RUN = """\
