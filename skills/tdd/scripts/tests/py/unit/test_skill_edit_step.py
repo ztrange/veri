@@ -2043,7 +2043,7 @@ def test_the_trace_prompt_carries_a_claim_line_for_each_row_apply_added_or_chang
 
     code, out, err = run_cli(case.step, ["--added", "square A2, add A3", "issue.md", "unit.md"])
 
-    claims = [l for p in prompts for l in p.splitlines() if l.startswith("CLAIM A")]
+    claims = [line for p in prompts for line in p.splitlines() if line.startswith("CLAIM A")]
     assert claims == ["CLAIM A2 The widget is square.", "CLAIM A3 The widget is shiny."], (code, out, err, prompts)
 
 
@@ -2067,7 +2067,7 @@ def test_the_trace_prompt_carries_a_claim_line_for_each_sentence_the_units_diff_
 
     code, out, err = run_cli(case.step, ["issue.md", "unit.md"])
 
-    claims = [l for p in prompts for l in p.splitlines() if l.startswith("CLAIM S")]
+    claims = [line for p in prompts for line in p.splitlines() if line.startswith("CLAIM S")]
     assert claims == ["CLAIM S1 It has three legs.", "CLAIM S2 It hums."], (code, out, err, prompts)
 
 
