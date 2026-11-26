@@ -78,7 +78,7 @@ Never collapse 1 and 2: a process failure (the methodology spoke) is not a syste
 - **The committed ledger is the source of truth** for done steps; the issue only mirrors it.
   A step's green tick appends `⟂ refactor pending`, removed only by its verify-refactor PASS,
   so a resumed run can tell green from finished.
-- **Thirteen budgets on thirteen axes, never merged**, one row each:
+- **Fourteen budgets on fourteen axes, never merged**, one row each:
 
   | Knob | Axis | Default |
   |---|---|---|
@@ -92,6 +92,7 @@ Never collapse 1 and 2: a process failure (the methodology spoke) is not a syste
   | `VERI_ADJUDICATE_BUDGET` | exit-2 judgments per run; 0 keeps today's behaviour | 2 |
   | `VERI_CI_FLAKE_RERUNS` | CI re-runs of a red head per run: a flaky CI job is not a defect; 0 keeps today's behaviour | 1 |
   | `VERI_TEST_QUALITY_FIXES` | cost: the test-quality steps one run may add: a weak test is not a rejected product | 1 |
+  | `VERI_QUALITY_REPAIRS` | the `⟦quality-repair⟧` steps a red strengthened test's `POSSIBLE-BUG:` lines may append per run: a possible production bug is not a weak test | 1 |
   | `VERI_SURROUND_MUTANTS` | the mutants a legacy region owes: a missing mutant is not a rejected product | 5 |
   | `VERI_BRANCH_REPAIRS` | the repair steps `verify-branch` may append per run: a rejected branch is not a stuck leaf or a missing verdict | 1 |
   | `VERI_DEVIATION_BUDGET` | deviations: proceeding past a whitelisted rule the adjudicator waived (ADR-0037) | 1 |
