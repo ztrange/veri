@@ -36,8 +36,11 @@ def test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and
     splits = [(n, line) for n, line in numbered(r'\$S/add-ledger-step\.sh (--criterion [^ ]+ )?\.tdd/.*(instead-of|before "\$\(\$S/next-unchecked\.sh)') if in_skill_md(n)]
     for n, line in splits:
         assert "--criterion" not in line, f"SKILL.md:{n}'s split call passes --criterion: {line.strip()}"
-    positions = {re.search(r"\.md (instead-of|before) ", line).group(1): line.strip() for _n, line in splits}
+    positions = {re.search(r"\.md (instead-of|before) ", line).group(1): n for n, line in splits}
     assert sorted(positions) == ["before", "instead-of"], f"SKILL.md's split add-ledger-step.sh calls: {positions}"
+    for where, n in positions.items():
+        said = plain(skill_lines()[n - 1:n + 8])
+        assert re.search(r"no\s+--criterion: a split keeps its anchor's criterion", said), f"SKILL.md:{n}'s {where} split never says a split keeps its anchor's criterion"
     fake_processes.answers({"git log --format=%H %s": (0, "beef plan: scope #42 into 3 steps (#42)\n", ""),
                             "git show beef:./": (0, "- [ ] planned step\n" * 3, "")})
     monkeypatch.setenv("VERI_STEP_GROWTH_PERCENT", "100")
@@ -55,6 +58,8 @@ def test_1281_skill_md_s_three_split_add_ledger_step_calls_pass_no_criterion_and
     at, call = uncovered[0]
     assert "$S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md after" in call, f"SKILL.md's uncovered-spec call: {call.strip()}"
     near = plain(skill_lines()[at - 1:at + 30])
+    assert re.search(r"<k> is the number of the issue's numbered acceptance criterion the behaviour serves,\s+read from the issue's ## acceptance criteria", near), f"SKILL.md:{at} never says <k> is read from the issue's numbered acceptance criteria"
+    assert re.search(r"one call per criterion when they serve different ones", near), f"SKILL.md:{at} never says one call per criterion"
     assert re.search(r"add-ledger-step\.sh exit 2 .*bail with cause step-add-refused, calling add-ledger-step\.sh no more", near), f"SKILL.md:{at} never bails step-add-refused on exit 2"
 
 
