@@ -1,4 +1,5 @@
-"""This repository's Python passes ruff under ruff.toml (PRD 039): no unused import, no undefined or redefined name.
+"""This repository's Python passes ruff under ruff.toml (PRD 039): no unused import, no undefined or redefined name,
+imports in order, no function over the complexity cap (C901).
 It audits the tree, not a module's logic, and runs ruff from the venv `make install-dev` built from the lock."""
 import subprocess
 import sys
