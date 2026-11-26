@@ -2127,3 +2127,34 @@ def test_a_trace_answer_of_traced_lines_for_every_claim_or_a_mix_with_not_code_g
     code, out, err = run_cli(case.step, ["issue.md", "unit.md"])
 
     assert (code, len(case.graded)) == (0, 2), (code, out, err)
+
+
+def test_with_one_no_verdict_retry_a_garbage_first_trace_answer_relaunches_the_trace_leaf_once_with_a_relaunch_event_and_a_parseable_second_answer_goes_on_to_the_grade_4759(tmp_path, monkeypatch, skill_edit, run_cli, fake_processes):
+    trace = importlib.import_module("veri.skill_edit_step")._trace
+    answers = ["no idea, sorry", "TRACED A2 skills/widget.py:12\nNOT-CODE S1"]
+    launched = []
+
+    def detach(line, **kw):
+        launched.append(line)
+        (tmp_path / ".tdd" / "verify-trace-rows.log").write_text(
+            json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": answers.pop(0)}) + "\n")
+        return 0, "", ""
+
+    case = skill_edit(
+        unit="The widget is painted a deep blue.\n",
+        issue="## Requirements\n\n### unit.md\n\n| ID | Requirement | Why |\n|---|---|---|\n"
+        "| A1 | The widget is blue. | because |\n"
+        "| A2 | The widget is round. | shape |\n",
+        grade=[(1, "A2: FAIL - no\n"), (0, "")],
+        author=lambda *a: (tmp_path / "unit.md").write_text(
+            "The widget is painted a deep blue. It is round.\n") and 0,
+        guard=lambda unit, base, pins: [])
+    monkeypatch.setattr(case.step, "_trace", trace)
+    fake_processes.answers({"stop-requested.sh": (3, "", ""), "detach-leaf.sh": detach,
+                            "wait-leaf.sh": (0, "", "")})
+
+    code, out, err = run_cli(case.step, ["issue.md", "unit.md"], env={"VERI_NO_VERDICT_RETRIES": "1"})
+
+    relaunches = [e for e in case.events if e[2] == "relaunch"]
+    assert (code, len(launched), len(case.graded)) == (0, 2, 2), (code, out, err)
+    assert [list(e[3]) for e in relaunches] == [["cause=no-verdict"]], case.events

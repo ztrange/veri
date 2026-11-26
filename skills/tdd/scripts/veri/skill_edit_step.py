@@ -470,6 +470,11 @@ def main(argv):
         if not graded:
             sentences = _changed_sentences(_unit_text_in(snapshot, unit), _unit_text_in(_read_existing([file]), unit))
             answer = _trace(unit, rows, sentences)
+            for _ in range(tunables.tokens(tunables.get("VERI_NO_VERDICT_RETRIES", unless_empty=True))):
+                if answer is not None:
+                    break
+                event.mark("", event.context(os.environ), "relaunch", ["cause=no-verdict"])
+                answer = _trace(unit, rows, sentences)
             if answer is None:
                 print("skill-edit-step.sh: no-verdict: the verify-trace-rows leaf's answer is not one line per claim",
                       file=sys.stderr)
