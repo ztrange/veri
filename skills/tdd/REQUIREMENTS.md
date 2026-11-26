@@ -522,6 +522,7 @@
 | CY413 | `DIFF-CHECKED.md` opens with one call line: run `$S/run-step.sh <n>`, again on exit 3, and on 1 or 2 go on by the paragraph its last line names; `diff-step by hand ends $S/step-tick.sh <n>`. Every paragraph stays. | The prose stays the fallback (DST13, S8). |
 | CY414 | The PASS bullet names the ledger commit's subject for a ⟦diff-checked⟧ tick: `chore: diff-checked — <step summary> (#<n>)`. | Runs commit it under that subject today and no skill file names it (DST6, S14). |
 | CY418 | `skills/tdd/DIFF-CHECKED.md`'s PASS bullet runs no `pin-recheck.sh` and names no re-pin step. | PRD 044 D4: no recheck adds a re-pin step. |
+| DC3 | DIFF-CHECKED.md says a `⟦test-quality⟧` step whose strengthened case goes red reports `POSSIBLE-BUG:` and stays test-only, and that the `⟦quality-repair⟧` step it causes runs as any `⟦diff-checked⟧` step, `develop-diff` then the blind `verify-diff`. | The repair takes D11's route and the test-quality step never widens (D16). |
 
 ## skills/tdd/GO-RED.md
 

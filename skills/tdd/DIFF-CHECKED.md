@@ -36,6 +36,14 @@ each as made, and run no `git reset --soft`, squash or re-commit on it. After a 
 ledger tick is committed as its own commit on top of the leaf's commit, so a step that
 changed something leaves the leaf's commit and then the tick commit, in that order.
 
+**A possible bug.** A `⟦test-quality⟧` step whose strengthened case goes red stays test-only: its
+leaf reverts the case, commits nothing for it, changes no production code and reports
+`POSSIBLE-BUG: <file>::<case> expects <X>, code yields <Y>`. The `suite-reported.sh` and
+`diff-leaf-deviation.sh` checks still run, but no `verify-diff` and no flip judge that step:
+`diff-step.sh` routes the line as `<base directory>/DRAFT-PR.md`, *A possible bug*, sets out, then
+ticks the step. The `⟦quality-repair⟧` step it causes, within `VERI_QUALITY_REPAIRS`, runs as any
+`⟦diff-checked⟧` step does: `develop-diff`, then the blind `verify-diff`.
+
 The verifier's verdict closes the `⟦diff-checked⟧` step:
 
 - **The flip of a `⟦test-quality⟧` step.** Such a step fixes one test case (`<base directory>/DRAFT-PR.md`),
