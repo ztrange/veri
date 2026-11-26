@@ -303,3 +303,17 @@ def test_4709_a_step_only_quoting_diff_checked_in_its_prose_is_exit_2_before_any
 
     assert (code, fake.calls) == (2, [])
     assert "no open ⟦diff-checked⟧ step" in err
+
+
+POSSIBLE_BUG = "POSSIBLE-BUG: tests/test_a.py::test_split expects [300, 300, 300], code yields [300, 300, 299]\n"
+
+
+def test_4760_a_test_quality_step_whose_leaf_reports_a_possible_bug_launches_no_verdict_diff(diff):
+    """SG2, SG3: the strengthened case red, reverted and uncommitted, is a possible bug, not a step a verify-diff REJECT
+    can stop."""
+    diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    code, out, err, fake = diff(step=QUALITY, report="SUITE: ok\n" + POSSIBLE_BUG + FLIP)
+
+    assert fake.launched() == []
+    assert "run-verdict.sh" not in [os.path.basename(a) for c in fake.calls for a in c[1]]
+    assert code == 0, err
