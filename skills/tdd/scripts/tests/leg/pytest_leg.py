@@ -378,7 +378,7 @@ def claim(cleanups=None, cap=None):
                         ", ".join(name for name, _ in holders)))
                     sys.stderr.flush()
                     said = True
-                    began = time.monotonic()
+                    began = time.monotonic()  # noqa: F841 -- read on a later pass of the loop, which pyflakes misreads
                     waiters = waiters_dir()
                     waiter = os.path.join(waiters, str(os.getpid()))
                     try:
