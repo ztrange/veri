@@ -1326,3 +1326,10 @@
 | VB12 | After the opening, a `### The issue's behavior spec` heading sits over `{{ISSUE_SPEC}}`; the template has no `### Your checks` heading. (Sections.) | The verifier reads the criteria before the run instructions. |
 | VB13 | The run paragraph tells the verifier to run the fast command, `{{FAST_CMD}}`, then the test files covering the files the diff touched, as `affected-suites.sh` prints them, each through the wrapper, then the included `_exit-status-back.md` fragment, so a red run stays red. (Paragraph after the spec.) | A branch is proven green before it is judged. |
 | VB14 | The closing paragraph says PASS if the branch satisfies every acceptance criterion, and REJECT, naming each criterion or behaviour the diff leaves unmet or unpinned by a case, otherwise, writing one `MISSING_TEST: <behaviour>` line for each criterion or behaviour no case pins; REJECT, too, if the fast command or those test files are red; and ends with `VERDICT: PASS` or `VERDICT: REJECT`. (Closing paragraph.) | The verdict is about the whole branch against the criteria, and a missing line is no answer; a `MISSING_TEST:` line lets the repair step be routed red/green, since a `⟦diff-checked⟧` step may not add a test case. |
+
+## skills/tdd/scripts/prompts/trace-rows.md
+
+| ID | Requirement | Why |
+|---|---|---|
+| TRW1 | The template gives the leaf the rows the step added or changed and the sentences the unit's diff added or changed, and tells it to judge each against the repository at `HEAD` by reading files, writing none. (Opening paragraph.) | A row carried from the plan step is judged against code, not against the words it was copied from. |
+| TRW2 | The template asks for one line per claim: `TRACED <id> <file>:<line>` naming the code that bears it out, `UNTRACED <id> <why>` when no file at `HEAD` shows it, or `NOT-CODE <id>` for a claim about prose, not behaviour, and nothing else on those lines. (Closing paragraph.) | Every claim is traced or named, and the script parses a fixed shape. |
