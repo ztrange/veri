@@ -1158,6 +1158,7 @@
 |---|---|---|
 | TQF1 | The fragment tells the leaf to fix only the test case the step names, changing no production code, and to commit the fix as a `test:` commit. | Fowler's two hats: a test change is a `test:` commit, never inside a refactor range (PRD 032, TX3; PRD 017). |
 | TQF2 | The fragment asks for one `FLIP: <test file> '<old>→<new>'` report line, `<old>` a literal of the fixed case's expected value and `<new>` a different value, which the conductor flips to show the case goes red. | Each fix is proven live by a script (PRD 032, TX3, C6). |
+| TQF3 | The fragment tells the leaf that when its strengthened case is red against the current code it reverts the case, commits nothing for it, and reports one line `POSSIBLE-BUG: <file>::<case> expects <X>, code yields <Y>`. | A red strengthened assertion is a possible bug, not a broken test, and the step stays test-only (D16). |
 
 ## skills/tdd/scripts/prompts/verify-cover-new.md
 
