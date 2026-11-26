@@ -459,3 +459,21 @@ def test_4760_a_ledger_already_holding_one_quality_repair_step_gets_no_second_at
     assert len(repairs) == 1
     assert commits == []
     assert "step-tick.sh" in fake.names()
+
+
+def test_4760_a_quality_repairs_cap_of_2_with_one_quality_repair_step_already_in_the_ledger_appends_a_second(
+        diff, monkeypatch):
+    """SG5: the cap is read from VERI_QUALITY_REPAIRS, not fixed at 1: at 2, with one ⟦quality-repair⟧ step already in
+    the ledger, a further finding appends a second one, last, as a plan: commit."""
+    monkeypatch.setenv("VERI_QUALITY_REPAIRS", "2")
+    ledger = diff.wt / ".tdd" / "issue-12.md"
+    ledger.write_text((LEDGER % QUALITY) + "- [ ] fix the bug ⟦diff-checked⟧ ⟦quality-repair⟧ ⟦criterion 2⟧\n")
+    diff(step=QUALITY, answers={("wait-leaf.sh", "develop-diff"): (3, "")})
+    code, out, err, fake = diff(step=QUALITY, report="SUITE: ok\n" + POSSIBLE_BUG)
+
+    steps = [l for l in ledger.read_text().split("\n") if l.startswith("- [")]
+    repairs = [l for l in steps if "⟦quality-repair⟧" in l]
+    commits = [c[1] for c in fake.calls if c[0] == "git" and c[1][:1] == ("commit",)]
+    assert code == 0, err
+    assert (len(repairs), repairs[-1] == steps[-1], POSSIBLE_BUG.strip() in repairs[-1]) == (2, True, True)
+    assert [a[a.index("-m") + 1].startswith("plan:") for a in commits] == [True]
