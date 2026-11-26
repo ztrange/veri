@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 import time
+from dataclasses import dataclass
 
 import entry
 import event
@@ -41,6 +42,14 @@ REPAIR_MARKS = ("ci-repair", SUITE_REPAIR, "branch-repair", "quality-repair")
 BYTES = "surrogateescape"
 INSTEAD_OF = "instead-of"
 USAGE = "usage: add-ledger-step.sh [--planned] [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]  (--planned goes with --criterion <k>)"
+
+
+@dataclass(frozen=True)
+class Request:
+    path: str
+    where: str
+    anchor: str
+    texts: tuple
 
 
 def warn(message):
@@ -208,12 +217,12 @@ def drop_replaced_records(tdd, n, replaced, was_open):
         os.remove(path)
 
 
-def argument_refusal(path, where, anchor, texts):
-    if "" in (path, where, anchor):
+def argument_refusal(request):
+    if "" in (request.path, request.where, request.anchor):
         return USAGE
-    if where not in ("after", "before", INSTEAD_OF):
-        return "add-ledger-step.sh: position must be after, before or instead-of: " + where
-    for text in texts:
+    if request.where not in ("after", "before", INSTEAD_OF):
+        return "add-ledger-step.sh: position must be after, before or instead-of: " + request.where
+    for text in request.texts:
         if CRITERION_TAG in text:
             return "add-ledger-step.sh: the text already holds a criterion tag: " + text
         if step_body(text) != text:
@@ -252,29 +261,29 @@ def skill_edit_refusal(path, texts):
     return None
 
 
-def one_per_run_exit(path, lines, texts):
+def one_per_run_exit(request, lines):
     # The marks of which one run inserts at most one step: the second is refused (exit 1). Not REPAIR_MARKS, which only exempts.
     ONE_PER_RUN = (SUITE_REPAIR, "lint-repair")
     steps = [line for line in lines if ledger_steps(line)]
     for mark in ONE_PER_RUN:
         earlier = [line for line in steps if is_one_per_run(line, mark) and not is_retired(line)]
         try:
-            this_run = added_since_last_resume(path, steps, mark) if earlier else False
+            this_run = added_since_last_resume(request.path, steps, mark) if earlier else False
         except UnreadableLog as unreadable:
             return entry.refuse(str(unreadable))
-        if this_run and any(is_one_per_run(text, mark) for text in texts):
+        if this_run and any(is_one_per_run(text, mark) for text in request.texts):
             warn(f"add-ledger-step.sh: this run already inserted a {mark} step: " + (earlier[0] if this_run is True else this_run))
             return 1
     return None
 
 
-def write_owed_steps(path, lines, terminated, texts):
+def write_owed_steps(request, lines, terminated):
     headings = [line for line in lines if line.startswith("## ")]
     owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
     if not owed and lines is not terminated:
         owed = "\n"
-    owed += "".join(f"- {text}\n" for text in texts)
-    write_ledger(path, read_ledger(path), owed)
+    owed += "".join(f"- {text}\n" for text in request.texts)
+    write_ledger(request.path, read_ledger(request.path), owed)
 
 
 def main(argv):
@@ -308,7 +317,8 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
     conductor is live. Prints refusals and notes to stderr, as the script does; an empty path, position or anchor
     is refused with the usage line (exit 2), as on the command line.
     """
-    refusal = argument_refusal(path, where, anchor, texts)
+    request = Request(path, where, anchor, tuple(texts))
+    refusal = argument_refusal(request)
     if refusal:
         return entry.refuse(refusal)
     try:
@@ -335,7 +345,7 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
     refusal = skill_edit_refusal(path, texts)
     if refusal:
         return entry.refuse(refusal)
-    code = one_per_run_exit(path, lines, texts)
+    code = one_per_run_exit(request, lines)
     if code is not None:
         return code
     if tunables.is_set("VERI_STEP_GROWTH"):
@@ -363,7 +373,7 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
         return entry.refuse("add-ledger-step.sh: no plan commit holds " + os.path.basename(path)
                             + " (git log names no plan: scope or plan: rewrite commit that git show can read)")
     if not planned and added > ledger_growth.growth_cap(int(percent), plan_size):
-        write_owed_steps(path, lines, terminated, texts)
+        write_owed_steps(request, lines, terminated)
         return 1
     bare = next((line for line in inserted_lines if has_kind(line, "⟦diff-checked⟧") and CRITERION_TAG not in line), None)
     if bare:
