@@ -41,6 +41,7 @@ REPAIR_MARKS = ("ci-repair", SUITE_REPAIR, "branch-repair", "quality-repair")
 # The marks of which one run inserts at most one step: the second is refused (exit 1). Not REPAIR_MARKS, which only exempts.
 ONE_PER_RUN = (SUITE_REPAIR, "lint-repair")
 BYTES = "surrogateescape"
+INSTEAD_OF = "instead-of"
 USAGE = "usage: add-ledger-step.sh [--planned] [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]  (--planned goes with --criterion <k>)"
 
 
@@ -214,7 +215,7 @@ def drop_replaced_records(tdd, n, replaced, was_open):
 def argument_refusal(path, where, anchor, texts):
     if "" in (path, where, anchor):
         return USAGE
-    if where not in ("after", "before", "instead-of"):
+    if where not in ("after", "before", INSTEAD_OF):
         return "add-ledger-step.sh: position must be after, before or instead-of: " + where
     for text in texts:
         if CRITERION_TAG in text:
@@ -357,7 +358,7 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
         inserted_lines.extend(inserted)
         if where == "before":
             out.append(line)
-    kept = [line for line in lines if where != "instead-of" or not is_anchor_step(line, anchor)]
+    kept = [line for line in lines if where != INSTEAD_OF or not is_anchor_step(line, anchor)]
     added = sum(record.added == "1" for record in ledger_steps("\n".join(kept))) + sum(not is_repair(text) for text in texts)
     plan_size = verified_plan_size(path) if added and not planned else 0
     if plan_size is None:
@@ -379,7 +380,7 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
     issue = re.fullmatch(r"issue-(\d+)\.md", os.path.basename(path))
     if issue:
         tdd = os.path.dirname(os.path.abspath(path))
-        if where == "instead-of":
+        if where == INSTEAD_OF:
             replaced = next(line for line in lines if is_anchor_step(line, anchor))
             first_open = next((line for line in lines if any(r.state == "open" for r in ledger_steps(line))), None)
             drop_replaced_records(tdd, issue.group(1), ledger_steps(replaced)[0].text, replaced == first_open)
