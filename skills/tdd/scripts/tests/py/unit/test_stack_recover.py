@@ -375,4 +375,5 @@ def test_a_pull_request_read_answering_no_json_or_no_json_object_is_read_again_w
 
     code, out, err = run_cli(stack_recover, [], env={"VERI_MERGE_SETTLE_READS": "3", "VERI_MERGE_SETTLE_SLEEP": "0"})
 
-    assert (code, out) == (0, "%s %s\n" % (TIP, URL)), err
+    reads = [call[1].rsplit("/", 1)[1] for call in world.log if call[0] == "gh"]
+    assert (code, out, reads) == (0, "%s %s\n" % (TIP, URL), ["11", "11", "11", "12"]), err

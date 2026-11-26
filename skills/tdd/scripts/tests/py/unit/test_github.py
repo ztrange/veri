@@ -1172,11 +1172,10 @@ def test_a_failed_graphql_gh_call_carries_gh_stderr_in_the_no_answer_detail_only
     """The fake honours the stderr argument like the real subprocess: no text unless PIPE was passed, so a
     caller that stops capturing stderr loses the 'HTTP 503' that dispatch.sh's retry reads from the detail."""
     def fake_run(line, **kwargs):
-        args = fake.argvs[-1]
         said = "gh: Service Unavailable (HTTP 503)\n" if kwargs.get("stderr") == subprocess.PIPE else None
         return (1, "", said)
 
-    fake = fake_processes.answers({}, default=fake_run)
+    fake_processes.answers({}, default=fake_run)
 
     with pytest.raises(github.NoAnswer) as no_answer:
         github.GraphQLAdapter().list("pr", "list", "--json", "number")

@@ -190,7 +190,7 @@ def test_after_the_metrics_the_push_then_the_issue_comment_then_the_pr_comment_a
 
 def test_one_stdout_line_per_call_names_the_call_and_its_exit_code_a_non_zero_one_included_and_no_output_file_contents(
         run_cli, fake_processes, bail, tmp_path):
-    fake = fake_processes.answers(
+    fake_processes.answers(
         {"ledger-steps.sh current-or-last-done": (0, "3\n", ""),
          "classify-bail.sh tests-red": (0, "process\n", ""),
          "preserve-attempt.sh 7 3 red 1 bail": (5, "SNAPSHOT-BODY\n", "SNAPSHOT-ERR\n"),

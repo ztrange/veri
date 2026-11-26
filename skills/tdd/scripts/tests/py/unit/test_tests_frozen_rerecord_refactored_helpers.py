@@ -314,7 +314,6 @@ def _append_helpers_line(tmp_path, tests_frozen):
 
 def test_rerecord_refactored_skips_a_go_case_at_heads_body_whose_refactor_lost_a_helper_assertion_line_2973(
         tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
-    suite = tmp_path / GO_SUITE
     repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
     recorded = ("func checkX(t *testing.T, x int) {\n\tif x != 1 {\n\t\tt.Fatal(\"bad\")\n\t}\n"
                 "\tif x < 0 {\n\t\tt.Error(\"negative\")\n\t}\n}\n\n"

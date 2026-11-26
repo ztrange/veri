@@ -77,7 +77,7 @@ def test_main_returns_1_with_its_could_not_preserve_line_and_no_copy_when_update
             return (128, None, None)
         return (0, "", "")
 
-    processes = fake_processes.answers({"": answer})
+    fake_processes.answers({"": answer})
 
     code = preserve_attempt.main(["409", "3", "develop-green", "1", "reject"])
     captured = capsys.readouterr()
