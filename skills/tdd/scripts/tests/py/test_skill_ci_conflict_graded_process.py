@@ -115,7 +115,6 @@ def test_issue_2706_a_conflict_beyond_graded_with_the_marker_already_present_rec
     git("remote", "set-head", "origin", "main")
     commit(line("a", "0") + line("b", "1") + line("z", "0"), "upstream", "1\n")
     git("push", "-q", "origin", "main")
-    onto = git("rev-parse", "HEAD")
     git("checkout", "-q", "-b", "work", "HEAD~1")
     commit(line("a", "0") + line("c", "2") + line("z", "0"), "branch", "2\n")
     tip = git("rev-parse", "HEAD")

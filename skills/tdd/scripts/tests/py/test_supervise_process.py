@@ -3645,7 +3645,7 @@ def test_cli_records_its_own_pid_before_the_leaf_launches_and_preserves_the_rela
     for key, value in {"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_COUNT": "1",
                        "GIT_CONFIG_KEY_0": "user.useConfigOnly", "GIT_CONFIG_VALUE_0": "true"}.items():
         monkeypatch.setenv(key, value)
-    real_run, real_check_output, real_popen = subprocess.run, subprocess.check_output, subprocess.Popen
+    real_run, real_popen = subprocess.run, subprocess.Popen
     work = tmp_path / "preserve"
     work.mkdir()
     git = ["git", "-C", str(work), "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
@@ -3669,7 +3669,6 @@ def test_cli_records_its_own_pid_before_the_leaf_launches_and_preserves_the_rela
     patch_clocks(monkeypatch, lambda: str(clock["wall"]), lambda _log: "1000")
 
     def answer(args):
-        words = [str(a) for a in args]
         return None
 
     def popen(args, *a, **kwargs):
@@ -4508,7 +4507,7 @@ def test_cli_leaves_no_launch_event_and_no_owner_file_when_it_refuses_a_develop_
                              env={"VERI_ISSUE": "1741", "VERI_STEP": "3"})
 
     assert code == 2, err
-    assert (events.read_text(), (tmp_path / ".tdd" / "leaf.owner").exists()) == (before, False), err
+    assert (events.read_text(), (tmp_path / ".tdd" / "leaf.owner").exists(), started) == (before, False, []), err
 
 
 @pytest.mark.process("detach-leaf.sh, supervise.sh and wait-leaf.sh run for real over a refused develop-green launch (#1754)")
@@ -4581,7 +4580,7 @@ def test_cli_records_2_in_the_exit_file_of_a_launch_refused_for_an_empty_veri_st
                            env={"VERI_ISSUE": "1760", "VERI_STEP": ""})
 
     exit_file = tmp_path / ".tdd" / "verify-red.exit"
-    assert (exit_file.read_text().strip() if exit_file.is_file() else None, code) == ("2", 2), err
+    assert (exit_file.read_text().strip() if exit_file.is_file() else None, code, started) == ("2", 2, []), err
 
 
 def test_cli_launches_a_develop_green_whose_ci_repair_step_is_numbered_as_ledger_steps_numbers_it_past_a_non_step_box_line_1973(

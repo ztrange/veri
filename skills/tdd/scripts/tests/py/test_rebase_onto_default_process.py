@@ -423,7 +423,6 @@ def test_main_after_the_resume_discard_keeps_an_append_to_a_ledger_whose_last_co
     for who in ("AUTHOR", "COMMITTER"):
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
-    scripts = pathlib.Path(__file__).resolve().parents[2]
     discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
 
     def git(repo, *args):
@@ -541,7 +540,6 @@ def test_main_stops_the_resume_discard_with_exit_2_naming_the_file_and_the_kept_
     for who in ("AUTHOR", "COMMITTER"):
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
-    scripts = pathlib.Path(__file__).resolve().parents[2]
     discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
     real_git = shutil.which("git")
 
@@ -746,7 +744,6 @@ def test_main_after_the_resume_discard_keeps_a_rewritten_row_of_a_tracked_metric
     for who in ("AUTHOR", "COMMITTER"):
         monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
         monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
-    scripts = pathlib.Path(__file__).resolve().parents[2]
     discard = str(pathlib.Path(__file__).resolve().parents[2] / "resume-clean.sh")
 
     def git(repo, *args):
