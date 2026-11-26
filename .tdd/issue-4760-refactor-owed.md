@@ -1,0 +1,3 @@
+### `add-ledger-step.sh` given a step carrying `⟦quality-repair⟧` appends it with no `⟦added⟧`, `quality-repair` being one of `REPAIR_MARKS` in `skills/tdd/scripts/veri/add_ledger_step.py` (a case in `skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py`) ⟦criterion 2⟧
+- test-only | Large Module: Extract Class — split `skills/tdd/scripts/tests/py/unit/test_add_ledger_step.py`, about 2000 lines, by behaviour (growth budget, suite-repair cap, skill-edit refusals)
+not-done | out-of-bounds | skills/tdd/scripts/veri/add_ledger_step.py | Long Parameter List: Introduce Parameter Object — group the insertion arguments of `add`, which takes six parameters
