@@ -71,7 +71,7 @@ def test_2377_a_verify_leaf_whose_mutation_breaks_the_full_suite_lock_wait_is_ki
                               "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
                               "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"})
 
-    status = [l for l in ran.stderr.splitlines() if l.startswith("supervise[verify-rebase]: killed-")]
+    status = [line for line in ran.stderr.splitlines() if line.startswith("supervise[verify-rebase]: killed-")]
     assert (ran.returncode, status) == (
         2, ["supervise[verify-rebase]: killed-stuck — hard timeout 2s exceeded"]), ran.stderr
 
@@ -271,7 +271,7 @@ def test_2427_a_leaf_sigkilled_by_another_process_exits_2_with_cause_killed_exte
         if leaf is not None:
             os.killpg(os.getpgid(leaf), 9)
         out, err = ran.communicate(timeout=20)
-    events = [json.loads(l) for l in (work / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (work / ".tdd" / "events.jsonl").read_text().splitlines()]
     exits = [e for e in events if e.get("event") == "exit"]
 
     assert (ran.returncode, [e for e in events if e.get("event") == "retry"] == [],
@@ -289,7 +289,7 @@ def test_2427_a_leaf_killed_by_the_supervisors_own_hard_timeout_stays_killed_stu
                          env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "1",
                               "VERI_POLL": "0.05", "VERI_TIMEOUT": "1", "VERI_HEARTBEAT": "600",
                               "VERI_ISSUE": "2427", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
-    events = [json.loads(l) for l in (work / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (work / ".tdd" / "events.jsonl").read_text().splitlines()]
     retries = [e for e in events if e.get("event") == "retry"]
     exits = [e for e in events if e.get("event") == "exit"]
 
@@ -316,9 +316,9 @@ def test_4627_a_leaf_killed_stuck_with_a_tool_call_in_flight_gets_a_kill_reason_
                          env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
                               "VERI_POLL": "0.05", "VERI_TIMEOUT": "1", "VERI_HEARTBEAT": "600",
                               "VERI_ISSUE": "4627", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
-    events = [json.loads(l) for l in (work / ".tdd" / "events.jsonl").read_text().splitlines()]
+    events = [json.loads(line) for line in (work / ".tdd" / "events.jsonl").read_text().splitlines()]
     causes = [e.get("cause", "") for e in events if e.get("event") == "exit"]
-    status = [l for l in ran.stderr.splitlines() if l.startswith("supervise[develop-red]: killed-stuck")]
+    status = [line for line in ran.stderr.splitlines() if line.startswith("supervise[develop-red]: killed-stuck")]
 
     assert (ran.returncode, [("make test" in c, "870" in c) for c in causes + status]) == (
         2, [(True, True), (True, True)]), ran.stderr
@@ -364,7 +364,7 @@ def test_2927_a_verify_pin_leaf_that_appends_to_a_mutations_record_keeps_the_app
                          env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
                               "VERI_POLL": "0.05", "VERI_ISSUE": "2927", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
     lines = (work / ".tdd" / "events.jsonl").read_text().splitlines()
-    naming = [l for l in lines if "mutation-record-restored" in l]
+    naming = [line for line in lines if "mutation-record-restored" in line]
 
     assert (ran.returncode, record.read_bytes(), naming) == (
         0, b"mutation: flip the sign\nwatched: FAILED\nprobe\n", []), ran.stderr
@@ -438,10 +438,10 @@ def test_3277_a_red_leafs_production_overwrite_alone_is_restored_not_its_test_ed
     after_red = (prod.read_bytes(), case.read_bytes(), untouched.read_bytes())
     refactor = subprocess.run([str(SCRIPTS / "supervise.sh"), "develop-refactor-1", "sh", "-c", "git show HEAD:src/app.py > src/app.py"],
                               cwd=work, capture_output=True, text=True, env=env)
-    restored = [l for l in (work / ".tdd" / "events.jsonl").read_text().splitlines() if "production-file-restored" in l]
+    restored = [line for line in (work / ".tdd" / "events.jsonl").read_text().splitlines() if "production-file-restored" in line]
 
     assert (red.returncode, after_red, refactor.returncode, prod.read_bytes(),
-            [("src/app.py" in l, "src/util.py" in l, "tests/test_app.py" in l) for l in restored]) == (
+            [("src/app.py" in line, "src/util.py" in line, "tests/test_app.py" in line) for line in restored]) == (
         0, (b"VALUE = 2\n", b"def test_b(): pass\n", b"UTIL = 2\n"), 0, b"VALUE = 1\n", [(True, False, False)]), red.stderr + refactor.stderr
 
 
@@ -463,9 +463,9 @@ def test_3298_a_red_leaf_that_deletes_an_uncommitted_production_file_has_it_rest
                          env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
                               "VERI_POLL": "0.05", "VERI_ISSUE": "3298", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
     events = work / ".tdd" / "events.jsonl"
-    restored = [l for l in events.read_text().splitlines() if "production-file-restored" in l] if events.exists() else []
+    restored = [line for line in events.read_text().splitlines() if "production-file-restored" in line] if events.exists() else []
 
-    assert (ran.returncode, prod.read_bytes() if prod.exists() else None, ["src/app.py" in l for l in restored]) == (
+    assert (ran.returncode, prod.read_bytes() if prod.exists() else None, ["src/app.py" in line for line in restored]) == (
         1, b"VALUE = 2\n", [True]), ran.stderr
 
 
@@ -490,9 +490,9 @@ def test_3298_a_clean_tracked_production_file_a_red_leaf_does_not_touch_stays_by
                          cwd=work, capture_output=True, text=True,
                          env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
                               "VERI_POLL": "0.05", "VERI_ISSUE": "3298", "VERI_STEP": "1", "PYTHONDONTWRITEBYTECODE": "1"})
-    restored = [l for l in (work / ".tdd" / "events.jsonl").read_text().splitlines() if "production-file-restored" in l]
+    restored = [line for line in (work / ".tdd" / "events.jsonl").read_text().splitlines() if "production-file-restored" in line]
 
-    assert (ran.returncode, clean.read_bytes(), clean.stat().st_mtime_ns, ["src/app.py" in l for l in restored], ["clean.py" in l for l in restored]) == (
+    assert (ran.returncode, clean.read_bytes(), clean.stat().st_mtime_ns, ["src/app.py" in line for line in restored], ["clean.py" in line for line in restored]) == (
         0, b"CLEAN = 1\n", before, [True], [False]), ran.stderr
 
 
@@ -1348,7 +1348,7 @@ def test_main_reads_the_wall_clock_through_now_and_a_logs_mtime_through_mtime_of
         _, err = capsysbinary.readouterr()
         exitfile = work / ".tdd" / f"{name}.exit"
         return {"code": code, "calls": calls, "kills": kills[:1], "sleeps": clock["sleeps"],
-                "status": [l.decode() for l in err.splitlines() if l.startswith(b"supervise[")][-1:],
+                "status": [line.decode() for line in err.splitlines() if line.startswith(b"supervise[")][-1:],
                 "err": err.splitlines(),
                 "exit": exitfile.read_bytes() if exitfile.exists() else None}
 
@@ -1368,7 +1368,7 @@ def test_main_reads_the_wall_clock_through_now_and_a_logs_mtime_through_mtime_of
 
     broken = {value: watch("develop-red", value, lambda w: "1000", 100, rc_after=3)
               for value in ("1.5",)}
-    assert {value: (r["code"], r["kills"], r["status"], len([l for l in r["err"] if value.encode() in l]))
+    assert {value: (r["code"], r["kills"], r["status"], len([line for line in r["err"] if value.encode() in line]))
             for value, r in broken.items()} == {
         "1.5": (2, [], [], 1)}
 
@@ -1560,7 +1560,7 @@ def test_main_fires_the_hard_timeout_on_the_awake_clock_slides_the_heartbeat_by_
         exitfile = work / ".tdd" / "develop-red.exit"
         return {"code": code, "kills": kills[:1], "sleeps": clock["sleeps"], "clocks": set(clocks),
                 "awake_runs": len(awake_runs), "err": err.splitlines(),
-                "status": [l.decode() for l in err.splitlines() if l.startswith(b"supervise[")][-1:],
+                "status": [line.decode() for line in err.splitlines() if line.startswith(b"supervise[")][-1:],
                 "exit": exitfile.read_bytes() if exitfile.exists() else None}
 
     quiet = {"VERI_HEARTBEAT": "100000"}
@@ -1588,7 +1588,7 @@ def test_main_fires_the_hard_timeout_on_the_awake_clock_slides_the_heartbeat_by_
         2, [(106, 6, term)], ["supervise[develop-red]: killed-stuck — no heartbeat for 6s (window 5s)"])
 
     broken = {value: watch({**quiet, "VERI_TIMEOUT": value}, 100, rc_after=3) for value in ("1.5",)}
-    assert {value: (r["code"], r["kills"], r["status"], len([l for l in r["err"] if value.encode() in l]))
+    assert {value: (r["code"], r["kills"], r["status"], len([line for line in r["err"] if value.encode() in line]))
             for value, r in broken.items()} == {
         "1.5": (2, [], [], 1)}
 

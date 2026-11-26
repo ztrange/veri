@@ -102,7 +102,7 @@ def test_issue_3055_ready_check_with_no_fast_tier_exits_1_with_a_fail_row_naming
 
     assert resolved.returncode == 3, (resolved.returncode, resolved.stdout, resolved.stderr)
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert any(l.startswith("fail") and "veri: fast tests:" in l for l in lines), (ran.stdout, ran.stderr)
+    assert any(line.startswith("fail") and "veri: fast tests:" in line for line in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -118,7 +118,7 @@ def test_issue_3055_ready_check_with_no_full_tier_exits_1_with_a_fail_row_naming
 
     assert resolved.returncode == 3, (resolved.returncode, resolved.stdout, resolved.stderr)
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert any(l.startswith("fail") and "veri: all tests:" in l for l in lines), (ran.stdout, ran.stderr)
+    assert any(line.startswith("fail") and "veri: all tests:" in line for line in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -133,7 +133,7 @@ def test_issue_3055_ready_check_with_no_pull_request_workflow_exits_1_with_a_fai
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert any(l.startswith("fail") and "pull_request" in l for l in lines), (ran.stdout, ran.stderr)
+    assert any(line.startswith("fail") and "pull_request" in line for line in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -207,7 +207,7 @@ def test_issue_3055_ready_check_with_no_pull_request_workflow_but_veri_ci_on_pr_
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     lines = ran.stdout.splitlines()
 
-    assert not any(l.startswith("fail") and "pull_request" in l for l in lines), (ran.stdout, ran.stderr)
+    assert not any(line.startswith("fail") and "pull_request" in line for line in lines), (ran.stdout, ran.stderr)
     assert ran.returncode == 0, (ran.returncode, ran.stdout, ran.stderr)
     assert lines and lines[-1] == "ready", (ran.stdout, ran.stderr)
 
@@ -222,7 +222,7 @@ def test_issue_3055_ready_check_with_no_push_workflow_exits_1_with_a_fail_row_na
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert any(l.startswith("fail") and "push" in l for l in lines), (ran.stdout, ran.stderr)
+    assert any(line.startswith("fail") and "push" in line for line in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -235,7 +235,7 @@ def test_issue_3055_ready_check_with_no_tracked_test_file_exits_1_with_a_fail_ro
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert any(l.startswith("fail") and "test file" in l for l in lines), (ran.stdout, ran.stderr)
+    assert any(line.startswith("fail") and "test file" in line for line in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -248,7 +248,7 @@ def test_issue_3055_ready_check_with_tdd_not_ignored_exits_1_with_a_fail_row_nam
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert any(l.startswith("fail") and ".tdd/" in l for l in lines), (ran.stdout, ran.stderr)
+    assert any(line.startswith("fail") and ".tdd/" in line for line in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -261,7 +261,7 @@ def test_issue_3055_ready_check_with_gh_not_authenticated_exits_1_with_a_fail_ro
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert any(l.startswith("fail") and "gh auth login" in l for l in lines), (ran.stdout, ran.stderr)
+    assert any(line.startswith("fail") and "gh auth login" in line for line in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -274,7 +274,7 @@ def test_issue_3055_ready_check_with_no_push_access_exits_1_with_a_fail_row_nami
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert any(l.startswith("fail") and "push access" in l for l in lines), (ran.stdout, ran.stderr)
+    assert any(line.startswith("fail") and "push access" in line for line in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -290,7 +290,7 @@ def test_issue_3055_ready_check_with_unusable_repo_api_output_fails_the_push_acc
         lines = ran.stdout.splitlines()
 
         assert ran.returncode == 1, (body, ran.returncode, ran.stdout, ran.stderr)
-        assert any(l.startswith("fail") and "push access" in l for l in lines), (body, ran.stdout, ran.stderr)
+        assert any(line.startswith("fail") and "push access" in line for line in lines), (body, ran.stdout, ran.stderr)
         assert lines and lines[-1] == "not ready — 1 rows to fix", (body, ran.stdout, ran.stderr)
 
 
@@ -300,8 +300,8 @@ def test_issue_3055_ready_check_prints_an_ok_row_for_each_check_that_holds_befor
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
     rows = ran.stdout.splitlines()[:-1]
 
-    assert any(l.startswith("ok") for l in rows), (ran.stdout, ran.stderr)
-    assert all(l.startswith(("ok", "fail")) for l in rows), (ran.stdout, ran.stderr)
+    assert any(line.startswith("ok") for line in rows), (ran.stdout, ran.stderr)
+    assert all(line.startswith(("ok", "fail")) for line in rows), (ran.stdout, ran.stderr)
 
 
 @pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess where the opt-in label is missing from the repository")
@@ -313,7 +313,7 @@ def test_issue_3055_ready_check_with_the_opt_in_label_missing_exits_1_with_a_fai
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert any(l.startswith("fail") and "label" in l and "veri" in l for l in lines), (ran.stdout, ran.stderr)
+    assert any(line.startswith("fail") and "label" in line and "veri" in line for line in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 5 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -326,7 +326,7 @@ def test_issue_3055_ready_check_with_two_failing_rows_counts_both_in_its_last_li
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert sum(l.startswith("fail") for l in lines) == 6, (ran.stdout, ran.stderr)
+    assert sum(line.startswith("fail") for line in lines) == 6, (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 6 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -340,7 +340,7 @@ def test_issue_3055_ready_check_with_a_failing_gh_label_list_fails_the_label_row
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
     assert "Traceback" not in ran.stderr, ran.stderr
-    assert any(l.startswith("fail") and "label" in l and "veri" in l for l in lines), (ran.stdout, ran.stderr)
+    assert any(line.startswith("fail") and "label" in line and "veri" in line for line in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 5 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -363,7 +363,7 @@ def test_issue_3055_ready_check_where_detect_test_command_exits_2_fails_the_tier
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
     for tier in ("fast", "all"):
-        assert any(l.startswith("fail") and f"{tier} tier" in l and "no answer was obtained" in l and "exit 2 from detect-test-command.sh" in l for l in lines), (tier, ran.stdout, ran.stderr)
+        assert any(line.startswith("fail") and f"{tier} tier" in line and "no answer was obtained" in line and "exit 2 from detect-test-command.sh" in line for line in lines), (tier, ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 3 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -375,7 +375,7 @@ def test_issue_3055_ready_check_with_bash_older_than_5_exits_1_with_a_fail_row_n
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert any(l.startswith("fail") and "bash" in l for l in lines), (ran.stdout, ran.stderr)
+    assert any(line.startswith("fail") and "bash" in line for line in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -387,7 +387,7 @@ def test_issue_3055_ready_check_with_python_below_the_floor_exits_1_with_a_fail_
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert any(l.startswith("fail") and "Python" in l for l in lines), (ran.stdout, ran.stderr)
+    assert any(line.startswith("fail") and "Python" in line for line in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "not ready — 1 rows to fix", (ran.stdout, ran.stderr)
 
 
@@ -425,7 +425,7 @@ def _outside_kept_output(state):
         return path.startswith(".tdd")
     return {**state, "files": [f for f in state["files"] if not kept(f)],
             "contents": {f: c for f, c in state["contents"].items() if not kept(f)},
-            "status": "\n".join(l for l in state["status"].splitlines() if ".tdd/" not in l)}
+            "status": "\n".join(line for line in state["status"].splitlines() if ".tdd/" not in line)}
 
 
 def _worktrees(repo):
@@ -442,8 +442,8 @@ def test_issue_4088_ready_check_with_a_red_tier_leaves_branches_index_tree_and_w
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert any(l.startswith("fail  all tier run") for l in lines), ran.stdout
-    assert any(l.startswith("ok    fast tier run") for l in lines), ran.stdout
+    assert any(line.startswith("fail  all tier run") for line in lines), ran.stdout
+    assert any(line.startswith("ok    fast tier run") for line in lines), ran.stdout
     assert _outside_kept_output(_repo_state(repo)) == _outside_kept_output(before)
     assert _worktrees(repo) == listed
     assert not (repo / ".tdd" / "ready-all").exists() and not (repo / ".tdd" / "ready-fast").exists()
@@ -458,7 +458,7 @@ def test_issue_4088_ready_check_whose_default_tip_does_not_resolve_fails_the_tie
     lines = ran.stdout.splitlines()
 
     for tier in ("fast", "all"):
-        assert any(l.startswith(f"fail  {tier} tier run: no answer was obtained") for l in lines), (tier, ran.stdout, ran.stderr)
+        assert any(line.startswith(f"fail  {tier} tier run: no answer was obtained") for line in lines), (tier, ran.stdout, ran.stderr)
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
     assert _repo_state(repo) == before and _worktrees(repo) == listed
     assert not (repo / ".tdd").exists()
@@ -476,7 +476,7 @@ def test_issue_3172_ready_check_with_tdd_contents_ignored_and_the_ledger_re_incl
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 0, (ran.returncode, ran.stdout, ran.stderr)
-    assert not any(l.startswith("fail") and ".tdd/" in l for l in lines), (ran.stdout, ran.stderr)
+    assert not any(line.startswith("fail") and ".tdd/" in line for line in lines), (ran.stdout, ran.stderr)
     assert lines and lines[-1] == "ready", (ran.stdout, ran.stderr)
 
 
@@ -500,7 +500,7 @@ def test_issue_3173_ready_check_with_veri_label_unset_and_ready_for_agent_missin
     lines = ran.stdout.splitlines()
 
     assert ran.returncode == 1, (ran.returncode, ran.stdout, ran.stderr)
-    assert any(l.startswith("fail") and "label ready-for-agent" in l and "`ready-for-agent`" in l for l in lines), (ran.stdout, ran.stderr)
+    assert any(line.startswith("fail") and "label ready-for-agent" in line and "`ready-for-agent`" in line for line in lines), (ran.stdout, ran.stderr)
 
 
 @pytest.mark.process("ready-check.sh, a /bin/sh shim over veri/ready_check.py, run as a subprocess with VERI_LABEL set but empty")
@@ -508,9 +508,9 @@ def test_issue_3173_ready_check_with_veri_label_set_but_empty_prints_a_fail_labe
     repo, env = build_ready_repo(tmp_path)
     env["VERI_LABEL"] = ""
     ran = subprocess.run([str(SCRIPTS / "ready-check.sh")], cwd=repo, capture_output=True, text=True, env=env)
-    label_rows = [l for l in ran.stdout.splitlines() if l.startswith("fail") and "label" in l]
+    label_rows = [line for line in ran.stdout.splitlines() if line.startswith("fail") and "label" in line]
 
-    assert label_rows and all("VERI_LABEL" in l and "create the ``" not in l for l in label_rows), (ran.returncode, ran.stdout, ran.stderr)
+    assert label_rows and all("VERI_LABEL" in line and "create the ``" not in line for line in label_rows), (ran.returncode, ran.stdout, ran.stderr)
 
 
 CLAUDE_ROOT_PROBE = CLAUDE_PROBE.replace(

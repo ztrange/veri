@@ -148,7 +148,7 @@ def test_issue_2147_a_failing_pr_ready_script_leaves_wait_ci_unrun_and_writes_no
     step = _ci_step()
     assert step.strip(), NO_STEP
     all_lines = step.split("\n")
-    start = next((i for i, l in enumerate(all_lines) if re.search(r"\$S/pr-ready\.sh", l)), None)
+    start = next((i for i, line in enumerate(all_lines) if re.search(r"\$S/pr-ready\.sh", line)), None)
     assert start is not None, "no line running $S/pr-ready.sh in the CI step — nothing could be run"
     end = next((i for i in range(start, len(all_lines)) if re.search(r"\$S/wait-ci\.sh", all_lines[i])), None)
     assert end is not None, "no line running $S/wait-ci.sh at or after the $S/pr-ready.sh line in the CI step"
@@ -187,7 +187,7 @@ def test_issue_2147_a_failing_pr_ready_script_leaves_wait_ci_unrun_and_writes_no
 
 def _preflight_block():
     lines = SKILL.with_name("PREFLIGHT.md").read_bytes().decode("latin-1").split("\n")
-    at = next((i for i, l in enumerate(lines) if l.strip() == "rm -f .tdd/ci-conflict-rebased"), None)
+    at = next((i for i, line in enumerate(lines) if line.strip() == "rm -f .tdd/ci-conflict-rebased"), None)
     if at is None:
         return ""
     top = max(i for i in range(at) if lines[i].strip() == "```")

@@ -26,4 +26,4 @@ def test_2750_report_landed_leaves_out_a_tag_cut_before_the_time_in_status_last(
 
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     landed = lines[lines.index("Landed") + 1:lines.index("Running")]
-    assert (code, sorted(l.split()[0] for l in landed)) == (0, ["v0.2"]), landed
+    assert (code, sorted(line.split()[0] for line in landed)) == (0, ["v0.2"]), landed

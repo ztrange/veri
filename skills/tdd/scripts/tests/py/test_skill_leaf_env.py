@@ -228,7 +228,7 @@ def run_verifier_launches(probe):
 
 def bad_context(log, step):
     try:
-        lines = [l for l in pathlib.Path(log).read_text().splitlines() if l.strip()]
+        lines = [line for line in pathlib.Path(log).read_text().splitlines() if line.strip()]
     except OSError:
         return "<<no event log>>"
     bad = []

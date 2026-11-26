@@ -567,7 +567,7 @@ def test_main_prints_closed_in_place_of_bailed_for_a_run_whose_issue_is_closed_a
     code = status.main([])
     lines = capsys.readouterr().out.splitlines()
 
-    assert (code, [(l.split()[0], "closed" in l.split(), "bailed" in l.split()) for l in lines]) == (
+    assert (code, [(line.split()[0], "closed" in line.split(), "bailed" in line.split()) for line in lines]) == (
         0, [("#13", False, True), ("#14", True, False)])
 
 

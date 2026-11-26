@@ -134,7 +134,7 @@ def test_1158_a_shim_that_drops_its_root_argument_and_runs_from_its_own_director
     lines = []
     for line in (SCRIPTS / "ensure-run-state-ignored.sh").read_text().splitlines():
         if line.startswith(("exec python3", '. "$(dirname "$0")/lib/shim-python.sh"', 'exec "$py"')):
-            if not any(l == 'cd "$(dirname "$0")"' for l in lines):
+            if not any(line == 'cd "$(dirname "$0")"' for line in lines):
                 lines.append('cd "$(dirname "$0")"')
             line = line.replace(' "$@"', "")
         lines.append(line)

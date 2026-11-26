@@ -105,7 +105,7 @@ def test_dev_add_records_the_local_add_time_and_show_lists_it_on_the_items_line(
     run_cli(role_state, ["dev", "add", "decision", "pick-the-lane"], cwd=repo)
     after = time.strftime("%Y-%m-%d")
     _, shown, _ = run_cli(role_state, ["dev", "show"], cwd=repo)
-    line = next(l for l in shown.splitlines() if "pick-the-lane" in l)
+    line = next(line for line in shown.splitlines() if "pick-the-lane" in line)
     assert any(day in line for day in {before, after}), line
 
 
@@ -333,5 +333,5 @@ def test_add_timed_n_with_well_formed_text_appends_the_line_and_prints_its_id_35
     code, out, _ = run_cli(role_state, ["dev", "add", "timed-n", text], cwd=repo)
     state = repo / ".tdd" / "role-dev.state"
     lines = state.read_text().splitlines() if state.exists() else []
-    stored = [l for l in lines if l.startswith("timed-n 1 ") and l.endswith(" " + text)]
+    stored = [line for line in lines if line.startswith("timed-n 1 ") and line.endswith(" " + text)]
     assert (code, out.strip(), len(stored)) == (0, "1", 1)

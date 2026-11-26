@@ -21,6 +21,6 @@ def test_2750_report_landed_lists_one_line_per_local_tag_with_its_message(tmp_pa
 
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     landed = lines[lines.index("Landed") + 1:lines.index("Running")]
-    assert (code, [("v0.10" in l, "Landed lists local tags" in l) for l in landed[:1]],
-            [("v0.9" in l, "Queue counts open issues" in l) for l in landed[1:2]]) == \
+    assert (code, [("v0.10" in line, "Landed lists local tags" in line) for line in landed[:1]],
+            [("v0.9" in line, "Queue counts open issues" in line) for line in landed[1:2]]) == \
         (0, [(True, True)], [(True, True)]), landed

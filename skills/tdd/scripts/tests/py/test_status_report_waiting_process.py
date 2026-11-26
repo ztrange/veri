@@ -35,4 +35,4 @@ def test_3250_report_waiting_drops_a_pr_whose_issue_subject_is_on_real_main(tmp_
 
     lines = [line.strip() for line in out.splitlines()]
     waiting = lines[lines.index("Waiting") + 1:]
-    assert (code, [l.split()[:3] for l in waiting if l]) == (0, [["#2750", "PR", "99"]]), (waiting, err)
+    assert (code, [line.split()[:3] for line in waiting if line]) == (0, [["#2750", "PR", "99"]]), (waiting, err)
