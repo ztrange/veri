@@ -50,6 +50,14 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
    - **failing on an incidental error** — its only observable is that something throws or
      exits non-zero, with no assertion on which error or on the behaviour, unless that
      specific error is what the criterion names, or
+   - **faking the observable** — its fixture stubs or patches the function under test, or
+     the value that function returns, so the assertion holds against the fixture and not
+     the code. A fixture setting up the input state the code reads, a fake at a process
+     boundary included, is not a REJECT, or
+   - **reading its input from the wrong place** — the criterion names where the input
+     sits, and the test puts it only where the code happens to look, the launch directory
+     or the ambient environment. Such a test puts its input in the named place and a
+     contrary input in the launch directory, or
    - **asserting a graded unit's wording** — it asserts the wording of a unit with a
      requirements list, a unit some `REQUIREMENTS.md` has a `## <path>` heading for: a
      sentence, a phrase, or a checksum of its text or of a render that includes it. REJECT
