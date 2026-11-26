@@ -116,7 +116,8 @@ def develop(n, wt, settled, step):
 
 def verify(n, wt, settled, step, values):
     """The leaf's checks, then the verifier: suite-reported.sh (its 2, no SUITE: line, stops for the conductor's
-    adjudication), diff-leaf-deviation.sh (0 a deviation recorded, 3 none, both going on), then verdict-diff, or its recorded skip with `diff` switched off (ADR-0033): the leaf launched, or None."""
+    adjudication), diff-leaf-deviation.sh (0 a deviation recorded, 3 none, both going on), then, unless a ⟦test-quality⟧
+    step's leaf reported a POSSIBLE-BUG: line, verdict-diff, or its recorded skip with `diff` switched off (ADR-0033): the leaf launched, or None."""
     leaf = values["leaf"]
     fused.checked("develop", fused.script("suite-reported.sh"), leaf, cwd=wt, err=".tdd/suite-reported.err")
     fused.checked("develop", fused.script("diff-leaf-deviation.sh"), leaf, values["step_base"], LEDGER % n, cwd=wt,
