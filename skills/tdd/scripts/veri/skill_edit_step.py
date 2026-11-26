@@ -336,41 +336,79 @@ def _tree():
     return tree, present
 
 
+def _complaints(argv):
+    """The lines refusing the request, none when it is sound."""
+    if len(argv) < 2:
+        return [USAGE]
+    issue, unit = argv[:2]
+    budget = tunables.get("VERI_SKILL_EDIT_BUDGET")
+    if not tunables.parses("VERI_SKILL_EDIT_BUDGET", budget):
+        return ["VERI_SKILL_EDIT_BUDGET must be a whole number >= 1: " + budget]
+    refusal = _refusal(issue, unit)
+    if refusal:
+        return [refusal]
+    issue_rows = unit_rows(issue, unit)
+    for row in issue_rows:
+        if not requirements.well_formed_row_id(row_id(row)):
+            return ["Requirement row ID is none of <prefix><digits>, <prefix><next> or <prefix><digits><letters><reword>: "
+                    + row_id(row)]
+    explicit = [row_id(r) for r in issue_rows if not row_id(r).endswith("<next>")]
+    for dup in explicit:
+        if explicit.count(dup) > 1:
+            return ["Requirement rows resolve to the same ID twice: " + dup]
+    path = requirements.list_path(unit)
+    duplicated = ["Requirement row %s<reword> states the full text the unit already holds under %s" % pair
+                  for pair in _duplicated_rewords(issue_rows, path, unit)]
+    if duplicated:
+        return duplicated
+    texts = listed_texts(path, unit)
+    return ["Requirement row ID already held with different text: %s (existing: %s) (incoming: %s)"
+            % (row_id(r), texts[row_id(r)], _row_text(r)) for r in clashes(issue_rows, path, unit)]
+
+
+def _author_attempts(unit, pins, guard, verdict):
+    """The last (code, said) after authoring while the grade fails, within the skill-edit budget."""
+    graded, said = verdict
+    change = _change[0]
+    path = requirements.list_path(unit)
+    file = unit_file(unit)
+    before = _read_existing([file, path, *pins])
+    for attempt in range(1, int(tunables.get("VERI_SKILL_EDIT_BUDGET")) + 1):
+        if graded != 1 and not (change is not None and attempt == 1):
+            break
+        _attempt[0] = attempt
+        _pins[0] = pins
+        tree, present = _tree()
+        if _author(unit, path, said):
+            return 2, ""
+        graded, said = guard()
+        if graded == 1:
+            _restore(tree, *[n for n in said.splitlines()
+                             if n in tree or (os.path.normpath(n) not in present
+                                              and not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep)))])
+        if not graded:
+            rows, sentences = [], []
+            answer = _trace(unit, rows, sentences)
+            graded, said = _grade(path, unit)
+        if change is not None and graded == 0 and all(_read_existing([f]).get(f) == before.get(f) for f in (file, path)):
+            graded, said = 1, "FAIL: the author left the prose and the rows unchanged\n"
+        if graded == 1:
+            _restore(before, *before)
+    return graded, said
+
+
 def main(argv):
     flags = {"--added": None, "--change": None}
     while len(argv) >= 4 and argv[0] in flags:
         flags[argv[0]], argv = argv[1], argv[2:]
     added, change = flags["--added"], flags["--change"]
-    if len(argv) < 2:
-        print(USAGE, file=sys.stderr)
+    complaints = _complaints(argv)
+    for complaint in complaints:
+        print(complaint, file=sys.stderr)
+    if complaints:
         return 2
     issue, unit, *pins = argv
-    budget = tunables.get("VERI_SKILL_EDIT_BUDGET")
-    if not tunables.parses("VERI_SKILL_EDIT_BUDGET", budget):
-        print("VERI_SKILL_EDIT_BUDGET must be a whole number >= 1: " + budget, file=sys.stderr)
-        return 2
-    refusal = _refusal(issue, unit)
-    if refusal:
-        print(refusal, file=sys.stderr)
-        return 2
     issue_rows = unit_rows(issue, unit)
-    for row in issue_rows:
-        if not requirements.well_formed_row_id(row_id(row)):
-            print("Requirement row ID is none of <prefix><digits>, <prefix><next> or <prefix><digits><letters><reword>: " + row_id(row),
-                  file=sys.stderr)
-            return 2
-    explicit = [row_id(r) for r in issue_rows if not row_id(r).endswith("<next>")]
-    for dup in explicit:
-        if explicit.count(dup) > 1:
-            print("Requirement rows resolve to the same ID twice: " + dup, file=sys.stderr)
-            return 2
-    path = requirements.list_path(unit)
-    duplicated = _duplicated_rewords(issue_rows, path, unit)
-    for reworded_id, held_id in duplicated:
-        print("Requirement row %s<reword> states the full text the unit already holds under %s" % (reworded_id, held_id),
-              file=sys.stderr)
-    if duplicated:
-        return 2
     base = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     path = requirements.list_path(unit)
     graded_file = grade_prose.graded_path(unit)
@@ -382,12 +420,6 @@ def main(argv):
 
     listed = _listed_ids(path, unit)
     texts = listed_texts(path, unit)
-    clashing = clashes(issue_rows, path, unit)
-    for r in clashing:
-        print("Requirement row ID already held with different text: %s (existing: %s) (incoming: %s)"
-              % (row_id(r), texts[row_id(r)], _row_text(r)), file=sys.stderr)
-    if clashing:
-        return 2
     fresh = any(row_id(r) not in listed or _row_text(r) != texts.get(row_id(r))
                 for r in issue_rows)
     moved = apply(issue, unit)
@@ -409,36 +441,18 @@ def main(argv):
         undo()
         return 2
     authored = graded == 1 or change is not None
+
+    def guard():
+        return _guard(unit, base, issue, pins, [graded_file])
+
     if authored:
-        stray, named = _guard(unit, base, issue, pins, [graded_file])
+        stray, named = guard()
         if stray:
             sys.stderr.write(named)
             undo()
             return 2
     _change[0] = change
-    before = _read_existing([file, path, *pins])
-    for attempt in range(1, int(budget) + 1):
-        if graded != 1 and not (change is not None and attempt == 1):
-            break
-        _attempt[0] = attempt
-        _pins[0] = pins
-        tree, present = _tree()
-        if _author(unit, path, said):
-            undo()
-            return 2
-        graded, said = _guard(unit, base, issue, pins, [graded_file])
-        if graded == 1:
-            _restore(tree, *[n for n in said.splitlines()
-                             if n in tree or (os.path.normpath(n) not in present
-                                              and not {".git", ".tdd"} & set(os.path.normpath(n).split(os.sep)))])
-        if not graded:
-            rows, sentences = [], []
-            answer = _trace(unit, rows, sentences)
-            graded, said = _grade(path, unit)
-        if change is not None and graded == 0 and all(_read_existing([f]).get(f) == before.get(f) for f in (file, path)):
-            graded, said = 1, "FAIL: the author left the prose and the rows unchanged\n"
-        if graded == 1:
-            _restore(before, *before)
+    graded, said = _author_attempts(unit, pins, guard, (graded, said))
     if graded:
         undo()
         if graded == 1:
