@@ -4028,6 +4028,14 @@ def test_4805_under_n_auto_a_restart_in_flight_holds_the_slot_the_queue_cap_leav
     assert (code, target, world.launched) == (None, 1, [])
 
 
+def test_4805_a_numeric_n_line_after_n_auto_sets_dispatchs_target_to_the_number(dispatch):
+    tick = {"queue": ["12", "13", "14", "15"], "budget": (8, 2), "w_other": 2}
+
+    code, target, world = _auto_poll(dispatch, tick, role_state=["n=auto", "n=2"])
+
+    assert (code, target) == (None, 2)
+
+
 def test_4805_an_unexpired_timed_n_wins_over_n_auto(dispatch):
     lines = ["n=auto", "timed-n 1 2026-11-07T10:00:00 5 until 2026-11-07T11:00:00"]
     tick = {"queue": ["12"], "budget": (4, 3), "w_other": 3, "clock": datetime(2026, 11, 7, 10, 30).timestamp()}
