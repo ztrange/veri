@@ -51,6 +51,13 @@ def test_issue_4073_no_veri_heading_comment_is_printed(decisions, run_cli):
     assert run_cli(issue_decisions, ["42"]) == (3, "", "issue-decisions.sh: issue #42 has no decision comment\n")
 
 
+def test_4823_a_landed_comment_close_landed_posts_is_not_printed(decisions, run_cli):
+    issue_decisions, comments = decisions
+    comments([{**OWNER, "body": "### ✅ Landed\n\n- 1a2b3c4 feat: add alpha (#11)\n"}])
+
+    assert run_cli(issue_decisions, ["42"]) == (3, "", "issue-decisions.sh: issue #42 has no decision comment\n")
+
+
 def test_issue_4073_a_comment_holding_only_quotes_and_fences_is_not_printed(decisions, run_cli):
     issue_decisions, comments = decisions
     comments([{**ME, "body": "> Decided: do X\n\n```\nyes\n```\n"}, {**ME, "body": "Yes.\n> quoted\n"}])

@@ -75,11 +75,11 @@ def landed_world(tmp_path, runs=RUNS, trailers=None, held=(), before=(), after=N
 class Hub:
     """A fake GitHub: each pull request's read (merged, not merged, or no answer), each issue's comments, the posts."""
 
-    def __init__(self, monkeypatch, merged=None, dead_pulls=(), dead_posts=False, garbled_pulls=()):
+    def __init__(self, monkeypatch, merged=None, dead_pulls=(), dead_posts=False, garbled_pulls=(), answers=None):
         self.github = importlib.import_module("github")
         self.queue = importlib.import_module("veri.github_queue")
         self.merged, self.dead_pulls, self.dead_posts = merged or {}, set(dead_pulls), dead_posts
-        self.garbled_pulls = set(garbled_pulls)
+        self.garbled_pulls, self.answers = set(garbled_pulls), answers or {}
         self.comments, self.posted = {}, []
         monkeypatch.setattr(self.github, "gh_api", self.gh_api)
         monkeypatch.setattr(self.github, "issue_comments", lambda number: list(self.comments.get(str(number), [])))
@@ -94,6 +94,8 @@ class Hub:
             return subprocess.CompletedProcess(["gh", "api", path], 1, '{"message": "Server Error"}', "HTTP 502")
         if issue in self.garbled_pulls:
             return subprocess.CompletedProcess(["gh", "api", path], 0, "<html>busy</html>", "")
+        if issue in self.answers:
+            return subprocess.CompletedProcess(["gh", "api", path], 0, self.answers[issue], "")
         return subprocess.CompletedProcess(["gh", "api", path], 0, json.dumps(
             {"state": "closed", "merged": self.merged.get(issue, True)}), "")
 
@@ -265,6 +267,40 @@ def test_4823_a_second_close_landed_over_the_same_tip_posts_nothing(tmp_path, mo
     assert hub.posted == first, err
     assert not (work / ".tdd" / "github-queue").exists()
 
+
+@pytest.mark.process(PROCESS)
+def test_4823_a_later_close_landed_over_more_landed_commits_of_an_issue_posts_it_a_second_comment(
+        tmp_path, monkeypatch, run_cli):
+    runs = RUNS + (("11", ["fix: alpha again"]),)
+    work, tip, landed, _ = landed_world(tmp_path, runs=runs, unlanded=1)
+    hub = Hub(monkeypatch)
+    assert run_cli(hub.queue, ["close-landed", tip], cwd=work)[0] == 0
+    lander = tmp_path / "lander"
+    git(lander, "-c", "user.name=lander", "cherry-pick", "stack~1..stack")
+    git(lander, "push", "-q", "origin", "trunk")
+
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
+
+    assert code == 0, err
+    assert [number for number, _ in hub.posted] == ["11", "12", "11"], err
+    assert "fix: alpha again" in hub.bodies("11")[1] and "fix: alpha again" not in hub.bodies("11")[0], err
+
+
+@pytest.mark.process(PROCESS)
+def test_4823_a_second_close_landed_over_another_tip_with_the_same_landed_commits_posts_nothing(
+        tmp_path, monkeypatch, run_cli):
+    work, tip, _, _ = landed_world(tmp_path)
+    hub = Hub(monkeypatch)
+    assert run_cli(hub.queue, ["close-landed", tip], cwd=work)[0] == 0
+    first = list(hub.posted)
+    commit_all(work, "docs: a later commit on the stack", **{"later.txt": "l\n"})
+
+    code, out, err = run_cli(hub.queue, ["close-landed", git(work, "rev-parse", "HEAD")], cwd=work)
+
+    assert code == 0, err
+    assert hub.posted == first, err
+
+
 @pytest.mark.process(PROCESS)
 def test_4823_a_second_close_landed_after_short_shas_lengthen_posts_nothing(tmp_path, monkeypatch, run_cli):
     work, tip, _, _ = landed_world(tmp_path)
@@ -398,6 +434,20 @@ def test_4823_close_landed_given_a_second_argument_exits_2_with_the_usage(tmp_pa
     assert code == 2, err
     assert "usage: github-queue.sh" in err and "close-landed <tip-sha>" in err, err
     assert hub.posted == [], err
+
+
+@pytest.mark.process(PROCESS)
+@pytest.mark.parametrize("answer", ['["closed", true]', '"merged"', "true"], ids=["array", "string", "boolean"])
+def test_4823_close_landed_whose_pull_request_read_is_json_but_not_an_object_names_the_run_and_exits_2(
+        tmp_path, monkeypatch, run_cli, answer):
+    work, tip, _, _ = landed_world(tmp_path)
+    hub = Hub(monkeypatch, answers={"11": answer})
+
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
+
+    assert code == 2, err
+    assert [number for number, _ in hub.posted] == ["12"], err
+    assert "#11" in err and pull_url("11") in err and "Traceback" not in err, err
 
 
 @pytest.mark.process(PROCESS)
