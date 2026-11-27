@@ -120,7 +120,7 @@ Never collapse 1 and 2: a process failure (the methodology spoke) is not a syste
   so neither `priority` nor blocking a `priority` issue makes an issue takeable.
 - **Refactor-owed items are issues titled `Refactor candidates left by #<n>`**, labelled `refactor`
   and `refactor-owed` and never opted in (no `VERI_LABEL`), so selection never takes them;
-  `/vgroom --refactor-owed` reads them.
+  `/vgroom`'s sweep consolidates them.
 - **An issue labelled `legacy` is the legacy kind**, never also `refactor` (capture refuses both,
   exit 2): it runs Seam → Surround → Verify under `skills/tdd/LEGACY.md`, wrapping a region in
   black-box tests driven through a seam before any refactor touches it.
