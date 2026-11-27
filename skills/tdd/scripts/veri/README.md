@@ -592,7 +592,7 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 - `profile.sh`: per-case timing of suites.
 - `pycache_prefix`: sets where this run reads and writes bytecode; a veri module's first line runs it before any veri import.
 - `budget_entries`: the lane budget's entries under `~/.veri-test-budget` (PRD 036.5), each lane's need and expiry, which every leg reads to narrow T.
-- `leg_registry`: the legs registry, one entry per live pytest leg named by its pid, holding its worker count and start time; the leg, test-ceiling.sh's ramp and dispatch read and write it here, so none imports the leg.
+- `leg_registry`: the legs registry, one entry per live pytest leg named by its pid, holding its worker count, start time and, for a leaf's leg, line 3 `leaf`; the leg, test-ceiling.sh's ramp and dispatch read and write it here, so none imports the leg.
 - `leg_budget`: T, the pytest leg's worker budget, out of C0, the cap, the load file and the lane entries; the leg, dispatch and role_state_cli read it here, so none imports the leg.
 
 ## full_run_lock
@@ -614,8 +614,8 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 - `unexpired_entries()`: `[(entry name, need)]` of the entries whose expiry is ahead; an unreadable or malformed one adds nothing, an expired one is removed. `unexpired()`: the same as `[(lane, need)]`, which the pytest leg sums into T.
 
 ## leg_registry
-- `registered_legs(legs)`: the `(pid, workers)` of each registered leg in the directory `legs` proven alive under the start time its entry records; a leg proven gone or reused is removed, one that cannot be shown either way stays. `registered_workers(legs)`: their summed workers.
-- `registration(count)`: a registry entry's text: `count` on line 1 and this process's start time on line 2, or the count alone when ps cannot read it. `unregister(entry)`: removes an entry, a missing one ignored.
+- `registered_legs(legs)`: the `(pid, workers)` of each registered leg in the directory `legs` proven alive under the start time its entry records; a leg proven gone or reused is removed, one that cannot be shown either way stays. `registered_workers(legs)`: their summed workers. `other_workers(legs)`: W_other (PRD 036.6), the summed workers of those whose entry lacks line 3 `leaf`, a 2-line entry included.
+- `registration(count)`: a registry entry's text: `count` on line 1 and this process's start time on line 2, plus line 3 `leaf` when `PYTEST_LEG_LOCK_WAIT_MARKER` is set and non-empty, or the count alone when ps cannot read it. `unregister(entry)`: removes an entry, a missing one ignored.
 
 ## leg_budget
 - `budget(say=True)`: `(T, its source)`: `capacity` narrowed to the unexpired lane entries' summed needs, never below 2. `capacity(say=True)`: `(C, its source)`: C0 lowered to the cap file's line 1 and the load file's T, where C0 is the ceiling record's line 1, else the physical cores on macOS and the affinity count elsewhere, never below 2.
