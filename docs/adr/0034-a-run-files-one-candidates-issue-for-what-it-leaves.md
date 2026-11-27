@@ -18,7 +18,8 @@ filed 118 per-candidate issues. Of the 51 runs after ADR-0031, 2 had a leftover 
   and `refactor-owed`. A resume finds it by its exact title and replaces its body.
 - Outside the queue: it is never opted in (never `VERI_LABEL`, never `ready-for-agent`), so
   it never enters the solvable set.
-- Groomed by `/vgroom --refactor-owed`, which the coordinator runs to decide on each row.
+- Groomed by every `/vgroom`, through its `## Refactor-owed items` section, which decides on
+  each row (changed by PRD 045.4: the groom no longer needs a flag of its own).
 - `applied` and `test-only` rows are not filed: nothing is owed.
 
 ## Rejected alternative
