@@ -4,4 +4,4 @@
 - [x] the F1/F13/F14 pin reads the real file the same way ⟦criterion 3⟧
 - [x] the RD28 pin reads the real file the same way ⟦criterion 3⟧
 - [x] the SC23 pin reads the real file the same way ⟦criterion 3⟧
-- [ ] `test_prd_016_short_names.py` loses the copy-the-tip `prose_owed` case, which pins no row ⟦criterion 1⟧
+- [x] `test_prd_016_short_names.py` loses the copy-the-tip `prose_owed` case, which pins no row ⟦criterion 1⟧
