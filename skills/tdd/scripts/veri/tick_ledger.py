@@ -141,38 +141,6 @@ def go_red_receipt_refusal(ledger_path, step_line):
     return None
 
 
-def git_answer(*args):
-    """`git <args>`'s stdout as bytes; OSError naming the subcommand (past a leading `-C <dir>`) on a non-zero exit."""
-    done = git.git(*args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if done.returncode != 0:
-        command = args[2] if args[:1] == ("-C",) else args[0]
-        raise OSError("git %s failed: %s" % (command, " ".join(os.fsdecode(done.stderr).split())))
-    return done.stdout
-
-
-def return_tests_to_head():
-    """Return every test file differing from HEAD to HEAD: an untracked one deleted, one staged as new (absent from
-    HEAD) removed from the index and the tree, any other checked out."""
-    root = os.fsdecode(git_answer("rev-parse", "--show-toplevel")).rstrip("\n")
-    untracked = {os.fsdecode(raw) for raw in git_answer(
-        "ls-files", "--others", "--exclude-standard", "--full-name", "-z", ":/").split(b"\0") if raw}
-    tracked = []
-    for name in tests_frozen.differing_tests():
-        if name in untracked:
-            os.remove(os.path.join(root, name))
-        else:
-            tracked.append(name)
-    if not tracked:
-        return
-    in_head = {os.fsdecode(raw) for raw in git_answer(
-        "-C", root, "ls-tree", "-r", "--name-only", "-z", "HEAD", "--", *tracked).split(b"\0") if raw}
-    staged = [name for name in tracked if name not in in_head]
-    if staged:
-        git_answer("-C", root, "rm", "-q", "-f", "--", *staged)
-    if in_head:
-        git_answer("-C", root, "checkout", "HEAD", "--", *[name for name in tracked if name in in_head])
-
-
 def surround_short(ledger_path, matcher):
     """Record a legacy step's one free relaunch of develop-surround as ` ⟂ surround short` on its committed ledger
     line: 0 recorded; 1 the step already carries it (a resumed run's included), ledger untouched; 2 surround is not
@@ -231,18 +199,16 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
 
     `case` is a test id to run first (the tick waits for it to pass); `pending` appends the `⟂ refactor pending`
     mark; `phase` ticks one phase of a step that lists phases, `owed` marking it owed (contract phases only);
-    `retire` ("unpinnable" or "already-holds") with a non-empty `reason_file` retires the step instead, appending
-    the matching `unpinnable-step` / `already-holds-step`
-    event; it needs a `case`. `pending` and `phase` do not combine.
+    a non-empty `reason_file` retires the step ` ⟂ retired already holds` instead, appending one
+    `already-holds-step` event; it needs a `case`; `retire` names that retirement ("already-holds"). `pending` and
+    `phase` do not combine.
     Returns 0 ticked; 1 clean negative (the case fails; the reason does not qualify for `retire`; retire with no
     case); 2 no answer (case never ran, bad combination, unreadable ledger, a ⟦go-red⟧ step with no
     `.tdd/go-red-probed` beside the ledger holding its probe clause and a commit's sha, a ledger left behind, an empty
     ledger_path -> usage line); 3 nothing to tick. Writes the ledger (and its added-steps record) and, for a
     retirement, events.jsonl; stderr as the script prints it.
     """
-    retired_mark, event_name = ledger.retire_mark("unpinnable"), "unpinnable-step"
-    if retire == "already-holds":
-        retired_mark, event_name = ledger.retire_mark("already holds"), "already-holds-step"
+    retired_mark, event_name = ledger.retire_mark("already holds"), "already-holds-step"
     reason_text = ""
     if reason_file and not case:
         complain(f"{matcher}: no case is named")
@@ -250,10 +216,7 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
     if reason_file:
         with open(reason_file, encoding="utf-8") as handle:
             reason_text = handle.read()
-        if (event_name == "unpinnable-step" and "stays green" not in reason_text
-                and not ledger.BEFORE_STATE_GREEN.search(reason_text)):
-            return 1
-        if event_name == "already-holds-step" and not any(
+        if not any(
             line.startswith("REASON:") and line[7:].strip() for line in reason_text.splitlines()
         ):
             return 1
@@ -312,9 +275,6 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
     left = ledger.rewrite_ledger(ledger_path, new)
     if left is None:
         tick_added(ledger_path, step_line)
-    if (left is None and reason_file and event_name == "unpinnable-step"
-            and not ledger.BEFORE_STATE_GREEN.search(reason_text)):
-        return_tests_to_head()
     if left is None and reason_file:
         step = step_line
         reason = next((line[7:].strip() for line in reason_text.splitlines()
