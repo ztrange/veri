@@ -50,8 +50,8 @@ EVENTS = {
     "comment": "kind:(step-done|red|verify-red|green|verify-green|refactor|verify-refactor|revise|verify-revised|plan"
                "|verify-plan|pin|retire"
                "|resuming|done|bailed|stopped) url:url",
-    "comment-queued": "kind:(step-done|red|verify-red|green|verify-green|refactor|verify-refactor|revise|verify-revised|plan"
-                      "|verify-plan|pin|retire|resuming|done|bailed|stopped) key:text",
+    "comment-queued": "kind:(step-done|red|verify-red|green|verify-green|refactor|verify-refactor|revise"
+                      "|verify-revised|plan|verify-plan|pin|retire|resuming|done|bailed|stopped) key:text",
     "conductor-restart": "growth:whole knob:whole",
     "conductor-start": "pid:whole started:text,empty",
     "core-wait": "seconds:whole",
