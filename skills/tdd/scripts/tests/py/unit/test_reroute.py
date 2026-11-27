@@ -220,6 +220,27 @@ def test_a_successful_reroute_run_on_its_own_removes_the_answered_verify_green_r
     assert left == []
 
 
+def test_run_step_from_green_half_after_a_reroute_run_on_its_own_calls_green_half_and_never_revise_green_4833(
+        reroute, monkeypatch, run_cli, tmp_path):
+    rejected = {"conductor": None, "at": "verdict-green", "step": STEP,
+                "values": {"test_path": "tests/test_a.py", "target_test": OWN}}
+    rerouted = reroute(answers=ROUTE_RED, argv=("12", ".tdd/verify-green.reason"),
+                       files={"develop-red-contradicted.out": REROUTED,
+                              "verify-green.reason": "VERDICT: REJECT\nno\n",
+                              "verdict-green.exit": "1\n",
+                              "issue-12-green-half-rejected-wait": json.dumps(rejected)})
+    stages = Fake({("step-close.sh", None): (0, "next=cycle\n")})
+    monkeypatch.setattr(importlib.import_module("veri.fused"), "run_script", stages)
+
+    code, out, err = run_cli(importlib.import_module("veri.run_step"), ["12", "--from", "green-half"],
+                             cwd=str(tmp_path))
+
+    assert rerouted[0] == 0, rerouted[1] + rerouted[2]
+    assert [c[1] for c in stages.all("revise.sh")] == []
+    assert [c[1] for c in stages.all("green-half.sh")] == [("12",)]
+    assert code == 0, out + err
+
+
 @pytest.mark.parametrize("said, kind, phase, args", [
     ("repair tests/test_a.py::test_one tests/test_c.py::test_old", "repair", "red-repair",
      ("tests/test_a.py::test_one", GREEN, "tests/test_c.py::test_old")),
