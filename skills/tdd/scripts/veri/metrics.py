@@ -598,6 +598,9 @@ class _Tally:
             column, attribute = CELL_MARKS[event]
             self.step_mark(step)[column] = line.get(attribute, "")
             return
+        self.count_event(event, step, phase, line)
+
+    def count_event(self, event, step, phase, line):
         if event == "launch":
             count = "attempts"
         elif event == "verdict" and line.get("verdict") in ("PASS", "REJECT"):
