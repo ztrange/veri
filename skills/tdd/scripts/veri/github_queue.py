@@ -141,7 +141,7 @@ def land(e):
         raise github.NoAnswer("")
 
 
-def replay(top):
+def replay(top, out=None):
     """Post the queue's entries in file order, removing each that landed (exit 0 once empty, 3 with no queue); stop at
     the first that gets no answer, naming it, keeping it and every later one (exit 2)."""
     with locked(top):
@@ -163,7 +163,7 @@ def replay(top):
                                     "queued" % (e.get("key"), e["type"], e.get("issue"), len(lines) - 1))
             lines = lines[1:]
             rewrite(top, lines)
-            print("replayed %s" % e.get("key"))
+            print("replayed %s" % e.get("key"), file=out or sys.stdout)
         if os.path.exists(os.path.join(top, FILE)):
             rewrite(top, [])
         return 0
