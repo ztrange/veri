@@ -660,3 +660,14 @@ def test_4803_a_failed_pr_read_with_no_incident_still_stops_it_with_exit_2(green
 
     assert (code, fake.names()[-1]) == (2, "gh")
     assert "pr-body-deferred" not in [a for c in fake.calls for a in c[1]]
+
+
+def test_4803_a_pr_read_refused_with_exit_1_during_an_incident_still_stops_it_and_defers_nothing(
+        green, tmp_path, monkeypatch):
+    _main_tree(tmp_path)
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: True)
+
+    code, out, err, fake = green(answers={("gh", None): (1, "")})
+
+    assert (code, fake.names()[-1]) == (1, "gh")
+    assert "pr-body-deferred" not in [a for c in fake.calls for a in c[1]]

@@ -219,3 +219,32 @@ def test_4803_replay_of_an_unreadable_line_exits_2_keeping_the_queue(hub, run_cl
 def test_4803_the_outage_file_the_queue_checks_is_the_one_github_outage_sh_writes():
     queue = importlib.import_module("veri.github_queue")
     assert queue.OUTAGE_FILE == importlib.import_module("veri.github_outage").FILE
+
+
+@pytest.mark.parametrize("separator", [" ", " ", "\u0085"])
+def test_4803_a_queued_body_holding_a_unicode_line_separator_replays_whole(hub, run_cli, separator):
+    hub.queue.queue_comment(str(hub.root), "7", "step-done", "one%stwo" % separator)
+
+    code, out, err = run_cli(hub.queue, ["replay"], cwd=hub.root)
+
+    assert code == 0, err
+    assert hub.posted[0][1].startswith("one%stwo" % separator)
+    assert hub.left() is None
+
+
+def test_4803_replay_names_a_tick_whose_criterion_left_the_body_on_stderr_and_drops_it(hub, run_cli):
+    hub.enqueue(tick("t1", 5), comment("b2"))
+
+    code, out, err = run_cli(hub.queue, ["replay"], cwd=hub.root)
+
+    assert code == 0, err
+    assert "t1" in err and "criterion 5" in err and "#7" in err
+    assert hub.edited == [] and len(hub.posted) == 1
+    assert hub.left() is None
+
+
+@pytest.mark.parametrize("answer, counted", [((0, []), False), ((1, ["an incident"]), True)])
+def test_4803_incident_counts_only_a_status_read_that_reports_one(monkeypatch, answer, counted):
+    monkeypatch.setattr(importlib.import_module("github_status"), "default_read", lambda: answer)
+
+    assert importlib.import_module("veri.github_queue").incident() is counted
