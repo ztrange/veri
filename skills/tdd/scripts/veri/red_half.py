@@ -154,8 +154,8 @@ def develop(n, wt, settled, step):
 
 
 def red_report(wt):
-    """Red 1's three report lines, printed (RH5): a missing one stops with exit 2, PASSES or UNTESTABLE with 1, and HOLDS
-    with 1 naming its COVERING_TESTS: ids (PRD 044.2)."""
+    """Red 1's three report lines, printed (RH5): a missing one stops with exit 2, PASSES or UNTESTABLE with 1, and
+    HOLDS with 1 naming its COVERING_TESTS: ids (PRD 044.2)."""
     got = fused.report("1", wt, ".tdd/develop-red.out", "TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED",
                        "COVERING_TESTS")
     for key in ("TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED"):

@@ -217,8 +217,8 @@ def checks(n, wt, settled, step, values):
 
 def written(wt, k):
     """The test a HOLDS step's revise leaf wrote, from its report's TEST_PATH: and TARGET_TEST: lines, which a revise
-    report carries on a red revise (REVISE.md RV114): the step's own develop-red.out names none. A missing line stops with exit 2,
-    no test to verify."""
+    report carries on a red revise (REVISE.md RV114): the step's own develop-red.out names none. A missing line stops
+    with exit 2, no test to verify."""
     out = ".tdd/revise-red-%d.out" % k
     got = fused.report("4", wt, out, "TEST_PATH", "TARGET_TEST")
     for key in ("TEST_PATH", "TARGET_TEST"):
@@ -341,7 +341,8 @@ def launch_pin(where, n, wt, settled, step, values, ids=None):
 def verify(n, wt, settled, step, values, as_phase=None, ids=None):
     """REVISE.md sub-step 5's re-verify: verdict-<phase> launched by the phase stage's own launch, so it takes exactly
     that stage's run-verdict.sh arguments and the run's recorded branch base (RVS13). The leaf launched, or SKIPPED
-    with the phase switched off (ADR-0033): its skip marked and `skipped` written to its exit file, as the stage does."""
+    with the phase switched off (ADR-0033): its skip marked and `skipped` written to its exit file, as the stage
+    does."""
     phase = as_phase or values["phase"]
     if fused_step.verify_switched_off(wt, n, phase):
         fused.mark("5", wt, n, step, "verify-%s-skipped" % phase, "reason=switched-off")
