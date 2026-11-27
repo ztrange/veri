@@ -4119,6 +4119,44 @@ def test_4806_a_lowering_over_an_unexpired_timed_n_of_4_records_n_3_and_expires_
     assert (code, state.target, timed in written, written[:2]) == (None, 3, False, ["n=2", "n=3"])
 
 
+def test_4806_a_lowering_deletes_every_unexpired_timed_n_so_an_earlier_one_below_the_new_n_never_takes_over(dispatch):
+    low = "timed-n 1 2026-11-27T10:00:00 1 until 2099-01-01T00:00:00"
+    high = "timed-n 2 2026-11-27T10:05:00 4 until 2099-01-01T00:00:00"
+    world = FakeWorld({"lowering": FLOOR_LOWERING, "live": ["7"], "alive": ["7"]}, role_state=["n=5", low, high])
+
+    state, _ = dispatch.step(dispatch.State(0, follows_role_state=True), world)
+    world.wait()
+    state, code = dispatch.step(state, world)
+
+    written = world.role_state_written[-1]
+    assert (code, state.target, low in written, high in written, written[:2]) == (None, 3, False, False, ["n=5", "n=3"])
+
+
+def test_4806_a_lowering_keeps_an_already_expired_timed_n_line(dispatch):
+    gone = "timed-n 1 2026-11-27T10:00:00 6 until 2000-01-01T00:00:00"
+    world = FakeWorld({"lowering": FLOOR_LOWERING, "live": ["7"], "alive": ["7"],
+                       "clock": datetime(2026, 11, 27, 12).timestamp()}, role_state=["n=3", gone])
+
+    state, code = dispatch.step(dispatch.State(0, follows_role_state=True), world)
+
+    assert (code, world.role_state_written[-1][:3]) == (None, ["n=3", gone, "n=2"])
+
+
+def test_4806_a_role_state_gone_malformed_at_lowering_time_records_and_prints_nothing(dispatch):
+    world = FakeWorld({"lowering": FLOOR_LOWERING, "live": ["7"], "alive": ["7"]}, role_state=["n=3"])
+    reads = []
+
+    def role_state():
+        reads.append(1)
+        return ["n=3"] if len(reads) == 1 else ["n=3", "timed-n 1 2026-11-27T10:00:00 oops"]
+    world.role_state = role_state
+
+    state, code = dispatch.step(dispatch.State(0, follows_role_state=True), world)
+
+    recorded = [line for line in world.notified_lines if line.startswith(dispatch.LOWERED_LINE)]
+    assert (len(reads) > 1, world.said, recorded, world.role_state_written) == (True, [], [], [])
+
+
 def test_4806_after_the_lowering_with_live_3_and_n_2_dispatch_launches_nothing_until_live_is_below_2(dispatch):
     three = {"live": ["7", "8", "9"], "alive": ["7", "8", "9"], "queue": ["12"], "lowering": FLOOR_LOWERING}
     two = {**three, "live": ["7", "8"], "alive": ["7", "8"], "no_worktree": ["9"], "closing": {"9": "done 9 https://github.com/o/r/pull/9"}}
