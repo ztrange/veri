@@ -715,6 +715,36 @@ def test_a_route_revise_line_with_an_exit_other_than_1_is_the_reroute_seam_never
         2, ["red-half.sh", "green-half.sh", "reroute.sh"], "seam=reroute code=2 next=" + GREEN)
 
 
+@pytest.mark.parametrize("argv, reroute, code, last", [
+    (("12", "--hand", "reroute"), None, 1, "seam=reroute code=1 reason=hand next=" + GREEN),
+    (("12",), (1, "route=revise phase=green\n"), 1, "seam=revise code=1 next=REVISE.md#Revising on a REJECT"),
+    (("12",), (1, "stopped at route later two\n"), 1, "seam=reroute code=1 next=" + GREEN),
+    (("12",), (2, "stopped at route no answer\n"), 2, "seam=reroute code=2 next=" + GREEN)],
+    ids=["hand", "revise-green", "exit-1", "exit-2"])
+def test_a_reroute_that_answered_no_reject_keeps_verdict_green_exit_and_green_halfs_rejected_record_4833(
+        step, argv, reroute, code, last):
+    """Only reroute.sh's 0 and its `route=revise phase=red` answer green's REJECT; the hand seam, `route=revise
+    phase=green` and any other exit leave `.tdd/verdict-green.exit` and green-half's rejected record in place."""
+    (step.wt / ".tdd" / "verdict-green.exit").write_text("1\n")
+    rejected = step.wt / ".tdd" / "issue-12-green-half-rejected-wait"
+    answers = {"green-half.sh": (1, REJECTED_GREEN), "revise.sh": (1, "")}
+    if reroute is not None:
+        answers["reroute.sh"] = reroute
+
+    class Rejecting(Stages):
+        def __call__(self, name, *args, **kw):
+            if os.path.basename(name) == "green-half.sh":
+                rejected.write_text(REJECTED)
+            return super().__call__(name, *args, **kw)
+
+    code_, out, err, stages = step(stages=Rejecting(answers), argv=argv)
+
+    assert (code_, out.splitlines()[-1]) == (code, last), out + err
+    assert stages.names()[:2] == ["red-half.sh", "green-half.sh"]
+    assert ("reroute.sh" in stages.names()) == (reroute is not None)
+    assert [(step.wt / ".tdd" / name).exists() for name in ("verdict-green.exit", rejected.name)] == [True, True]
+
+
 GO_RED_STEP = "Go-red guard: probe `src/run.py` `if stacked:` → `if False:` on `t.py::c` ⟦go-red⟧ ⟦criterion 1⟧"
 
 
