@@ -42,6 +42,7 @@ LEAF_ARGS = ["--permission-mode", "bypassPermissions", "--settings", json.dumps(
 USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>']"
          " [--supersede-base <sha>|--frozen-edit <sha>] [--step-green <sha>] --branch-base <sha> <phase>"
          " <issue-spec-file> <test-path> [<target-test-id>]"
+         "\n       verify.sh [--step '<STEP>'] --branch-base <sha> pin <issue-spec-file> <test-id>..."
          "\n       verify.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>")
 
 

@@ -3,6 +3,7 @@
 # through a shell command string: a shim over veri/run_verdict.py.
 #
 # Usage:  run-verdict.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--frozen-edit <sha>] [--step-green <sha>] --branch-base <sha> <phase> <issue-spec-file> <test-path> [<target-test-id>]
+#         run-verdict.sh [--step '<STEP>'] --branch-base <sha> pin <issue-spec-file> <test-id>...
 #         run-verdict.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>
 #         --step-green is required for refactor and refused for every other phase (exit 2, from verify.sh) (#4544)
 #         --frozen-edit is passed through to verify.sh, diff only (#4730)
