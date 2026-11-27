@@ -8,6 +8,8 @@ cases plant a line into a copy of SKILL.md and ask what the whole guard says abo
 import pathlib
 import re
 
+import pytest
+
 SKILL = pathlib.Path(__file__).resolve().parents[4] / "SKILL.md"
 
 DETACHER = "detach-leaf.sh"
@@ -311,3 +313,31 @@ def test_skill_leaf_launch_sh_fails_over_a_skill_md_whose_launch_line_carries_si
 def test_skill_leaf_launch_sh_s_431_guard_pin_still_answers_over_a_skill_md_whose_one_double_quoted_step_line_is_planted_single_quoted_and_exempted_with_a_reason(tmp_path):
     step_line, planted = step_line_planted_single_quoted(tmp_path)
     assert pin_431_problems(planted, {step_line: EXEMPT_REASON}) == []
+
+
+PIN_IDS = " pin .tdd/issue-<n>-spec.md <id>… > .tdd/verify-pin.reason"
+
+
+def pin_launch_planted(tmp_path, ids):
+    text = SKILL.read_text()
+    pin_line = carrier_of(text, PIN_IDS)
+    return pin_line, planted_skill(tmp_path, plant_in_line(text, pin_line, PIN_IDS, PIN_IDS.replace("<id>…", ids)))
+
+
+@pytest.mark.parametrize("ids", ["<id>…", " ".join(["<id>…"] * 5)], ids=["one id", "five ids"])
+def test_blind_re_admits_the_pin_launch_with_one_to_five_test_ids_after_the_spec_file(tmp_path, ids):
+    _, planted = pin_launch_planted(tmp_path, ids)
+    assert blind_problems(planted) == []
+
+
+@pytest.mark.parametrize("ids", [
+    " ".join(["<id>…"] * 6),
+    "the existing cases already cover it",
+    "<id>… .tdd/develop-red.out",
+    ".tdd/verify-red.reason",
+], ids=["six ids", "free text in place of an id", "a rationale file after an id", "a rationale file in place of an id"])
+def test_blind_re_refuses_the_pin_launch_with_six_ids_free_text_or_a_rationale_file_after_the_spec_file(tmp_path, ids):
+    pin_line, planted = pin_launch_planted(tmp_path, ids)
+    refused = blind_problems(planted)
+    assert_names_only(refused, pin_line)
+    assert any(p.startswith(f"{pin_line}: passes verify.sh more than the blind parameters") for p in refused), refused
