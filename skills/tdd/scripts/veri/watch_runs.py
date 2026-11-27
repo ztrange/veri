@@ -68,7 +68,10 @@ _pause = None
 
 
 def wait():
-    time.sleep(_pause)
+    pause = _pause
+    if pause is None:
+        pause = float(tunables.get("VERI_WATCH_POLL"))
+    time.sleep(pause)
 
 
 def clock():

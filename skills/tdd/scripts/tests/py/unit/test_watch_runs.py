@@ -451,6 +451,17 @@ def test_4816_main_pauses_between_polls_the_seconds_VERI_WATCH_POLL_sets(monkeyp
     assert (code, capsys.readouterr().out, slept) == (0, "exited 5 done\n", [0.05, 0.05])
 
 
+def test_wait_called_before_any_watch_pauses_the_seconds_VERI_WATCH_POLL_sets(monkeypatch, watch_runs):
+    slept = []
+    monkeypatch.setenv("VERI_WATCH_POLL", "0.05")
+    monkeypatch.setattr(watch_runs, "_pause", None)
+    monkeypatch.setattr(watch_runs.time, "sleep", slept.append)
+
+    watch_runs.wait()
+
+    assert slept == [0.05]
+
+
 def test_2597_main_with_no_run_directory_and_no_arguments_prints_nothing_to_watch_and_returns_3_not_2(
         monkeypatch, capsys, tmp_path, watch_runs):
     monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
