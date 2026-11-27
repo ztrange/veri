@@ -2329,3 +2329,16 @@ def test_4577_cli_refactor_given_an_unreadable_pairs_file_is_refused_naming_it_w
     code, out, err = run_cli(build_develop_prompt, ["refactor", _spec(tmp_path), "s", "make test", "a.py", pairs])
 
     assert (code, out, err) == (2, "", f"build-develop-prompt: cannot read '{pairs}'\n")
+
+
+def test_4770_revise_red_builds_the_prompt_for_a_verify_pin_reason_saying_the_case_stays_green_on_the_before_state(
+        build_develop_prompt, tmp_path, capsysbinary):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "verify-pin.reason"
+    reason.write_bytes(b"VERDICT: REJECT\nREASON: the target case stays green on the before-state\n")
+
+    code = build_develop_prompt.main(["revise", "red", str(spec), "9", "make unit", str(reason)])
+
+    out, err = capsysbinary.readouterr()
+    assert (code, bool(out), err) == (0, True, b"")
