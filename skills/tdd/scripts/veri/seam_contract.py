@@ -8,7 +8,8 @@ CONTRACTS = {"red-half": ("test_path", "target_test"), "green-half": ("test_path
 # A reading stage -> the stages whose records it reads, in order: the first whose record names the open step wins.
 # refactor-half falls back to red-half's record, since a Green green-half.sh did not finish (a revise-green loop, a
 # ⟦replaces-case⟧ or ⟦ci-repair⟧ step, a stop at Green 3) leaves none of green-half's for the step (SC8).
-READS = {"green-half": ("red-half",), "revise": ("red-half",), "reroute": ("red-half",), "refactor-half": ("green-half", "red-half"), "step-close": ("refactor-half",)}
+READS = {"green-half": ("red-half",), "revise": ("red-half",), "reroute": ("red-half",),
+         "refactor-half": ("green-half", "red-half"), "step-close": ("refactor-half",)}
 
 
 def table():

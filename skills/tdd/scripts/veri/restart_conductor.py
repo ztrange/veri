@@ -129,7 +129,8 @@ def main(argv):
         return 2
     knob = tunables.get("VERI_RESET_GROWTH_CONDUCTOR")
     if not _positive_int(knob):
-        print(f"restart-conductor.sh: VERI_RESET_GROWTH_CONDUCTOR must be a whole number >= 1, got {knob!r}", file=sys.stderr)
+        print(f"restart-conductor.sh: VERI_RESET_GROWTH_CONDUCTOR must be a whole number >= 1, got {knob!r}",
+              file=sys.stderr)
         return 2
     run = argv[0]
 
@@ -189,7 +190,8 @@ def main(argv):
         appeared = _new_conductor_appears(run)
         restart_marker.clear(_run_dir(run))
         if not appeared:
-            print(f"restart-conductor.sh: no conductor was recorded for run {run} within {LAUNCH_WAIT}s of its relaunch",
+            print(f"restart-conductor.sh: no conductor was recorded for run {run} within {LAUNCH_WAIT}s"
+                  " of its relaunch",
                   file=sys.stderr)
             return 2
     print(f"restarts {run} {restarts}")

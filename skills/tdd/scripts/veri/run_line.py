@@ -1,4 +1,5 @@
-"""The commands a leaf prompt gives for running suites, read from the repository at <root> (PRD 031.4's LG28, LG29; #4263).
+"""The commands a leaf prompt gives for running suites, read from the repository at <root>
+(PRD 031.4's LG28, LG29; #4263).
 
 Interface:
   own_tree(root=".")      whether <root> is veri's own tree: `skills/tdd/scripts/tests/py` is a directory there.
@@ -20,7 +21,8 @@ Interface:
                           run_lines reads its lines (at <branch_base>, declared lines only, BaseUnresolved likewise),
                           or `the test command` when it declares none. veri's own tree declares `make test`.
   run_lines(root=".", branch_base="")
-                          (changed, one) as bytes: the command running the test files affected-suites.sh printed, and the
+                          (changed, one) as bytes: the command running the test files affected-suites.sh printed,
+                          and the
                           one invocation for a single suite. In veri's own tree today's `make test TESTS="…"` text;
                           elsewhere the repo's `veri: one test file:` command run once per path through `sh -c`, `"$1"`
                           being that path, or, when the repo declares none, its fast command once for both, so a

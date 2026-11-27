@@ -137,8 +137,8 @@ def record_existing(n, wt, ledger):
     refactor half (`subject chore: …`) and put the record in verify-refactor's diff."""
     fused.checked("1", fused.script("ledger-growth.sh"), "record-existing", ledger, cwd=wt)
     pr_finish.answered("1", "git", "add", added(n), cwd=wt)
-    pr_finish.answered("1", "git", "commit", "-m", "chore: record the steps the ledger grew before its record (#%s)" % n,
-                  cwd=wt)
+    pr_finish.answered("1", "git", "commit", "-m",
+                       "chore: record the steps the ledger grew before its record (#%s)" % n, cwd=wt)
 
 
 def resuming(n, wt, text, step, stray):

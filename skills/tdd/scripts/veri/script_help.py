@@ -10,7 +10,8 @@ def entry_for(name):
     catalogue = pathlib.Path(__file__).resolve().parents[2] / "SCRIPTS.md"
     lines = catalogue.read_text().splitlines(keepends=True)
     prefix = f"- `$S/{name}"
-    start = next((i for i, line in enumerate(lines) if line.startswith(prefix) and line[len(prefix):][:1] in (" ", "`")), None)
+    start = next((i for i, line in enumerate(lines)
+                  if line.startswith(prefix) and line[len(prefix):][:1] in (" ", "`")), None)
     if start is None:
         return None
     end = next((i for i in range(start + 1, len(lines)) if lines[i][:1] != " "), len(lines))

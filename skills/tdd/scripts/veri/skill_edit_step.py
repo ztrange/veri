@@ -16,7 +16,8 @@ import tunables
 from extract_result import extract
 from paths import SCRIPTS
 
-USAGE = "usage: skill-edit-step.sh [--change \"<change>\"] [--added \"<step>\"] <issue-body-file> <unit-file> [<pin-file>...]"
+USAGE = ("usage: skill-edit-step.sh [--change \"<change>\"] [--added \"<step>\"] <issue-body-file> <unit-file>"
+         " [<pin-file>...]")
 BUDGET = "VERI_SKILL_EDIT_BUDGET"
 TABLE_HEAD = ["| ID | Requirement | Why |", "|---|---|---|"]
 
@@ -269,7 +270,8 @@ def _author(unit, path, reasons):
 
 
 def _sentences(text):
-    """The sentences of `text`: its whitespace runs collapsed, split after each `.`, `!` or `?` that whitespace follows."""
+    """The sentences of `text`: its whitespace runs collapsed, split after each `.`, `!` or `?` that whitespace
+    follows."""
     return [s for s in re.split(r"(?<=[.!?])\s+", " ".join(text.split())) if s]
 
 
@@ -383,8 +385,8 @@ def _complaints(argv):
     issue_rows = unit_rows(issue, unit)
     for row in issue_rows:
         if not requirements.well_formed_row_id(row_id(row)):
-            return ["Requirement row ID is none of <prefix><digits>, <prefix><next> or <prefix><digits><letters><reword>: "
-                    + row_id(row)]
+            return ["Requirement row ID is none of <prefix><digits>, <prefix><next>"
+                    " or <prefix><digits><letters><reword>: " + row_id(row)]
     explicit = [row_id(r) for r in issue_rows if not row_id(r).endswith("<next>")]
     for dup in explicit:
         if explicit.count(dup) > 1:
@@ -421,7 +423,8 @@ def main(argv):
         _restore(snapshot, path, file, graded_file)
 
     def traced(sentences):
-        """(None, the UNTRACED sentence lines) when the trace lets the step go on, else (the exit code that ends it, [])."""
+        """(None, the UNTRACED sentence lines) when the trace lets the step go on, else (the exit code that ends it,
+        [])."""
         answer = _trace(unit, rows, sentences)
         for _ in range(tunables.tokens(tunables.get("VERI_NO_VERDICT_RETRIES", unless_empty=True))):
             if answer is not None:
@@ -501,7 +504,8 @@ def main(argv):
                 undo()
                 return stop
             graded, said = (1, "".join(line + "\n" for line in untraced)) if untraced else _grade(path, unit)
-        if change is not None and graded == 0 and all(_read_existing([f]).get(f) == before.get(f) for f in (file, path)):
+        if (change is not None and graded == 0
+                and all(_read_existing([f]).get(f) == before.get(f) for f in (file, path))):
             graded, said = 1, "FAIL: the author left the prose and the rows unchanged\n"
         if graded == 1:
             _restore(before, *before)

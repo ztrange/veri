@@ -24,7 +24,8 @@ def pins(step, wt):
 
 
 def graded_after_ledger(wt, n, unit):
-    _, last, _ = fused.call("git", "log", "-1", "--format=%H", "--", os.path.relpath(ledger.ledger_path(wt, n), wt), cwd=wt)
+    _, last, _ = fused.call("git", "log", "-1", "--format=%H", "--", os.path.relpath(ledger.ledger_path(wt, n), wt),
+                            cwd=wt)
     last = last.strip()
     if not last:
         return False
@@ -55,7 +56,8 @@ def run(argv):
     if not waiting and graded_after_ledger(wt, n, unit):
         return fused.call(TICK, n, cwd=wt)[0]
     if not waiting:
-        read, body, _ = fused.call("gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt, run=github.bounded)
+        read, body, _ = fused.call("gh", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", cwd=wt,
+                                   run=github.bounded)
         if read != 0:
             return 2
         with open(os.path.join(wt, ".tdd", "issue-%s-body" % n), "w") as f:
@@ -63,7 +65,8 @@ def run(argv):
         body_file = os.path.join(".tdd", "issue-%s-body" % n)
         added = ["--added", step.rstrip("\n")] if ledger.is_added(step.rstrip("\n")) else []
         change = ["--change", argv[2]] if argv[1:2] == ["--change"] else []
-        fused.call(DETACH, "start", "skill-edit-" + n, STEP, *added, *change, body_file, ledger.unit_of(step), *pins(step, wt), cwd=wt)
+        fused.call(DETACH, "start", "skill-edit-" + n, STEP, *added, *change, body_file, ledger.unit_of(step),
+                   *pins(step, wt), cwd=wt)
         fused.save_wait(wt, n, "skill-edit-half", "skill-edit-" + n, {})
     waited, out, _ = fused.call(DETACH, "wait", "skill-edit-" + n, cwd=wt)
     if waited == 3:

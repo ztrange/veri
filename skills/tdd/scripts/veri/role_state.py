@@ -53,7 +53,8 @@ def read_lines(role, lane=None):
 
 
 class Malformed(ValueError):
-    """The one way a state line is refused. `kind` is "n-missing" (no `n=` line, `line` None), "n", "timed-n" or "override"; `line` is the offending line. Each caller words it."""
+    """The one way a state line is refused. `kind` is "n-missing" (no `n=` line, `line` None), "n", "timed-n" or
+    "override"; `line` is the offending line. Each caller words it."""
 
     def __init__(self, kind, line=None):
         super().__init__("%s: %s" % (kind, line))
@@ -62,7 +63,8 @@ class Malformed(ValueError):
 
 
 class State:
-    """The grammar of a role's state file, over its lines: `key=value` lines and `<kind> <id> <stamp> <text>` item lines."""
+    """The grammar of a role's state file, over its lines: `key=value` lines and `<kind> <id> <stamp> <text>` item
+    lines."""
 
     def __init__(self, lines):
         self.lines = list(lines)
@@ -84,7 +86,8 @@ class State:
         return [line for line in self.lines if line.startswith(tuple(kind + " " for kind in kinds))]
 
     def last_n(self):
-        """The target from the last `n=` line, as an int, or the word "auto" (PRD 036.6: dispatch then sets N from T)."""
+        """The target from the last `n=` line, as an int, or the word "auto" (PRD 036.6: dispatch then sets N
+        from T)."""
         ns = [line for line in self.lines if line.startswith("n=")]
         if not ns:
             raise Malformed("n-missing")
@@ -189,7 +192,8 @@ def do_add(path, argv):
         except ValueError:
             sys.stderr.write("timed-n text must be: <n> until <ISO-8601 datetime>\n")
             return 2
-    item = str(max([int(line.split()[1]) for line in (read(path) or "").splitlines() if line.partition(" ")[0] in LISTS] + [0]) + 1)
+    item = str(max([int(line.split()[1]) for line in (read(path) or "").splitlines()
+                    if line.partition(" ")[0] in LISTS] + [0]) + 1)
     append(path, "%s %s %s %s\n" % (argv[2], item, now(), argv[3]))
     print(item)
     return 0

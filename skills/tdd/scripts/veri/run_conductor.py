@@ -118,7 +118,8 @@ def preflight_and_launch(argv, claim=None):
     for directory in (tempfile.gettempdir(), pinned_tmpdir(), os.getcwd()):
         free = free_gb(directory)
         if free < minimum:
-            sys.stderr.write("run-conductor: '%s' has %d GB free, below VERI_MIN_FREE_GB=%d\n" % (directory, free, minimum))
+            sys.stderr.write("run-conductor: '%s' has %d GB free, below VERI_MIN_FREE_GB=%d\n"
+                             % (directory, free, minimum))
             return 2
     here = paths.scripts_of(__file__)
     base = os.path.dirname(here)
@@ -129,7 +130,8 @@ def preflight_and_launch(argv, claim=None):
     if not resuming:
         for word in tunables.get("VERI_SKIP_VERIFY").split(","):
             if word and word not in ("refactor", "pin", "green", "red", "diff", "branch"):
-                sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which cannot be skipped (only refactor, pin, green, red, diff and branch can)\n" % word)
+                sys.stderr.write("run-conductor: VERI_SKIP_VERIFY names '%s', which cannot be skipped"
+                                 " (only refactor, pin, green, red, diff and branch can)\n" % word)
                 return 2
     carried = None
     if mode == "first" and not os.path.lexists(record):
@@ -156,7 +158,8 @@ def preflight_and_launch(argv, claim=None):
                 continue
             if held:
                 sys.stderr.write("run-conductor: another process holds the ref lock\n")
-            sys.stderr.write("run-conductor: fetch of origin failed in '%s' — refusing to run a skill that may be stale\n" % base)
+            sys.stderr.write("run-conductor: fetch of origin failed in '%s'"
+                             " — refusing to run a skill that may be stale\n" % base)
             return 2
         head_rev = "refs/remotes/origin/HEAD"
         if not verifies(base, head_rev):
@@ -173,7 +176,8 @@ def preflight_and_launch(argv, claim=None):
     if carried:
         mode = adopt_carried_pin(base, head_rev, carried, record)
         if mode == "resume":
-            # The timeout travels with the pin it was settled under: a rejected carry is a fresh launch in every respect.
+            # The timeout travels with the pin it was settled under:
+            # a rejected carry is a fresh launch in every respect.
             restore_carried_timeout(argv[0])
         if mode == "first":
             # A rejected carried pin leaves a fresh launch, which updates veri's clone first; that runs here instead.
@@ -213,7 +217,8 @@ def preflight_and_launch(argv, claim=None):
             extracted = pinned_scripts.snapshot_digest(snapshot)
             run_pins.write_snapshot_digest(event.toplevel(), argv[0], pinned_scripts.digest_text(extracted))
             keep_pinned_scripts(snapshot, argv[0])
-            code = launch(snapshot, argv[0], commit, claim=claim, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
+            code = launch(snapshot, argv[0], commit, claim=claim,
+                          VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
             changed = snapshot_change(snapshot, argv[0], extracted)
             if changed is None:
                 return code
@@ -306,13 +311,24 @@ def skill_snapshot(base, head_rev, record, mode):
 
     Answers Snapshot(kind, commit, why, message, code), after `git rev-parse head_rev` in `base`:
 
-    | rev-parse | mode            | recorded commit in `base` | kind       | commit        | why        | effects the caller performs |
-    |-----------|-----------------|---------------------------|------------|---------------|------------|-----------------------------|
-    | fails     | any             | not looked up             | "unpinned" | None          | ""         | message, launch unpinned    |
-    | ok        | "resume"        | resolves (cat-file -e)    | "kept"     | the recorded  | ""         | seed .tdd/.gitignore        |
-    | ok        | "resume"        | does not resolve          | "refused"  | None          | ""         | seed; message on stderr, code 2 |
-    | ok        | "first"         | not looked up             | "first"    | resolved head | "first"    | seed, write pin, consume marker, other pins |
-    | ok        | "env"/"released"| not looked up             | "repin"    | resolved head | the mode   | as "first", then the skill-repin event |
+    | rev-parse | mode             | recorded commit        | kind       | commit        | why      | effects the     |
+    |           |                  | in `base`              |            |               |          | caller performs |
+    |-----------|------------------|------------------------|------------|---------------|----------|-----------------|
+    | fails     | any              | not looked up          | "unpinned" | None          | ""       | message, launch |
+    |           |                  |                        |            |               |          | unpinned        |
+    | ok        | "resume"         | resolves (cat-file -e) | "kept"     | the recorded  | ""       | seed            |
+    |           |                  |                        |            |               |          | .tdd/.gitignore |
+    | ok        | "resume"         | does not resolve       | "refused"  | None          | ""       | seed; message   |
+    |           |                  |                        |            |               |          | on stderr,      |
+    |           |                  |                        |            |               |          | code 2          |
+    | ok        | "first"          | not looked up          | "first"    | resolved head | "first"  | seed, write     |
+    |           |                  |                        |            |               |          | pin, consume    |
+    |           |                  |                        |            |               |          | marker, other   |
+    |           |                  |                        |            |               |          | pins            |
+    | ok        | "env"/"released" | not looked up          | "repin"    | resolved head | the mode | as "first",     |
+    |           |                  |                        |            |               |          | then the        |
+    |           |                  |                        |            |               |          | skill-repin     |
+    |           |                  |                        |            |               |          | event           |
 
     An unreadable recorded file reads as "" (which does not resolve). `message` is the exact stderr text.
     """
@@ -330,7 +346,8 @@ def skill_snapshot(base, head_rev, record, mode):
         recorded = ""
     if git(base, "cat-file", "-e", recorded + "^{commit}",
            stderr=subprocess.DEVNULL).returncode != 0:
-        return Snapshot("refused", None, "", "run-conductor: recorded skill commit '%s' is not in '%s' — refusing to re-pin; "
+        return Snapshot("refused", None, "",
+                        "run-conductor: recorded skill commit '%s' is not in '%s' — refusing to re-pin; "
                         "set VERI_NEW_SKILL=1 to take the new skill\n" % (recorded, base), 2)
     return Snapshot("kept", recorded, "", "", 0)
 
@@ -405,7 +422,8 @@ def launch(base, issue, commit, claim=None, **exports):
     else:
         bad = requirements.malformed_row_id(body.split("\n"))
         if bad is not None:
-            sys.stderr.write("run-conductor.sh: Requirement row ID is none of <prefix><digits>, <prefix><next> or <prefix><digits><letters><reword>: %s\n" % bad)
+            sys.stderr.write("run-conductor.sh: Requirement row ID is none of <prefix><digits>, <prefix><next>"
+                             " or <prefix><digits><letters><reword>: %s\n" % bad)
             return 2
     text = prompt(base, issue, commit)
     if text is None:
@@ -519,7 +537,8 @@ def conduct(text, issue, env, claim=None):
         return 128 - code
     posted = done_posted(issue) if code == 0 and result is not None and not closed(issue) else True
     if posted is None:
-        sys.stderr.write("run-conductor: no answer reading the comments of issue #%s; no needs-user bail written\n" % issue)
+        sys.stderr.write("run-conductor: no answer reading the comments of issue #%s; no needs-user bail written\n"
+                         % issue)
         return 2
     if not posted:
         if event.mark(run_worktree(issue), event.context(tunables.with_values(VERI_ISSUE=issue)),
@@ -529,7 +548,8 @@ def conduct(text, issue, env, claim=None):
         paragraphs = [p for p in result.split("\n\n") if p.strip()]
         quoted = "\n".join("> " + line for line in (paragraphs[-1] if paragraphs else "").strip().splitlines())
         try:
-            github.gh_issue_comment(issue, github.published("needs-user: the conductor stopped without a verdict.\n\n" + quoted))
+            github.gh_issue_comment(
+                issue, github.published("needs-user: the conductor stopped without a verdict.\n\n" + quoted))
         except github.NoAnswer:
             sys.stderr.write("run-conductor: needs-user comment on issue #%s was refused by GitHub\n" % issue)
     return 141 if code == 0 and unread else code
@@ -638,7 +658,8 @@ def git_argv(base, *args):
 
 
 def refuse_unpinned(base, why):
-    sys.stderr.write("run-conductor: refs/remotes/origin/HEAD is not set in '%s' and %s — refusing to run unpinned\n" % (base, why))
+    sys.stderr.write("run-conductor: refs/remotes/origin/HEAD is not set in '%s' and %s — refusing to run unpinned\n"
+                     % (base, why))
     return 2
 
 

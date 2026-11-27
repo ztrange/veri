@@ -127,9 +127,10 @@ def launch_spec(environ, git_path, shell, seconds, binary, model, extra, coerce_
     """What a leaf is launched with, decided and not started: `(argv, env)`, a pure function of its inputs.
 
     `env` holds only the names of `environ` the allow-list or its `VERI_LEAF_ENV` passes (`leaf_passes`), stripped
-    of the conductor's session variables, with the leaf's private git config, bytecode, caching, background-task, shell and Bash-tool timeout settings and the guard first on
-    PATH; the shim's locale marker, when `coerce_marker` (its value, read by the caller) is "1", is removed together with
-    PYTHONCOERCECLOCALE. `toplevel` is the leaf's working tree's top level (None: outside one), above which no
+    of the conductor's session variables, with the leaf's private git config, bytecode, caching, background-task,
+    shell and Bash-tool timeout settings and the guard first on PATH; the shim's locale marker, when `coerce_marker`
+    (its value, read by the caller) is "1", is removed together with PYTHONCOERCECLOCALE. `toplevel`
+    is the leaf's working tree's top level (None: outside one), above which no
     `CLAUDE.md` is loaded; `own_dir`, when given, is a directory whose project memory files are not
     loaded either (the grader's). `seconds` is the hard cap as text: raises ValueError when it is not a whole number;
     UnmergeableSettings for a caller's `--settings` that is not a JSON object (`callers_settings`)."""
