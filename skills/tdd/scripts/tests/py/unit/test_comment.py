@@ -2282,6 +2282,28 @@ def test_4803_a_post_behind_a_replay_that_gets_no_answer_is_queued_behind_the_ot
     assert "a1" in err
 
 
+def test_4803_a_post_behind_a_replay_that_gets_no_answer_while_github_is_down_is_queued_without_posting(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    github = importlib.import_module("github")
+    _offline_step_done(monkeypatch, tmp_path, incident=True)
+    posted = []
+    monkeypatch.setattr(github, "gh_issue_comment", lambda number, body: posted.append(body) or "https://x/1")
+
+    def no_answer(number):
+        raise github.NoAnswer("")
+
+    monkeypatch.setattr(github, "issue_comments", no_answer)
+    _queue_one(tmp_path, "a1")
+
+    code, out, err = run_cli(comment, ["7", "step-done"], cwd=tmp_path)
+
+    assert (code, posted) == (0, []), err
+    entries = _queued(tmp_path)
+    assert [e["key"] for e in entries][0] == "a1" and len(entries) == 2
+    assert out == "queued %s\n" % entries[1]["key"]
+
+
 def test_4803_a_post_behind_a_replay_that_gets_no_answer_while_github_is_up_exits_2_posting_and_queueing_nothing(
         monkeypatch, run_cli, tmp_path):
     comment = importlib.import_module("veri.comment")
