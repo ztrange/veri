@@ -73,6 +73,7 @@ def green(monkeypatch, run_cli, tmp_path):
     fake)."""
     fused = importlib.import_module("veri.fused")
     green_half = importlib.import_module("veri.green_half")
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: False)
     wt = tmp_path / ".tdd" / "wt" / "12"
     (wt / ".tdd").mkdir(parents=True)
 
@@ -639,10 +640,10 @@ def test_4803_with_the_outage_file_it_skips_the_pr_read_and_the_body_marks_it_de
     assert _deferred(fake) == [("event.sh", ("pr-body-deferred",), STEP), ("stop-requested.sh", (), None)]
 
 
-def test_4803_a_failed_pr_read_during_an_incident_marks_the_body_deferred_and_exits_0(
+def test_4803_a_failed_pr_read_during_an_incident_begun_after_the_up_front_check_marks_the_body_deferred_and_exits_0(
         green, tmp_path, monkeypatch):
     _main_tree(tmp_path)
-    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: True)
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", iter([False, True]).__next__)
 
     code, out, err, fake = green(answers={("gh", None): (2, "")})
 
@@ -662,12 +663,23 @@ def test_4803_a_failed_pr_read_with_no_incident_still_stops_it_with_exit_2(green
     assert "pr-body-deferred" not in [a for c in fake.calls for a in c[1]]
 
 
-def test_4803_a_pr_read_refused_with_exit_1_during_an_incident_still_stops_it_and_defers_nothing(
+def test_4803_a_pr_read_refused_with_exit_1_during_an_incident_begun_after_the_up_front_check_still_stops_it(
         green, tmp_path, monkeypatch):
     _main_tree(tmp_path)
-    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: True)
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", iter([False, True]).__next__)
 
     code, out, err, fake = green(answers={("gh", None): (1, "")})
 
     assert (code, fake.names()[-1]) == (1, "gh")
     assert "pr-body-deferred" not in [a for c in fake.calls for a in c[1]]
+
+
+def test_4803_during_an_incident_with_no_outage_file_it_attempts_no_pr_read_and_marks_the_body_deferred(
+        green, tmp_path, monkeypatch):
+    _main_tree(tmp_path)
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: True)
+
+    code, out, err, fake = green()
+
+    assert code == 0, err
+    assert _deferred(fake) == [("event.sh", ("pr-body-deferred",), STEP), ("stop-requested.sh", (), None)]
