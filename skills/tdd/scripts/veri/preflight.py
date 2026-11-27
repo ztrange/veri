@@ -413,7 +413,7 @@ def start_full(n, wt, fast, body_file, fast_began, code, detect, env):
         return 3
     if code != 0:
         return stopped(3, "detach-command.sh wait", code)
-    baseline = math.ceil(time.monotonic() - fast_began)
+    baseline = 0 if fast_began is None else math.ceil(time.monotonic() - fast_began)
     if CARRIED.get("rebased_from"):
         leased_push(wt, CARRIED["rebased_from"])
     if body_file is None:
@@ -578,7 +578,7 @@ def fresh_tiers(n, wt, fast, body_file, detect, env):
     """A fresh launch's tiers: the fast tier skipped on a recorded green or CI's word, else started, then the full tier
     started after it; (baseline, full, fast, alone, began, reused, code), else the exit code preflight stops with."""
     if recorded_green(n, wt, fast, body_file, detect) or ci_green(wt):
-        fast_began, code = time.monotonic(), 0
+        fast_began, code = None, 0
     else:
         fast_began, code = start_fast(n, wt, fast, env)
         CARRIED["fast_ran"] = code == 0
