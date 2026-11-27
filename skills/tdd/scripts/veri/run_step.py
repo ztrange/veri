@@ -153,7 +153,7 @@ def main(argv):
     elif pending is None and fused_step.rejected(wt, n, "red-half", step) is not None:
         # A reroute's `route=revise phase=red` outside this call (#4613): red is revised first, whatever stage the
         # step seam recorded, and a green-half REJECT from before it is answered, so green-half then starts afresh.
-        answered(wt, n)
+        reroute_stage.answered(wt, n)
         start = order.index("red-half")
     else:
         start = max(order.index("refactor-half" if pending is not None else "red-half"), resumed(wt, n, step, order))
@@ -230,25 +230,18 @@ def reroute(wt, n, step, hand, report):
     code, out = run_stage("reroute.sh", n, report)
     said = (out.splitlines() or [""])[-1]
     if code == 0:
-        answered(wt, n)
+        reroute_stage.answered(wt, n)
         return ("stage",)
     if code == 1 and said == "route=revise phase=green":
         return ("revise",)
     if code == 1 and said == "route=revise phase=red":
         # A verify-red REJECT of the rerouted case: red-half's rejected record sends red-half to revise.sh <n> red,
         # and green-half then starts afresh.
-        answered(wt, n)
+        reroute_stage.answered(wt, n)
         return RESTART
     record(wt, n, "green-half", step)
     sys.stdout.write("seam=reroute code=%d next=%s\n" % (code, NEXT_SCRIPTS[0] + " " + n if code == 3 else GREEN))
     return code
-
-
-def answered(wt, n):
-    """A verify-green REJECT a reroute answered: `.tdd/verdict-green.exit` and green-half's rejected record removed."""
-    for path in (os.path.join(wt, ".tdd", "verdict-green.exit"), fused.wait_record(wt, n, "green-half-rejected")):
-        with contextlib.suppress(FileNotFoundError):
-            os.remove(path)
 
 
 def run_stage(script, n, *more):

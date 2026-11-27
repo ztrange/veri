@@ -204,6 +204,22 @@ def test_on_a_verify_red_pass_it_rerecords_the_frozen_tests_over_both_test_paths
     assert not (reroute.wt / ".tdd" / "issue-12-reroute-wait").exists()
 
 
+def test_a_successful_reroute_run_on_its_own_removes_the_answered_verify_green_rejects_exit_file_and_record_4833(
+        reroute):
+    rejected = {"conductor": None, "at": "verdict-green", "step": STEP,
+                "values": {"test_path": "tests/test_a.py", "target_test": OWN}}
+    code, out, err, fake = reroute(answers=ROUTE_RED, argv=("12", ".tdd/verify-green.reason"),
+                                   files={"develop-red-contradicted.out": REROUTED,
+                                          "verify-green.reason": "VERDICT: REJECT\nno\n",
+                                          "verdict-green.exit": "1\n",
+                                          "issue-12-green-half-rejected-wait": json.dumps(rejected)})
+
+    assert code == 0, out + err
+    left = [name for name in ("issue-12-green-half-rejected-wait", "verdict-green.exit")
+            if (reroute.wt / ".tdd" / name).exists()]
+    assert left == []
+
+
 @pytest.mark.parametrize("said, kind, phase, args", [
     ("repair tests/test_a.py::test_one tests/test_c.py::test_old", "repair", "red-repair",
      ("tests/test_a.py::test_one", GREEN, "tests/test_c.py::test_old")),

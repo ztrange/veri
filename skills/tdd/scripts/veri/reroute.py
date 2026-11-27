@@ -2,6 +2,7 @@
 red leaf, verify-red and the frozen-test re-record (SKILL.md *Green*), sliced like the fused halves of a step
 (PRD 038.10)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
+import contextlib
 import json
 import os
 import shutil
@@ -172,7 +173,15 @@ def finish(wt, n, step, values, red):
         revise_red(wt, n, step, red, values)
     if code != 0:
         raise fused.Stop("record", fused.label("tests-frozen.sh", "record", "--step", step) + " exit %d" % code, code)
+    answered(wt, n)
     return 0
+
+
+def answered(wt, n):
+    """A verify-green REJECT a reroute answered: `.tdd/verdict-green.exit` and green-half's rejected record removed."""
+    for path in (os.path.join(wt, ".tdd", "verdict-green.exit"), fused.wait_record(wt, n, "green-half-rejected")):
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(path)
 
 
 def revise_red(wt, n, step, red, values):
