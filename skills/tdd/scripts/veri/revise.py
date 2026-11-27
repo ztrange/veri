@@ -164,7 +164,7 @@ def attempt(n, wt, settled, step, values):
     fused.checked("2", fused.script("comment.sh"), n, "revise", phase, str(k), cwd=wt)
     fused.mark("2", wt, n, step, "revise", "budget=" + budget,
                VERI_PHASE=phase, VERI_ATTEMPT=str(k))
-    if phase == "red" and values["test_path"] is not None:  # a HOLDS step wrote no test, so restores nothing
+    if phase == "red" and not wrote_no_test(values):
         rerouted = rerouted_red(wt, n, step)  # a rerouted case's revise keeps every path the reroute edited
         kept = list(dict.fromkeys((rerouted or {}).get("rerouted", []) + [values["test_path"]]))
         fused.checked("3", fused.script("restore-production.sh"), *kept, cwd=wt)
@@ -321,11 +321,17 @@ def recorded(n, wt, step, values):
     so only red-setup is recorded (PRD 044.2). True for every other phase."""
     if values["phase"] != "red":
         return True
-    if values["test_path"] is None or frozen(wt, n, step, values):  # a HOLDS step wrote no test to freeze
+    if wrote_no_test(values) or frozen(wt, n, step, values):
         fused.checked("5", fused.script("red-setup.sh"), "record", n, cwd=wt, ok=(0, 2, 3),
                       stdin=read(wt, ".tdd/revise-red-%d.out" % values["k"]))
         return True
     return False
+
+
+def wrote_no_test(values):
+    """A step whose own develop-red.out says `AGAINST_UNMODIFIED: HOLDS` names no TEST_PATH: it wrote no test, so its
+    red revise restores and freezes none (PRD 044.2)."""
+    return values["test_path"] is None
 
 
 def frozen(wt, n, step, values):
