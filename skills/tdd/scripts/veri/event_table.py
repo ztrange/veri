@@ -41,7 +41,7 @@ EVENTS = {
             "|step-add-refused|replaces-report-failed|criterion-unreadable|setup-failed|preflight-refused|pr-ready-failed|rerecord-failed|go-red-probe-unresolvable"
             "|revise-exhausted|revise-impossible|untestable-criterion|step-too-big|rebase-unresolved|uncovered|ci-red"
             "|suite-red|rebased-tip-red|unreplaced-cases|needs-user|step-added-off-route|fixture-owed"
-            "|missing-reroutes-exhausted|repair-reroutes-exhausted|graded-edit-outside-skill-edit|unpinnable-missing"
+            "|missing-reroutes-exhausted|repair-reroutes-exhausted|graded-edit-outside-skill-edit"
             "|skill-edit-refused|prep-owed|no-seam|surround-owed|unwired|surround-short|tidy-first-owed"
             "|branch-rejected|row-untraced) classification?:(process|system) suites?:text failed?:text",
     "case-timeout": "nodeid:text workers:whole",
