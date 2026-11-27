@@ -8,7 +8,8 @@ import re
 import tunables
 
 REDACTED = "[redacted]"
-_TOKEN_SHAPES = re.compile(r"gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,}|sk-ant-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}")
+_TOKEN_SHAPES = re.compile(
+    r"gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,}|sk-ant-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}")
 # The same shapes read in two parts, so a token glued to the next one is two tokens: a prefix, then the shape at its
 # minimum length, then the characters it may run on in.
 _PREFIX = re.compile(r"gh[pousr]_|github_pat_|sk-ant-|AKIA")
@@ -29,7 +30,8 @@ _ZERO_WIDTH = "\u200b\u200c\u200d\ufeff\u00ad"
 # timestamp and a space: a token folded across two log lines is still one.
 # Each field is read at most 256 characters deep, so a break costs a bounded read and the pass stays linear.
 _LINE_START = re.compile(
-    r"(?:(?:[^\t\r\n]{0,256}\t[^\t\r\n]{0,256}\t)?\d{4}-\d\d-\d\dT[\d:.]{1,32}Z )?[ \t]*(?:(?:>[ \t]?|[-*+#][ \t])[ \t]*)*")
+    r"(?:(?:[^\t\r\n]{0,256}\t[^\t\r\n]{0,256}\t)?\d{4}-\d\d-\d\dT[\d:.]{1,32}Z )?"
+    r"[ \t]*(?:(?:>[ \t]?|[-*+#][ \t])[ \t]*)*")
 # A base64 or base64url run long enough to encode the shortest secret (an 8-character value).
 _BASE64 = re.compile(r"[A-Za-z0-9+/_-]{12,}={0,2}")
 _URLSAFE = str.maketrans("-_", "+/")

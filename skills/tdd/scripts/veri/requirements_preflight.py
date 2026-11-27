@@ -30,7 +30,8 @@ def main(argv):
                 malformed.append(defect)
             else:
                 rows.append(row)
-        clashing += [skill_edit_step.row_id(r) for r in skill_edit_step.clashes(rows, requirements.list_path(unit), unit)]
+        clashing += [skill_edit_step.row_id(r)
+                     for r in skill_edit_step.clashes(rows, requirements.list_path(unit), unit)]
     missing = []
     unitless = []
     if len(argv) > 1:

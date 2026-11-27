@@ -72,7 +72,8 @@ def blockers_status(blocked_by):
         if info.get("state") != "closed":
             status = "waiting"
         elif "pull_request" in info:
-            pull = read(github.gh_api, "repos/{owner}/{repo}/pulls/%s" % blocker, "reading the merged state of #%s" % blocker)
+            pull = read(github.gh_api, "repos/{owner}/{repo}/pulls/%s" % blocker,
+                        "reading the merged state of #%s" % blocker)
             if pull is None:
                 return None
             if not json.loads(pull.stdout).get("merged"):
@@ -84,7 +85,8 @@ def main(argv):
     if argv:
         sys.stderr.write(USAGE + "\n")
         return 2
-    listing = read(github.gh_rest_list, "repos/{owner}/{repo}/issues?state=open&labels=parked&per_page=100", "listing the issues")
+    listing = read(github.gh_rest_list, "repos/{owner}/{repo}/issues?state=open&labels=parked&per_page=100",
+                   "listing the issues")
     if listing is None:
         return 2
     issues = [i for i in items(listing, strict=False) if "pull_request" not in i]

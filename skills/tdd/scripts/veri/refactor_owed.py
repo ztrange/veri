@@ -30,7 +30,8 @@ OUT_OF_SCOPE_MARK = "- " + OUT_OF_SCOPE_PREFIX
 APPLIED_MARK = "applied | "
 NOT_DONE_MARK = "not-done | "
 SUBJECT_SEP = "\t"
-NOT_DONE_REASONS = ("budget-spent", "coupling", "no-predicate", "out-of-bounds", "testability", "transform-rejected", "uncovered")
+NOT_DONE_REASONS = ("budget-spent", "coupling", "no-predicate", "out-of-bounds", "testability", "transform-rejected",
+                    "uncovered")
 
 
 def all_tests(bounds):
@@ -70,7 +71,8 @@ def append(file, step, bounds):
               (OUT_OF_BOUNDS, out_of_bounds, OUT_OF_BOUNDS_PREFIX))
     in_step, answers = [], {}
     for line in report.split("\n"):
-        if (found := candidate_line(line)) is not None and (cls := found.partition("|")[0].strip()) not in KNOWN_CLASSES:
+        if ((found := candidate_line(line)) is not None
+                and (cls := found.partition("|")[0].strip()) not in KNOWN_CLASSES):
             print(f"refactor-owed.sh: unknown candidate class '{cls}': {line}", file=sys.stderr)
             return 2
         if (match := candidate(line, IN_STEP)) is not None:
@@ -80,7 +82,8 @@ def append(file, step, bounds):
         for cls, group, prefix in routes:
             if transform := candidate(line, cls):
                 group.append(prefix + transform)
-    owed = [text for at, text in enumerate(in_step) if answers.get(at) == "no"] + structural + test_only + out_of_scope + out_of_bounds
+    owed = ([text for at, text in enumerate(in_step) if answers.get(at) == "no"]
+            + structural + test_only + out_of_scope + out_of_bounds)
     return write(file, f"### {step}\n" + bullets(owed)) if owed else 0
 
 
@@ -173,7 +176,8 @@ def render(file):
     out = "## Refactor owed\n" + lead + joined(kept)
     if test_only:
         out += ("\n### Test-only\n\n"
-                "These change only test files (tests/ directories, *.test.*, JS/TS *.spec.*, Go *_test.go, Python test_*.py and *_test.py); the structural pass does not work them.\n\n"
+                "These change only test files (tests/ directories, *.test.*, JS/TS *.spec.*, Go *_test.go, "
+                "Python test_*.py and *_test.py); the structural pass does not work them.\n\n"
                 + bullets(test_only))
     if skipped:
         out += "\n### Not done\n\n" + bullets(f"{t} — {r}" for r, _, t in skipped)

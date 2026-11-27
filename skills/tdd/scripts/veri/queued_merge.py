@@ -68,8 +68,9 @@ def _bounded(argv, limit, **kwargs):
 def _network_gate(pid, *cmd, keep=False, limit=NETWORK):
     """_gate for a network call, bounded by <limit> (VERI_GIT_NETWORK_TIMEOUT unless named): the CompletedProcess, a
     TimedOut when killed."""
-    return _bounded([os.path.join(SCRIPTS, "merge-lock.sh"), "gate", *(["--keep"] if keep else []), "--pid", pid, "--", *cmd],
-                    limit)
+    return _bounded(
+        [os.path.join(SCRIPTS, "merge-lock.sh"), "gate", *(["--keep"] if keep else []), "--pid", pid, "--", *cmd],
+        limit)
 
 
 def _gate_output(pid, *cmd):
@@ -82,7 +83,8 @@ def _gate_output(pid, *cmd):
 def _rebase(pid, worktree, git_args):
     code, output = _gate_output(pid, "git", "-C", worktree, *git_args)
     for _ in range(REFRESH_RETRIES):
-        if not code or "would be overwritten by merge" not in output or _git(worktree, "status", "--porcelain").stdout.strip():
+        if (not code or "would be overwritten by merge" not in output
+                or _git(worktree, "status", "--porcelain").stdout.strip()):
             break
         _gate(pid, "git", "-C", worktree, "update-index", "--really-refresh", keep=True)
         event.mark(worktree, {}, "rebase-refresh-retry")
@@ -229,10 +231,11 @@ def _step(failed, what, cwd, *args, label=None, runner=_git):
 
 
 def _delete_branch(failed, worktree, branch, runner):
-    """Delete origin's <branch> under a lease pinned to the head this run pushed, so a commit pushed to it since is never
-    deleted unseen. A refused or unanswered delete is read again: origin listing no such branch (GitHub may have
+    """Delete origin's <branch> under a lease pinned to the head this run pushed, so a commit pushed to it since is
+    never deleted unseen. A refused or unanswered delete is read again: origin listing no such branch (GitHub may have
     deleted a merged PR's branch already) counts as deleted; listing it, or no answer, appends 'branch delete'."""
-    run = runner(worktree, "push", "origin", "--delete", branch, "--force-with-lease=%s:%s" % (branch, _rev(worktree, "HEAD")))
+    run = runner(worktree, "push", "origin", "--delete", branch,
+                 "--force-with-lease=%s:%s" % (branch, _rev(worktree, "HEAD")))
     if not run.returncode:
         return
     listed = runner(worktree, "ls-remote", "--heads", "origin", "refs/heads/" + branch)
@@ -342,7 +345,8 @@ def _before_merge(pid, repo, pr, worktree, branch, before, head):
         if not number:
             continue
         try:
-            shown = gh_json_page("pr-body.json", "repos/%s/pulls/%s" % (repo, _number(pr)), "pr", "view", pr, "--json", "body")
+            shown = gh_json_page("pr-body.json", "repos/%s/pulls/%s" % (repo, _number(pr)),
+                                 "pr", "view", pr, "--json", "body")
         except NoAnswer:
             return "could not read the PR body of %s; not merged" % pr, 2
         body = json.loads(shown).get("body")
@@ -364,7 +368,8 @@ def _rebasing(worktree):
 
 
 def _to_merge(pid, repo, pr, worktree, branch):
-    """Fetch, rebase, push, wait for CI and check before the merge: (head, None) to merge, ("", (code, outcome)) to stop."""
+    """Fetch, rebase, push, wait for CI and check before the merge: (head, None) to merge, ("", (code, outcome)) to
+    stop."""
     fetch = _network_gate(pid, "git", "-C", worktree, "fetch", "origin")
     if fetch.returncode:
         # A gate killed at the bound never released the lock its failure releases: main does.
@@ -437,9 +442,11 @@ def _locked(pid, repo, pr, worktree, branch, message, window):
     answered = any(read is not None for read in answers)
     if pull is None and not answered:
         call = "exited %d" % code if code else "succeeded"
-        return _refused("the merge call %s and the state of %s could not be read; nothing tagged or cleaned up" % (call, pr))
+        return _refused(
+            "the merge call %s and the state of %s could not be read; nothing tagged or cleaned up" % (call, pr))
     if pull is None and code:
-        return _refused("%s did not read merged after the merge call exited %d; nothing tagged or cleaned up" % (pr, code), code)
+        return _refused(
+            "%s did not read merged after the merge call exited %d; nothing tagged or cleaned up" % (pr, code), code)
     if pull is None:
         return _refused("%s is not reported merged; no tag, branch delete or worktree removal" % pr, 1)
     return _cleanup(pid, pr, pull, worktree, branch, message), LEAVE
@@ -472,7 +479,8 @@ def _content_differs(worktree, before, onto, base=None):
     differing tree names the first paths that differ."""
     merged = _git(worktree, "merge-tree", "--write-tree", *(["--merge-base=" + base] if base else []), before, onto)
     if merged.returncode == 1:
-        return "git merge-tree --write-tree %s %s reports a conflict, so the rebased tip cannot be checked" % (before, onto)
+        return ("git merge-tree --write-tree %s %s reports a conflict, so the rebased tip cannot be checked"
+                % (before, onto))
     expected = merged.stdout.split("\n", 1)[0].strip() if not merged.returncode else ""
     if not expected:
         return "git merge-tree --write-tree %s %s failed (exit %d): %s" % (
@@ -499,8 +507,8 @@ def _put_back(worktree, before, message):
 
 
 def _base_sha(worktree, branch):
-    """The sha the run's cut recorded in `.tdd/issue-<n>-base-sha` (or its last join rewrote there), None when the file is
-    absent: a run cut before it existed rebases as before."""
+    """The sha the run's cut recorded in `.tdd/issue-<n>-base-sha` (or its last join rewrote there), None when the file
+    is absent: a run cut before it existed rebases as before."""
     path = run_dir.issue_file(worktree, run_dir.branch_issue(branch), "-base-sha")
     try:
         with open(path) as f:
@@ -518,9 +526,10 @@ class _Garbled(Exception):
 
 def _joined(pid, repo, pr, worktree, branch, stack):
     """The join with the lock held, never releasing it: rebase onto origin/<stack>, push the run's branch under a lease,
-    check the rebased tip, push it to <stack> as a compare-and-swap that can only fast-forward what was fetched (leased to
-    the fetched stack, the tip descending from it): a push refused because origin's stack moved, or was rewound, starts
-    again from the fetch, at most JOIN_ATTEMPTS times; a stack origin no longer has is exit 2. Returns an exit code."""
+    check the rebased tip, push it to <stack> as a compare-and-swap that can only fast-forward what was fetched (leased
+    to the fetched stack, the tip descending from it): a push refused because origin's stack moved, or was rewound,
+    starts again from the fetch, at most JOIN_ATTEMPTS times; a stack origin no longer has is exit 2. Returns an exit
+    code."""
     code = _unchecked_steps(worktree, branch)
     if code:
         return code
@@ -535,14 +544,15 @@ def _joined(pid, repo, pr, worktree, branch, stack):
             return 2
         onto = _rev(worktree, "refs/remotes/origin/" + stack)
         if not onto:
-            _say("origin has no %s branch (deleted?); a join never recreates a stack, only a launch does — nothing pushed"
-                 % stack)
+            _say("origin has no %s branch (deleted?); a join never recreates a stack, only a launch does — "
+                 "nothing pushed" % stack)
             return 2
         frozen, said = _stack_red(worktree)
         if frozen == 0:
             red = (said.split() + ["", ""])[:2]
-            _say("the stack is frozen: CI's latest answer on origin/%s is red at %s (%s); nothing rebased or pushed, the"
-                 " run kept to join once the stack is green. Next: stack-culprit.sh %s" % (stack, red[0], red[1], red[0]))
+            _say("the stack is frozen: CI's latest answer on origin/%s is red at %s (%s); nothing rebased or pushed, "
+                 "the run kept to join once the stack is green. Next: stack-culprit.sh %s"
+                 % (stack, red[0], red[1], red[0]))
             return 1
         if frozen != 3:
             _say("stack-red.sh exited %d, so whether the stack is red is not known; nothing rebased or pushed" % frozen)
@@ -608,13 +618,15 @@ def _joined(pid, repo, pr, worktree, branch, stack):
         if not head or _git(worktree, "merge-base", "--is-ancestor", onto, head).returncode:
             _say("the rebased tip %s does not descend from origin/%s at %s; nothing pushed to it" % (head, stack, onto))
             return 2
-        # A compare-and-swap that can only fast-forward: the lease is the stack as fetched, and the tip descends from it.
+        # A compare-and-swap that can only fast-forward: the lease is the stack as fetched, and the tip descends from
+        # it.
         if not git.network("-C", worktree, "push", "--force-with-lease=%s:%s" % (stack, onto), "origin",
                            "%s:refs/heads/%s" % (head, stack)).returncode:
             return 0
         if (git.network("-C", worktree, "fetch", "--prune", "origin").returncode
                 or _rev(worktree, "refs/remotes/origin/" + stack) == onto):
-            _say("the push of %s to %s was refused and origin's %s did not move; nothing more pushed" % (head, stack, stack))
+            _say("the push of %s to %s was refused and origin's %s did not move; nothing more pushed"
+                 % (head, stack, stack))
             return 2
         _say("origin's %s moved during the join; starting again from the fetch" % stack)
     _say("origin's %s moved on each of %d attempts; nothing more pushed" % (stack, JOIN_ATTEMPTS))
@@ -791,8 +803,9 @@ def _joined_offline(pr, worktree, branch, stack, skip=None):
         return code
     frozen, said = _stack_red(worktree)
     if frozen == 0:
-        _say("the local %s is frozen: stack-red.sh says %s; nothing joined, the run kept to join once a green full run on"
-             " the stack's tip lifts it. Next: queued-merge.sh --local-green" % (stack, " ".join(said.split())[:300]))
+        _say("the local %s is frozen: stack-red.sh says %s; nothing joined, the run kept to join once a green full "
+             "run on the stack's tip lifts it. Next: queued-merge.sh --local-green"
+             % (stack, " ".join(said.split())[:300]))
         return 1
     if frozen != 3:
         _say("stack-red.sh exited %d, so whether the local %s is frozen is not known; nothing joined" % (frozen, stack))
@@ -876,9 +889,9 @@ def _joined_offline(pr, worktree, branch, stack, skip=None):
 
 
 def _rejoined(pr, worktree, branch, stack, before, onto):
-    """The rebased tip is the local <stack>'s own tip <onto>: the run adds no commit to it. Exit 3 when <onto> carries this
-    run's `Veri-Joined: <pr> <branch>` trailer (a retry after an offline join whose cleanup failed), the branch put back
-    to <before>; exit 2 otherwise. Either way nothing is amended and the stack does not move."""
+    """The rebased tip is the local <stack>'s own tip <onto>: the run adds no commit to it. Exit 3 when <onto> carries
+    this run's `Veri-Joined: <pr> <branch>` trailer (a retry after an offline join whose cleanup failed), the branch put
+    back to <before>; exit 2 otherwise. Either way nothing is amended and the stack does not move."""
     shown = _git(worktree, "show", "-s", "--format=%(trailers:key=Veri-Joined,valueonly,unfold)", onto)
     if shown.returncode:
         return _put_back(worktree, before, "git show %s failed (exit %d), so whether the run joined it is not known" % (
@@ -888,8 +901,8 @@ def _rejoined(pr, worktree, branch, stack, before, onto):
                          " trailer of %s %s: the run adds no commit, and amending it would rewrite the stack" % (
                              stack, onto, pr, branch))
     if before != onto and git.git("-C", worktree, "reset", "--hard", before, capture_output=True, text=True).returncode:
-        _say("the local %s at %s already carries this run's Veri-Joined trailer, but putting the branch back failed: run"
-             " git -C %s reset --hard %s; nothing joined again" % (stack, onto, worktree, before))
+        _say("the local %s at %s already carries this run's Veri-Joined trailer, but putting the branch back failed: "
+             "run git -C %s reset --hard %s; nothing joined again" % (stack, onto, worktree, before))
         return 2
     _say("the local %s at %s already carries this run's Veri-Joined trailer: joined before; nothing joined again" % (
         stack, onto))
@@ -898,16 +911,17 @@ def _rejoined(pr, worktree, branch, stack, before, onto):
 
 def _full_gate(worktree, stack):
     """The all-tier command `detect-test-command.sh --tier all` prints, run on the rebased tip in <worktree>: (code, the
-    Veri-Suite trailer's value, or on red the failed cases): 0 "passed" green, 0 "not gated" with no command (said in one
-    stderr line), 1 red, 2 when the command cannot be read. The run's output is captured, then written out as it came."""
+    Veri-Suite trailer's value, or on red the failed cases): 0 "passed" green, 0 "not gated" with no command (said in
+    one stderr line), 1 red, 2 when the command cannot be read. The run's output is captured, then written out as it
+    came."""
     found = _start("detect-test-command.sh", "--tier", "all", cwd=worktree, capture=True)
     full = found.stdout.strip()
     if found.returncode not in (0, 3):
         _say("detect-test-command.sh --tier all exited %d; the local %s not moved" % (found.returncode, stack))
         return 2, None
     if not full:
-        _say("no all-tier command (detect-test-command.sh --tier all printed nothing); the join onto the local %s is not"
-             " gated" % stack)
+        _say("no all-tier command (detect-test-command.sh --tier all printed nothing); the join onto the local %s is "
+             "not gated" % stack)
         return 0, "not gated"
     run = subprocess.run(["sh", "-c", full], cwd=worktree, capture_output=True, text=True)
     sys.stdout.write(run.stdout or "")
@@ -919,8 +933,8 @@ def _full_gate(worktree, stack):
 
 
 def _failed_cases(run):
-    """The cases a red full run names, one per pytest `FAILED <case>` or `ERROR <case>` line of its output; when it names
-    none, one line saying so with its exit code."""
+    """The cases a red full run names, one per pytest `FAILED <case>` or `ERROR <case>` line of its output; when it
+    names none, one line saying so with its exit code."""
     cases = [line.split()[1] for line in ((run.stdout or "") + (run.stderr or "")).splitlines()
              if line.startswith(("FAILED ", "ERROR ")) and len(line.split()) > 1]
     return cases or ["(no FAILED or ERROR line in the full suite's output; exit %d)" % run.returncode]
@@ -928,14 +942,14 @@ def _failed_cases(run):
 
 def _freeze(worktree, stack, checked, cases):
     """After a red gate on <checked>: when a commit of origin/<stack>..<stack> carries `Veri-Suite: skipped`, write
-    `.tdd/stack-local-red` in the main working tree (<checked>, then one line per failed case), since the red may then be
-    a skipped join's and not the candidate's own (PRD 033.2b, OL9). 1 (the gate's red) once written or with no skipped
-    commit, 2 when the range cannot be read or the file cannot be written."""
+    `.tdd/stack-local-red` in the main working tree (<checked>, then one line per failed case), since the red may then
+    be a skipped join's and not the candidate's own (PRD 033.2b, OL9). 1 (the gate's red) once written or with no
+    skipped commit, 2 when the range cannot be read or the file cannot be written."""
     span = "refs/remotes/origin/%s..refs/heads/%s" % (stack, stack)
     logged = _git(worktree, "log", "--format=%(trailers:key=Veri-Suite,valueonly,unfold)", span)
     if logged.returncode:
-        _say("the full suite is red, but git log of %s failed (exit %d), so whether a Veri-Suite: skipped join sits on the"
-             " local %s is not known; nothing frozen" % (span, logged.returncode, stack))
+        _say("the full suite is red, but git log of %s failed (exit %d), so whether a Veri-Suite: skipped join sits "
+             "on the local %s is not known; nothing frozen" % (span, logged.returncode, stack))
         return 2
     if not any(line.strip().startswith("skipped") for line in logged.stdout.splitlines()):
         return 1
@@ -1037,8 +1051,8 @@ def _skip_suite(argv):
 
 
 def _local_green(argv):
-    """--local-green (PRD 033.2b, OL20), run in the target repository's clone during an outage: under the merge lock, the
-    all-tier command on the local stack's tip in a worktree added there and removed after; green removes
+    """--local-green (PRD 033.2b, OL20), run in the target repository's clone during an outage: under the merge lock,
+    the all-tier command on the local stack's tip in a worktree added there and removed after; green removes
     `.tdd/stack-local-red` (0), red keeps it (1). 2 outside an outage, with no stack named or on no answer; 3 when no
     `.tdd/stack-local-red` exists, nothing locked or run."""
     if argv:
@@ -1050,8 +1064,8 @@ def _local_green(argv):
         _say("the main working tree cannot be read (%s); nothing run" % error)
         return 2
     if not os.path.exists(os.path.join(clone, ".tdd", "github-outage")):
-        _say("--local-green runs only during a GitHub outage (.tdd/github-outage exists); online, CI's answer on the stack"
-             " lifts a freeze; nothing run")
+        _say("--local-green runs only during a GitHub outage (.tdd/github-outage exists); online, CI's answer on the "
+             "stack lifts a freeze; nothing run")
         return 2
     try:
         stack = stack_branch.named(clone, remote=False)
@@ -1106,8 +1120,8 @@ def _green_run(worktree, stack, tip, red):
     found = _start("detect-test-command.sh", "--tier", "all", cwd=worktree, capture=True)
     full = found.stdout.strip()
     if found.returncode not in (0, 3) or not full:
-        _say("no all-tier command for the local %s's tip (detect-test-command.sh --tier all exited %d%s), so no green run"
-             " can lift the freeze; %s kept" % (stack, found.returncode, "" if full else ", printing nothing", red))
+        _say("no all-tier command for the local %s's tip (detect-test-command.sh --tier all exited %d%s), so no green "
+             "run can lift the freeze; %s kept" % (stack, found.returncode, "" if full else ", printing nothing", red))
         return 2
     if subprocess.run(["sh", "-c", full], cwd=worktree).returncode:
         _say("the full suite (%s) is red on the local %s's tip %s; %s kept" % (full, stack, tip, red))

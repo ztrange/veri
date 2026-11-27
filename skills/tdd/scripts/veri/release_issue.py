@@ -70,11 +70,13 @@ def release(number):
         sys.stderr.write("release-issue.sh: no answer from gh reading the comments of #%s\n" % number)
         return 2
     if not marked and not refused:
-        sys.stderr.write("release-issue.sh: #%s is neither parked, bailed nor preflight-refused; nothing to release\n" % number)
+        sys.stderr.write(
+            "release-issue.sh: #%s is neither parked, bailed nor preflight-refused; nothing to release\n" % number)
         return 3
     foreign = [name for name in labels if name.startswith("taken:") and name != taken]
     if foreign:
-        sys.stderr.write("release-issue.sh: #%s carries %s, another lane's claim; not released\n" % (number, ", ".join(foreign)))
+        sys.stderr.write("release-issue.sh: #%s carries %s, another lane's claim; not released\n"
+                         % (number, ", ".join(foreign)))
         return 2
     # The marker comes off last: a write that gets no answer leaves the issue parked or bailed, so a
     # re-run finds it again, and every earlier write is safe to repeat.

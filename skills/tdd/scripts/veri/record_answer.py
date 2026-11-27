@@ -42,14 +42,16 @@ def local(text, anchor):
     directory's paths `<repo>` and `<tmp>`, the home directory `~`, the
     host names `<host>`, the account name `<user>` and every token `[redacted]`, as run_records carries a run record
     (github redacts tokens again when it posts); None stays None."""
-    return None if text is None else run_records.redact_local(text, anchor, (run_dir.worktree_root_from_files(),)).strip()
+    return None if text is None else run_records.redact_local(
+        text, anchor, (run_dir.worktree_root_from_files(),)).strip()
 
 
 def body_of(text, anchor):
     """(the comment body, None), or (None, why) when the file lacks a heading, its answer is empty or over LIMIT. The
     question is cut at LIMIT characters with `…`: the park comment already holds it whole. Both are measured as
     posted, after `local`, so a cut never leaves part of a path or a name behind."""
-    question, answer = (local(under(text, heading, level), anchor) for heading, level in (("#### Question", 4), ("## Answer", 2)))
+    question, answer = (local(under(text, heading, level), anchor)
+                        for heading, level in (("#### Question", 4), ("## Answer", 2)))
     if question is None:
         return None, "has no #### Question heading"
     if answer is None:
@@ -69,7 +71,8 @@ def comments_of(number):
         comments = github.issue_comments(number)
     except github.NoAnswer:
         return None
-    if not (isinstance(comments, list) and all(isinstance(c, dict) and isinstance(c.get("body"), str) for c in comments)):
+    if not (isinstance(comments, list)
+            and all(isinstance(c, dict) and isinstance(c.get("body"), str) for c in comments)):
         return None
     return comments
 

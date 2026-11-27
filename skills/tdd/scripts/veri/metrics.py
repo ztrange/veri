@@ -11,8 +11,9 @@ one such row), columns named by PHASE_COLUMNS, STEP_COLUMNS, LOST_COLUMNS, COST_
   header     issue, clocked, issue_wall, asleep, steps_done, planned, ended, cause, ending, lane, flaked,
              pinned, model_knobs, models
   tables     phases, leaves, by_model (+ by_model_shown), lost, steps (+ step_marks, step_walls), tier_runs,
-             adjudications, switched_off, switched_off_by, total, green_rejects (+ green_reject_routes, green_reject_checks),
-             launch_costs (+ launch_cost_missing), gradings, first_tries, revise_green, runs, stages, reject_outcomes, former
+             adjudications, switched_off, switched_off_by, total, green_rejects (+ green_reject_routes,
+             green_reject_checks), launch_costs (+ launch_cost_missing), gradings, first_tries, revise_green, runs,
+             stages, reject_outcomes, former
   refactor   passes (one dict per pass), structural (+ structural_marked, structural_inconsistency),
              refactor_totals
   conductor  conductor_counted, sessions, turn_rows (+ .families, .session_contexts, .estimated),
@@ -174,7 +175,8 @@ def conductor_sessions(issue, path):
 
     def close_unended():
         count_families(turn_rows, opened["families"], None)
-        turn_rows.turns += [[at, own, dollars if opened["priced"] else None] for at, own, dollars, _base in opened["turns_of"]]
+        turn_rows.turns += [[at, own, dollars if opened["priced"] else None]
+                            for at, own, dollars, _base in opened["turns_of"]]
         if opened["turns"]:
             sessions.append({"total_cost_usd": opened["cost"] if opened["priced"] else None,
                              "num_turns": opened["turns"], "open": True})
@@ -206,7 +208,8 @@ def conductor_sessions(issue, path):
                             session = dict(session, num_turns=turns + (earlier.get("num_turns") or 0))
                             if isinstance(record.get("total_cost_usd"), (int, float)) and \
                                     isinstance(earlier.get("total_cost_usd"), (int, float)):
-                                record = dict(record, total_cost_usd=record["total_cost_usd"] - earlier["total_cost_usd"])
+                                record = dict(record,
+                                              total_cost_usd=record["total_cost_usd"] - earlier["total_cost_usd"])
                         sessions.append(session)
                         count_families(turn_rows, opened["families"], (record.get("usage") or {}).get("output_tokens"))
                         total = record.get("total_cost_usd")
@@ -235,7 +238,9 @@ def conductor_sessions(issue, path):
                         if message.get("id") is not None:
                             earlier = seen_ids.get(message["id"])
                             flushed = not any(row[0] is earlier for row in opened["families"])
-                            if earlier is not None and not (names and flushed and (not set(names) & set(earlier) or set(names) == set(earlier))):
+                            if earlier is not None and not (
+                                    names and flushed
+                                    and (not set(names) & set(earlier) or set(names) == set(earlier))):
                                 added = [n for n in names if n not in earlier]
                                 earlier.extend(added)
                                 if flushed:
@@ -259,7 +264,8 @@ def conductor_sessions(issue, path):
                         turn_dollars = usage_dollars(usage, prices)
                         opened["cost"] += turn_dollars
                         base_dollars = turn_dollars - output_dollars
-                        opened["turns_of"].append([moment(record.get("timestamp")), own_output, turn_dollars, base_dollars])
+                        opened["turns_of"].append(
+                            [moment(record.get("timestamp")), own_output, turn_dollars, base_dollars])
                         opened["rows"].append((len(turn_rows), base_dollars))
                         turn_rows.append([str(len(turn_rows) + 1), "$%.2f" % base_dollars, str(context)])
         close_unended()
@@ -278,9 +284,10 @@ def moment(stamp):
 def closed_turns(seen, result, priced):
     """[at, output tokens, dollars] per turn of a session its `result` record closes: `seen` holds each turn the log
     showed as [at, own output tokens, dollars, non-output dollars]. A turn's output is the result's output split evenly,
-    the last turn taking the remainder (its own when the result carries none) and its dollars its non-output usage plus an even share of the rest of the
-    result's cost, None when the session carries no price. A turn the result counts but no record showed is untimed,
-    with no output or cost of its own (both shared over the turns shown), or all of them when none was shown."""
+    the last turn taking the remainder (its own when the result carries none) and its dollars its non-output usage plus
+    an even share of the rest of the result's cost, None when the session carries no price. A turn the result counts but
+    no record showed is untimed, with no output or cost of its own (both shared over the turns shown), or all of them
+    when none was shown."""
     total, output = result.get("total_cost_usd"), (result.get("usage") or {}).get("output_tokens")
     priced = priced and isinstance(total, (int, float))
     share = (total - sum(base for *_, base in seen)) / len(seen) if priced and seen else 0.0
@@ -372,7 +379,8 @@ def awake_span_or_wall(start, end, clocked):
 
 
 def planned_steps(path):
-    """(number of steps the ledger at `path` plans, or None; number of ticked full-suite lines; number of done steps not still refactor pending)."""
+    """(number of steps the ledger at `path` plans, or None; number of ticked full-suite lines; number of done steps not
+    still refactor pending)."""
     try:
         with open(path, "rb") as f:
             text = decode_ledger(f.read())
@@ -706,7 +714,8 @@ class Fold:
     clocked: bool               # whether every timed event carries an awake-clock reading
     models: dict                # (step, phase, attempt, actor) -> the model(s) that answered
     phases: dict                # phase -> {PHASE_COLUMNS: number}
-    leaves: dict                # leaf kind (launch name less a trailing -<digits>, or "unnamed") -> {PHASE_COLUMNS: number}
+    leaves: dict                # leaf kind (launch name less a trailing -<digits>, or "unnamed") ->
+                                # {PHASE_COLUMNS: number}
     by_model: dict              # (role, model) -> {PHASE_COLUMNS: number}
     lost: dict                  # phase -> {LOST_COLUMNS: number}
     steps: dict                 # step -> {STEP_COLUMNS: number}
@@ -734,7 +743,8 @@ class Fold:
     lane: str                   # the label the run was opted in by
     flaked: list                # files named by suite-flake events
     pinned: str                 # the phases whose verifiers the run skipped (VERI_SKIP_VERIFY, pinned)
-    model_knobs: dict           # VERI_MODEL* knob -> its value, and VERI_EFFORT_VERIFIER -> the launch events' efforts; falsy when unset
+    model_knobs: dict           # VERI_MODEL* knob -> its value, and VERI_EFFORT_VERIFIER -> the launch events'
+                                # efforts; falsy when unset
     sessions: list              # the conductor's sessions (result records, a trailing open one); [] when its usage
                                 # event is in the log or its stream log is missing
     turn_rows: list             # the conductor's turns as [number, dollars text, context text], with .estimated,
@@ -757,14 +767,15 @@ class Fold:
     launch_costs: dict          # (actor, model) -> {LAUNCH_COLUMNS: tokens}, leaf usage events with first-turn fields
     launch_cost_missing: int    # leaf usage events without the first-turn fields
     gradings: dict              # the grading events: count, PASS, REJECT, $ (summed cost_usd), efforts (a set)
-    first_tries: dict           # phase -> {FIRST_TRY_KEYS: count}: steps with a PASS or REJECT verdict of the phase, those
-                                # whose first such verdict was PASS, and the phase's revise events
+    first_tries: dict           # phase -> {FIRST_TRY_KEYS: count}: steps with a PASS or REJECT verdict of the phase,
+                                # those whose first such verdict was PASS, and the phase's revise events
     revise_green: dict          # answering model -> {leaves, PASS, REJECT}: revise-green leaves, and the first green
                                 # verdict of the same step after each
     runs: list                  # one dict per run of the issue, in order: index, ended, cause, wall_seconds,
                                 # awake_seconds, sessions, leaves, cost_usd (runs_of)
     stages: dict                # stage -> {STAGE_KEYS: number}, for each stage the journal marked (stages_of)
-    conductor_by_phase: object  # window -> {BY_PHASE_KEYS}, the conductor's turns per phase; None when no session was read
+    conductor_by_phase: object  # window -> {BY_PHASE_KEYS}, the conductor's turns per phase; None when no session
+                                # was read
     reject_outcomes: list       # (phase, step, outcome) per REJECT verdict, in log order (reject_outcomes)
     former: dict                # step's latest text -> its earlier texts in order, for each reworded step (reworded)
 
@@ -848,10 +859,10 @@ STAGE_KEYS = ("runs", "ok", "failed", "no_answer", "nothing", "unended", "wall_s
 
 
 def stages_of(marks):
-    """Per stage a journal marked (PRD 035.5a, D13): its `stage-start` lines (`runs`), its `stage-end` lines by exit code
-    (`ok`, `failed`, `no_answer`, `nothing` for 0 to 3, any other status `no_answer`), its starts with no end of that stage before its next start
-    or the journal's end (`unended`: killed), and its ends' seconds summed. A stage no line names is absent, never
-    zero; a line naming no stage is skipped."""
+    """Per stage a journal marked (PRD 035.5a, D13): its `stage-start` lines (`runs`), its `stage-end` lines by exit
+    code (`ok`, `failed`, `no_answer`, `nothing` for 0 to 3, any other status `no_answer`), its starts with no end of
+    that stage before its next start or the journal's end (`unended`: killed), and its ends' seconds summed. A stage no
+    line names is absent, never zero; a line naming no stage is skipped."""
     stages, open_starts = {}, {}
     for line in marks:
         event, name = line.get("event"), line.get("stage")
@@ -1030,7 +1041,8 @@ def fold(issue, path, ledger, run=BESIDE, cut=False):
                 green_reject_routes=sorted(routes.items(), key=lambda item: (-item[1], item[0])),
                 green_reject_checks=sorted(item for item in checks.items() if item[0]) + [("unnamed", checks[""])],
                 launch_costs=tally.launch_costs, launch_cost_missing=tally.launch_cost_missing,
-                gradings=tally.gradings, first_tries=tally.first_tries(), revise_green=revise_green_outcomes(marks, models),
+                gradings=tally.gradings, first_tries=tally.first_tries(),
+                revise_green=revise_green_outcomes(marks, models),
                 runs=runs_of(marks), stages=stages_of(marks), reject_outcomes=reject_outcomes(marks),
                 former=former, conductor_by_phase=conductor_by_phase(marks, turn_rows.turns) if sessions else None)
 
@@ -1159,9 +1171,11 @@ def print_conductor(f):
     if sessions:
         priced = f.conductor_priced
         print("Cost is every leaf of the run, and the conductor own spending." if priced else
-              "Cost is every leaf of the run; the total row includes the priced sessions' conductor spending and leaves out the unpriced ones."
+              "Cost is every leaf of the run; the total row includes the priced sessions' conductor spending and "
+              "leaves out the unpriced ones."
               if f.conductor_some_priced else
-              "Cost is every leaf of the run; the total row excludes the conductor own spending, which is unpriced.")
+              "Cost is every leaf of the run; the total row excludes the conductor own spending, which is "
+              "unpriced.")
         print("Conductor own spending: %s over %d turns, in %d sessions%s%s."
               % ("$%.2f" % f.conductor_spend if priced else "unpriced",
                  f.conductor_turns, len(sessions),
@@ -1185,7 +1199,8 @@ def print_conductor(f):
         for turn_row in turn_rows:
             row(turn_row)
     if turn_rows:
-        table_head("#### Conductor comments, by family", "family", ["turns", "output tokens", "dollars"], ["---:", "---:", "---:"])
+        table_head("#### Conductor comments, by family", "family", ["turns", "output tokens", "dollars"],
+                   ["---:", "---:", "---:"])
         for name, (turns, tokens, dollars) in turn_rows.families.items():
             row([name, str(turns), str(tokens), "$%.2f" % dollars])
     if f.conductor_by_phase:
@@ -1291,7 +1306,8 @@ def layout(f):
     print()
     print("Not counted: the CI wait after readying and `pr-finish.sh`, which run after this report is committed.")
     if f.green_rejects:
-        table_head("#### Green rejects", "step", ["attempt", "route", "check", "reason"], ["---:", "---", "---:", "---"])
+        table_head("#### Green rejects", "step", ["attempt", "route", "check", "reason"],
+                   ["---:", "---", "---:", "---"])
         for step, attempt, route, check, reason in f.green_rejects:
             row([step, attempt, route, check, UNKNOWN if reason is None else reason.replace("|", "\\|")])
     print()
@@ -1299,7 +1315,8 @@ def layout(f):
     if f.green_rejects:
         print("Green rejects by check: " + ", ".join("%s %d" % item for item in f.green_reject_checks))
     if f.launch_costs:
-        table_head("#### Launch cost, by role", "role", ["model"] + LAUNCH_COLUMNS, ["---"] + ["---:"] * len(LAUNCH_COLUMNS))
+        table_head("#### Launch cost, by role", "role", ["model"] + LAUNCH_COLUMNS,
+                   ["---"] + ["---:"] * len(LAUNCH_COLUMNS))
         for (role, model), tokens in f.launch_costs.items():
             row([role, model] + figures(tokens, LAUNCH_COLUMNS))
         if f.launch_cost_missing:

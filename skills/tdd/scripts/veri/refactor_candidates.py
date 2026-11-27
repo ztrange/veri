@@ -50,7 +50,8 @@ def main(argv):
     # The rows are leaves' own words: no local path, host or account name reaches the issue (as pr-body.sh, #4122).
     body = run_records.redact_local(grouped(owed), os.getcwd()) + "\n"
     title = "Refactor candidates left by #" + issue
-    found = json.loads(github.gh_issue_list("--state", "open", "--search", title + " in:title", "--json", "number,title,url"))
+    found = json.loads(github.gh_issue_list("--state", "open", "--search", title + " in:title",
+                                            "--json", "number,title,url"))
     existing = [row for row in found if row["title"] == title]
     if existing:
         number = str(existing[0]["number"])

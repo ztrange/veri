@@ -76,7 +76,8 @@ def gh(where, *args, wt):
 
 
 def event(wt, n, *fields):
-    fused.checked(fused_where(fields), fused.script("event.sh"), *fields, cwd=wt, env=tunables.with_values(VERI_ISSUE=n))
+    fused.checked(fused_where(fields), fused.script("event.sh"), *fields, cwd=wt,
+                  env=tunables.with_values(VERI_ISSUE=n))
 
 
 def fused_where(fields):
@@ -94,7 +95,8 @@ def run(n, settled, title):
     branch = fused.checked("2.3", "git", "branch", "--show-current", cwd=wt).strip()
     pr_url = draft_pr(n, wt, settled, title, k, branch)
     fused.checked("2.4", fused.script("comment.sh"), n, "plan", cwd=wt)
-    gh("2b", "api", "repos/{owner}/{repo}/issues/%s/comments" % n, "-f", "body=" + github.published(start_comment(n, k, branch)), wt=wt)
+    gh("2b", "api", "repos/{owner}/{repo}/issues/%s/comments" % n,
+       "-f", "body=" + github.published(start_comment(n, k, branch)), wt=wt)
     refresh_spec(n, wt)
     lines = ["plan_sha=" + plan_sha, "steps=%d" % k, "pr_url=" + pr_url,
              "pr_number=" + pr_url.rstrip("/").rsplit("/", 1)[-1]]
@@ -149,8 +151,8 @@ def launch_verdict_plan(n, wt, settled):
         with contextlib.suppress(FileNotFoundError):
             os.remove(run_dir.run_file(wt, name))
     fused.checked("2c", fused.script("detach-leaf.sh"), fused.script("supervise.sh"), LEAF,
-                  fused.script("run-verdict.sh"), "--branch-base", fused_step.branch_base("2c", wt, n), "plan", SPEC % n,
-                  os.path.relpath(run_dir.ledger(".", n)), cwd=wt,
+                  fused.script("run-verdict.sh"), "--branch-base", fused_step.branch_base("2c", wt, n), "plan",
+                  SPEC % n, os.path.relpath(run_dir.ledger(".", n)), cwd=wt,
                   env=tunables.with_values(VERI_TEST_CMD=settled["fast_cmd"], VERI_ISSUE=n),
                   out=".tdd/verify-plan.reason", err=".tdd/verify-plan.err")
 

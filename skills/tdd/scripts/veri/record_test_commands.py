@@ -17,11 +17,11 @@ PLACEHOLDER = re.compile(r'"\$1"|(?:^|\s)\$1(?:\s|$)')
 BRANCH = "veri-install"
 MESSAGE = "Record the test commands veri runs\n\nveri reads these CLAUDE.md lines ahead of any inference."
 TITLE = "Record the test commands veri runs"
-BODY = ("Adds or updates the `veri: fast tests:` and `veri: all tests:` lines of `CLAUDE.md`: the commands veri runs for "
-        "this repository's fast and full test tiers, read ahead of any inference. Until this pull request merges, veri's "
-        "runs infer the commands. `/vinstall` opened it and never merges it.")
-ONE_FILE_BODY = (" It also adds or updates the `veri: one test file:` line: the command that runs one test file, taking "
-                 "it as `\"$1\"`, without which a run's preflight stops.")
+BODY = ("Adds or updates the `veri: fast tests:` and `veri: all tests:` lines of `CLAUDE.md`: the commands veri runs "
+        "for this repository's fast and full test tiers, read ahead of any inference. Until this pull request merges, "
+        "veri's runs infer the commands. `/vinstall` opened it and never merges it.")
+ONE_FILE_BODY = (" It also adds or updates the `veri: one test file:` line: the command that runs one test file, "
+                 "taking it as `\"$1\"`, without which a run's preflight stops.")
 QUIET_BODY = (" It also adds or updates the `veri: quiet test files:` line: the command that runs the test files named "
               "after it with little output.")
 
@@ -115,7 +115,8 @@ def checked(*args, cwd, input=None):
 
 
 def tip_of(root, default):
-    fetched = git.network("fetch", "-q", "origin", "+refs/heads/%s:refs/remotes/origin/%s" % (default, default), cwd=root)
+    fetched = git.network("fetch", "-q", "origin", "+refs/heads/%s:refs/remotes/origin/%s" % (default, default),
+                          cwd=root)
     if fetched.returncode != 0:
         raise Refused(fetched.stderr.strip() or "git fetch origin %s failed" % default)
     return checked("rev-parse", "--verify", "refs/remotes/origin/%s^{commit}" % default, cwd=root).decode()

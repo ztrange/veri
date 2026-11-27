@@ -37,7 +37,8 @@ class _Conductor:
             earlier = os.path.getsize(self.log)
         except FileNotFoundError:
             earlier = 0
-        words = ["%s=%s" % (name, tunables.read(name)) for name in PASSED_THROUGH if tunables.read(name, None) is not None]
+        words = ["%s=%s" % (name, tunables.read(name))
+                 for name in PASSED_THROUGH if tunables.read(name, None) is not None]
         run_timeout = _run_timeout()
         env = tunables.with_values(VERI_HEARTBEAT=run_timeout, VERI_TIMEOUT=run_timeout, VERI_STUCK_RETRIES="0")
         self.sup = subprocess.Popen([os.path.join(SCRIPTS, "supervise.sh"), "conductor-%s" % n, "env",
@@ -66,7 +67,8 @@ class _Conductor:
         for line in lines:
             if self.stopped:
                 return
-            self.budget, readings, exceeded = watch(self.budget, [line], tunables.resolve("VERI_CONDUCTOR_CTX_BUDGET")[0])
+            self.budget, readings, exceeded = watch(self.budget, [line],
+                                                    tunables.resolve("VERI_CONDUCTOR_CTX_BUDGET")[0])
             for context in readings:
                 print("context %s %d" % (self.n, context), flush=True)
             if exceeded:
@@ -178,7 +180,8 @@ def main(argv):
         return 2
     _, bad = tunables.resolve("VERI_CONDUCTOR_CTX_BUDGET")
     if bad:
-        print("parallel-conductors: VERI_CONDUCTOR_CTX_BUDGET must be a whole number >= 0: '%s'" % bad[0], file=sys.stderr)
+        print("parallel-conductors: VERI_CONDUCTOR_CTX_BUDGET must be a whole number >= 0: '%s'" % bad[0],
+              file=sys.stderr)
         return _finish(2)
     if not _exclude_tdd():
         return 2

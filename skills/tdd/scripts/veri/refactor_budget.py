@@ -33,7 +33,8 @@ def main(argv):
         write(sys.stderr, USAGE, before=False)
         return 2
     spent = int(count) >= _arithmetic(budget)
-    write(sys.stdout, f"refactor {count}/{budget} — {'budget spent' if spent else 'another transform may run'}", before=False)
+    write(sys.stdout, f"refactor {count}/{budget} — {'budget spent' if spent else 'another transform may run'}",
+          before=False)
     return 3 if spent else 0
 
 

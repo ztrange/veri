@@ -46,5 +46,6 @@ def renamed_to(name, old_source, new_source, taken):
 
 
 def renamed_and_changed_to(name, old_source, new_source, taken):
-    """The case of new_source, not in `taken`, whose def line is old_source's `name` case's but for its name, body differing."""
+    """The case of new_source, not in `taken`, whose def line is old_source's `name` case's but for its name, body
+    differing."""
     return _counterpart(name, old_source, new_source, taken, False, False)

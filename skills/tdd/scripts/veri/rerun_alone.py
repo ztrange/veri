@@ -12,7 +12,9 @@ USAGE = "usage: rerun-alone.sh <alone-cmd> <red-output-file>"
 def named_targets(text):
     """The test targets a red run's output names, in order, each once: its `FAILED `/`ERROR ` pytest node ids, else
     its `*.test.<ext>` names, else its bare `test_*.py` lines."""
-    targets = re.findall(r"^(?:FAILED|ERROR) (\S+?\.py::.+?)(?: - .*)?$", text, re.M) or re.findall(r"[\w./-]+\.test\.\w+", text) or re.findall(r"^[\w./-]*test_\w+\.py$", text, re.M)
+    targets = (re.findall(r"^(?:FAILED|ERROR) (\S+?\.py::.+?)(?: - .*)?$", text, re.M)
+               or re.findall(r"[\w./-]+\.test\.\w+", text)
+               or re.findall(r"^[\w./-]*test_\w+\.py$", text, re.M))
     return list(dict.fromkeys(targets))
 
 
