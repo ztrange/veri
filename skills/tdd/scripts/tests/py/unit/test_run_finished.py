@@ -373,3 +373,25 @@ def test_a_done_run_whose_worktree_holds_a_mutation_record_entry_whose_old_text_
 
     assert (code, [line for line in out.splitlines() if line.startswith("stale-pin")], "mutation_record" in imported) == (
         0, [], False)
+
+
+def test_a_resumed_run_that_posts_a_second_done_comment_after_further_work_reads_as_done_with_the_first_prs_url_4792(
+        tmp_path, run_cli, fake_processes):
+    done_comment = '{"ts":%s,"event":"comment","kind":"done","url":"https://github.com/o/r/issues/4242#issuecomment-%s"}'
+    repo = make_run(tmp_path, [
+        LAUNCH % 1000, DONE, done_comment % (1002, 1),
+        '{"ts":1100,"event":"conductor-start","pid":4242,"started":""}',
+        '{"ts":1101,"event":"preflight"}',
+        '{"ts":1102,"event":"resume"}',
+        LAUNCH % 1103,
+        '{"ts":1104,"event":"exit","name":"develop-red"}',
+        '{"ts":1105,"event":"verdict","phase":"red","verdict":"PASS"}',
+        done_comment % (1106, 2),
+        '{"ts":1107,"event":"rebase"}',
+        '{"ts":1108,"event":"ci-wait"}'])
+
+    code, out, _ = finish(run_cli, fake_processes, repo, "Closes #4242")
+    status = importlib.import_module("veri.status")
+    activity = json.loads(status.run_activity(str(repo / ".tdd" / "wt" / "4242"), True))
+
+    assert (code, out, activity["state"], activity["pr"]) == (0, "", "done", "https://github.com/o/r/pull/7")

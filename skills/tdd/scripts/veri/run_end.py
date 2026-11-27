@@ -63,6 +63,12 @@ def standing_mark(events, ends=MARKS):
     return mark
 
 
+def _reposted_done(events):
+    if not standing_mark(events, ("comment",)):
+        return {}
+    return next((e for e in events if e.get("event") == "done"), {})
+
+
 def run_end(run_dir):
     """(ended, cause, standing mark) for the run at run_dir."""
     events = read_events(event_log.path(run_dir))
@@ -71,5 +77,7 @@ def run_end(run_dir):
         issue = next((str(e["issue"]) for e in reversed(events) if "issue" in e), "")
         if live_conductor(os.fspath(run_dir)):
             return False, None, mark
-        return True, _launch_cause(run_dir, issue) or "unknown", mark
+        mark = _reposted_done(events)
+        if not mark:
+            return True, _launch_cause(run_dir, issue) or "unknown", mark
     return True, MARKS[mark["event"]], mark
