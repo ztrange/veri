@@ -127,7 +127,6 @@ def main(argv):
     if given is None:
         return 2
     wt = given[1]
-    pending = fused_step.first_step(wt, n, refactor_pending)
     step = fused_step.open_step(wt, n)
     if step is None:
         sys.stderr.write("run-step.sh: no open step in %s\n" % (LEDGER % n))
@@ -148,69 +147,101 @@ def main(argv):
         return 2
     if start_at is not None:
         start = order.index(start_at)
-    elif kinds:
-        start = 0
-    elif pending is None and fused_step.rejected(wt, n, "red-half", step) is not None:
+    else:
+        start = 0 if kinds else series_start(wt, n, step, order)
+    return run_stages((wt, n, step), order, start, hand)
+
+
+def series_start(wt, n, step, order):
+    """The index in <order>, the series, of the stage a call with no --from starts at."""
+    pending = fused_step.first_step(wt, n, refactor_pending)
+    if pending is None and fused_step.rejected(wt, n, "red-half", step) is not None:
         # A reroute's `route=revise phase=red` outside this call (#4613): red is revised first, whatever stage the
         # step seam recorded, and a green-half REJECT from before it is answered, so green-half then starts afresh.
         reroute_stage.answered(wt, n)
-        start = order.index("red-half")
-    else:
-        start = max(order.index("refactor-half" if pending is not None else "red-half"), resumed(wt, n, step, order))
-    out, i, action = "", start, None
+        return order.index("red-half")
+    return max(order.index("refactor-half" if pending is not None else "red-half"), resumed(wt, n, step, order))
+
+
+def run_stages(at, order, i, hand):
+    """The stages of <order> from index <i> for <at>, (wt, n, step), with their revises and reroutes: the exit of the
+    first stop, else finished()'s."""
+    wt, n, step = at
+    out, action = "", None
     while i < len(order):
         stage = order[i]
-        script = stage + ".sh"
-        anchor, unhandled = STAGES[stage]
         if action is None:
-            if stage in hand:
-                return seam(wt, n, step, stage, 1, anchor, "hand")
-            if any(replaces_case.is_replaces_case_step(step) if mark == "⟦replaces-case⟧"
-                   else ledger.has_kind(step, mark) for mark in unhandled):
-                return seam(wt, n, step, stage, 1, anchor, "unmodelled")
-            report = reroute_stage.pending(wt, n, step) if stage == "green-half" else None
-            if report is not None:
-                # A reroute under way (its 3 called run-step.sh again): back to it, on the report it was handed.
-                action = ("reroute", report[1]["report"])
-            elif stage in PHASES and fused_step.rejected(wt, n, stage, step) is not None:
-                # A revise under way (its 3 called run-step.sh again): back to it, never to the half.
-                action = ("revise",)
-            else:
-                action = ("stage",)
+            reason = left_to_prose(step, stage, hand)
+            if reason is not None:
+                return seam(wt, n, step, stage, 1, STAGES[stage][0], reason)
+            action = under_way(at, stage)
         (kind, *given), action = action, None
         if kind == "reroute":
             action = reroute(wt, n, step, hand, *given)
-            if isinstance(action, int):
-                return action
-            if action is RESTART:
-                i, action = order.index("red-half"), None
-            continue
-        if kind == "revise":
+        elif kind == "revise":
             action = revise(wt, n, step, stage, hand)
-            if isinstance(action, int):
-                return action
-            continue
-        code, out = run_stage(script, n)
-        if code == 1 and stage == "green-half" and ROUTED.match((out.splitlines() or [""])[-1]):
-            action = ("reroute", GREEN_REPORT)
-            continue
-        if code == 1 and stage in PHASES and (verdict(wt, PHASES[stage]) == "1" or stage in KIND_STAGES and
-                                              fused_step.rejected(wt, n, stage, step) is not None):
-            # diff-step's flip REJECT leaves its rejected record with the verifier's PASS in place.
-            action = ("reroute", VERIFY_GREEN_REASON) if stage == "green-half" else ("revise",)
-            continue
-        if code != 0:
-            said = [line for line in out.splitlines() if line.startswith(RECORD_SEAM % stage)]
-            if code == 1 and said:
-                return seam(wt, n, step, stage, code, None, line=said[-1])
-            if code == 2 and stage == "skill-edit-half":
-                sys.stdout.write("out=.tdd/skill-edit-%s.out refusal=%s\n" % (n, "yes" if refused(wt, n) else "no"))
-            return seam(wt, n, step, stage, code, NEXT_SCRIPTS[0] + " " + n if code == 3 else anchor)
-        i += 1
+        else:
+            code, out = run_stage(stage + ".sh", n)
+            action = stage_answer(at, stage, code, out)
+            if action is None:
+                i += 1
+        if isinstance(action, int):
+            return action
+        if action is RESTART:
+            i, action = order.index("red-half"), None
+    return finished(at, order[-1], out)
+
+
+def left_to_prose(step, stage, hand):
+    """Why <stage> stops before its call: "hand", "unmodelled" for a step kind it does not handle, else None."""
+    if stage in hand:
+        return "hand"
+    if any(replaces_case.is_replaces_case_step(step) if mark == "⟦replaces-case⟧" else ledger.has_kind(step, mark)
+           for mark in STAGES[stage][1]):
+        return "unmodelled"
+    return None
+
+
+def under_way(at, stage):
+    """The action <stage> opens with: the reroute or revise already under way, else the stage's own call."""
+    wt, n, step = at
+    report = reroute_stage.pending(wt, n, step) if stage == "green-half" else None
+    if report is not None:
+        # A reroute under way (its 3 called run-step.sh again): back to it, on the report it was handed.
+        return ("reroute", report[1]["report"])
+    if stage in PHASES and fused_step.rejected(wt, n, stage, step) is not None:
+        # A revise under way (its 3 called run-step.sh again): back to it, never to the half.
+        return ("revise",)
+    return ("stage",)
+
+
+def stage_answer(at, stage, code, out):
+    """What <stage>'s (<code>, <out>) asks next: None on its 0, a REJECT's next action, else the seam's exit."""
+    wt, n, step = at
+    if code == 1 and stage == "green-half" and ROUTED.match((out.splitlines() or [""])[-1]):
+        return ("reroute", GREEN_REPORT)
+    if code == 1 and stage in PHASES and (verdict(wt, PHASES[stage]) == "1" or stage in KIND_STAGES and
+                                          fused_step.rejected(wt, n, stage, step) is not None):
+        # diff-step's flip REJECT leaves its rejected record with the verifier's PASS in place.
+        return ("reroute", VERIFY_GREEN_REASON) if stage == "green-half" else ("revise",)
+    if code == 0:
+        return None
+    said = [line for line in out.splitlines() if line.startswith(RECORD_SEAM % stage)]
+    if code == 1 and said:
+        return seam(wt, n, step, stage, code, None, line=said[-1])
+    if code == 2 and stage == "skill-edit-half":
+        sys.stdout.write("out=.tdd/skill-edit-%s.out refusal=%s\n" % (n, "yes" if refused(wt, n) else "no"))
+    return seam(wt, n, step, stage, code, NEXT_SCRIPTS[0] + " " + n if code == 3 else STAGES[stage][0])
+
+
+def finished(at, stage, out):
+    """The exit once <stage>, the last, exited 0: its last `next=` line printed and the step seam removed, 0; without
+    one, the seam recorded, 2."""
+    wt, n, step = at
     said = [line for line in out.splitlines() if line.startswith("next=")]
     if not said:
-        record(wt, n, order[-1], step)
-        sys.stderr.write("run-step.sh: %s.sh exited 0 with no next= line\n" % order[-1])
+        record(wt, n, stage, step)
+        sys.stderr.write("run-step.sh: %s.sh exited 0 with no next= line\n" % stage)
         return 2
     with contextlib.suppress(FileNotFoundError):
         os.remove(fused.settled_file(wt, n, "step"))
