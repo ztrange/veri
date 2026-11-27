@@ -44,6 +44,7 @@ PLACEHOLDERS = (
     ("<base>", "$(git log -1 --format=%H)"),  # the scratch tree's one commit: a recorded base (#4375)
     ("<branch-base>", "$(git log -1 --format=%H)"),  # 2c's spelling of the same recorded base (#4375)
     ('"$step_green"', "0123abc"),  # Refactor 1's shell variable, the step's own green tick (#4544)
+    ("<id>…", "probe.test.sh"),  # the pin launch's test ids: a tracked id, as verify-pin refuses an untracked one (#4770)
 )
 
 

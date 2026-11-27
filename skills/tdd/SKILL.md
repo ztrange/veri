@@ -766,11 +766,12 @@ Red by hand ends `$S/seam-settle.sh <n> red-half test_path=<path> target_test=<i
    Exit 1 (the live criteria count differs from the capture's) **bails** with cause
    `needs-user`, naming both counts in the bail comment, before any leaf of the step
    launches (`Read` `<base directory>/BAIL.md`).
-   Then build the prompt from the `red` template — it already instructs the leaf to
-   write **exactly one** failing test pinning the criterion to **observable external
-   behavior**, with **no production code**, and to run **the suite holding that case**, not
-   the full suite, against the unmodified code, since the only question Red asks is whether
-   that one case fails — and launch the leaf **through the supervisor**:
+   Then build the prompt from the `red` template — it instructs the leaf either to name the
+   existing tests already covering the criterion (`HOLDS`, writing nothing), or to write
+   **exactly one** test pinning it to **observable external behavior**, with **no production
+   code**, and to run **the suite holding that case**, not the full suite, against the
+   unmodified code: the only question Red asks of a new case is whether it fails — and launch
+   the leaf **through the supervisor**:
    ```
    $S/build-develop-prompt.sh red .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' > .tdd/develop-red.prompt
    rm -f .tdd/develop-red.exit .tdd/develop-red.pid .tdd/red-prediction.md .tdd/red-run-output.txt
@@ -787,8 +788,8 @@ Red by hand ends `$S/seam-settle.sh <n> red-half test_path=<path> target_test=<i
    criterion that cannot be pinned within those rules is not weakened into one that can —
    the leaf reports it untestable instead (below).
    The leaf's report is in `.tdd/develop-red.out`, and ends with the lines you branch on — `TEST_PATH:`, `TARGET_TEST:`,
-   `AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE`, `WHY:`, `FAIL_OUTPUT:` — so take the
-   test path and target test id from the first two, the next sub-step from the third.
+   `AGAINST_UNMODIFIED: FAILS | PASSES | HOLDS | UNTESTABLE`, `COVERING_TESTS:` (on `HOLDS`), `WHY:`, `FAIL_OUTPUT:`;
+   the `AGAINST_UNMODIFIED` value decides the next sub-step.
    If the wait exits **2 (killed-stuck)**, the leaf hung or ran away — **bail**
    cleanly, after the stop check in *Launching a leaf*; do not retry (see `<base directory>/BAIL.md`).
 2. **Verify (blind).** Branch on the leaf's `AGAINST_UNMODIFIED` line.
@@ -862,16 +863,22 @@ Red by hand ends `$S/seam-settle.sh <n> red-half test_path=<path> target_test=<i
    Then `$S/red-setup.sh record <n> < .tdd/develop-red.out` once: exit 0, 2 or 3 alike goes on to Green, no Red redone.
    `--step "<step text>"`'s record file is what `$S/tests-frozen.sh path "<step text>"` prints,
    `.tdd/tests-frozen-<k>.record`, `<k>` the first 16 hex digits of the step text's SHA-256, never the text (too long, or holding `/`).
-   On **`PASSES`** the criterion is **already satisfied** — never send that test to
-   verify-red, whose verdict on a passing test can only be `REJECT`. Run the pin check
-   instead and continue at the pin (when a Red reports `AGAINST_UNMODIFIED: PASSES`, `Read` `<base directory>/PIN.md`):
+   On **`PASSES`** or **`HOLDS`** the criterion is **already satisfied**: neither goes to verify-red, whose verdict on a
+   passing test can only be `REJECT`; both continue at the pin (when a Red reports `AGAINST_UNMODIFIED: PASSES` or `HOLDS`, `Read` `<base directory>/PIN.md`).
+   On `HOLDS` first run `$S/holds-step.sh <n> <step-start-sha> <id>…` over the report's `COVERING_TESTS:` ids, the
+   `HEAD` the Red leaf launched on as `<step-start-sha>`: exit 1 (a named case fails) starts the revise loop for red
+   (`Read` `<base directory>/REVISE.md`), exit 2 bails (`Read` `<base directory>/BAIL.md`). On its exit 0, or on `PASSES`,
+   run verify-pin, `<id>…` being the `COVERING_TESTS:` ids on `HOLDS`, the `<target-test-id>` on `PASSES`:
    ```
    rm -f .tdd/verdict-pin.exit .tdd/verdict-pin.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-pin $S/run-verdict.sh --branch-base <base> --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason 2> .tdd/verify-pin.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-pin $S/run-verdict.sh --branch-base <base> --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" pin .tdd/issue-<n>-spec.md <id>… > .tdd/verify-pin.reason 2> .tdd/verify-pin.err
    $S/wait-leaf.sh verdict-pin  # foreground; again on exit 3
    ```
-   A `⟦ci-repair⟧` step is the one exception to `PASSES`: its test failed on CI and may pass
-   here, so on `AGAINST_UNMODIFIED: PASSES` it goes on to Green with the failing CI job's log
+   On `HOLDS` a PASS ticks with `$S/tick-ledger.sh --already-holds .tdd/verify-pin.reason --case <id> .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`,
+   one `--case` per id (` ⟂ retired already holds`), posts `$S/comment.sh <n> retire`, and runs no Green and no Refactor:
+   the `HOLDS` path never runs `develop-green`. A REJECT starts the revise loop on `REVISE_BUDGET` (`Read` `<base directory>/REVISE.md`).
+   A `⟦ci-repair⟧` step is the one exception to `PASSES` and `HOLDS`: its test failed on CI and may pass
+   here, so on `AGAINST_UNMODIFIED: PASSES` or `HOLDS` it goes on to Green with the failing CI job's log
    (test id and assertion diff) as its red evidence, never to verify-pin and never to the
    `test: pin` tick-and-commit.
    A step marked `⟦suite-repair⟧` or `⟦ci-repair⟧` is never frozen: for it `record --step` writes nothing and

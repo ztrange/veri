@@ -29,9 +29,12 @@ LAST_DONE_RE = r"\{ cat \.tdd/issue-<n>\.md \| \$S/ledger-steps\.sh last-done; \
 LEDGER_STEP_RE = (r'"\$\(' + LEDGER_READ_RE + r"( \|\| (" + LEDGER_READ_RE + "|" + LAST_DONE_RE + r"))?\)" + '"')
 # refactor's file bounds, the step's own green tick (#4544)
 STEP_GREEN_RE = r'(--step-green "\$step_green" )?'
+# verify-pin's 1 to 5 test ids after the spec file, the HOLDS report's COVERING_TESTS: or the PASSES report's TARGET_TEST:
+PIN_IDS_RE = r"( (<id>…|<target-test-id>)){1,5}"
 BLIND_RE = (
     "^--branch-base (<base>|<branch-base>|<onto-sha>) " + STEP_GREEN_RE + "(--step (" + DOUBLE_QUOTED_STEP + "|" + LEDGER_STEP_RE + r")( --fast-cmd '<fast-cmd>')? "
-    r"(red|green|refactor|pin|<phase>) " + SPEC_RE + r" <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])"
+    r"(red|green|refactor|<phase>) " + SPEC_RE + r" <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])"
+    "|--step (" + DOUBLE_QUOTED_STEP + "|" + LEDGER_STEP_RE + ") pin " + SPEC_RE + PIN_IDS_RE +
     "|--step (" + DOUBLE_QUOTED_STEP + "|" + LEDGER_STEP_RE + ") rebase " + SPEC_RE + " <onto-sha> <pre-rebase-sha>"
     "|--step (" + DOUBLE_QUOTED_STEP + "|" + LEDGER_STEP_RE + ") transform " + SPEC_RE
     + r" \.tdd/issue-<n>-predicate <base-sha>"
