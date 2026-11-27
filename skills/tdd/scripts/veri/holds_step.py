@@ -2,6 +2,7 @@
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import sys
 
+import covering_tests
 import entry
 import git
 import tick_ledger
@@ -12,6 +13,8 @@ USAGE = "usage: holds-step.sh <n> <step-start-sha> <id>…"
 def main(argv):
     if len(argv) < 3:
         return entry.refuse(usage=USAGE)
+    if len(argv) - 2 > covering_tests.MOST:
+        return entry.refuse("holds-step.sh: %d ids named, at most %d" % (len(argv) - 2, covering_tests.MOST))
     start = argv[1]
     if not git.ok("diff", "--quiet", start, "--"):
         return entry.refuse(f"holds-step.sh: the worktree differs from {start}: a tracked file changed; no case run")
