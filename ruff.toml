@@ -16,7 +16,7 @@ select = ["F", "E4", "E7", "E9", "I", "C901", "B"]
 ignore = ["E701"]
 
 [lint.mccabe]
-max-complexity = 46
+max-complexity = 40
 
 # Facade modules: other modules and tests reach names through them (`dispatch.subprocess`,
 # `from wait_ci import trigger_lines`), so an import unused inside the file is still used.
