@@ -66,6 +66,14 @@ def test_main_refuses_stop_and_budget_words_with_2(capsys, classify_bail):
     assert results == {cause: (2, "") for cause in results}
 
 
+def test_main_refuses_the_retired_unpinnable_missing_cause_as_unknown_with_2(capsys, classify_bail):
+    retired = "-".join(["unpinnable", "missing"])
+
+    code = classify_bail.main([retired])
+
+    assert (code, *capsys.readouterr()) == (2, "", "classify-bail: unknown cause: " + retired + "\n" + USAGE)
+
+
 def test_main_keeps_the_bash_quirks_exact_case_first_argument_only_no_option_marker_and_empty_is_missing(capsys, classify_bail):
     results = {}
     for name, argv in {"upper": ["KILLED-STUCK"], "leading space": [" killed-stuck"],
