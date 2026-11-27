@@ -390,6 +390,18 @@ def test_4692_a_revised_red_reporting_against_unmodified_passes_with_a_why_re_ve
     assert words[words.index("pin") + 1:words.index("pin") + 2] == [".tdd/issue-12-spec.md"], words
 
 
+def test_4770_a_revised_red_reporting_passes_re_verifies_as_pin_over_the_steps_target_as_one_id_after_the_spec(revise):
+    """PRD 044.2: the pin phase takes test ids, so verdict-pin gets develop-red.out's target as one `<path>::<node>` id
+    after the spec file, never the `<test-path> <target-test>` pair."""
+    _red(revise)
+    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS", "AGAINST_UNMODIFIED: PASSES")
+    code, out, err, fake = revise(fake=Fake(report=report), argv=("12", "red"), missing=("red-half",))
+
+    verdict = next(c for c in fake.calls if c[0] == "detach-leaf.sh" and c[1][1] == "verdict-pin")
+    words = list(verdict[1])
+    assert words[words.index("pin") + 1:] == [".tdd/issue-12-spec.md", "tests/test_b.py::test_two"], (code, err)
+
+
 def test_4692_a_revised_red_reporting_bare_against_unmodified_passes_re_verifies_as_pin_not_exit_1(revise):
     """The bare `AGAINST_UNMODIFIED: PASSES` is a pin too: verdict-pin, no divergence gate, no exit-1 stop."""
     _red(revise)

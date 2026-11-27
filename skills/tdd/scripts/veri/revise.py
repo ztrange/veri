@@ -277,7 +277,7 @@ def read(wt, path):
 def launch_pin(where, n, wt, settled, step, values):
     fused.launch(where, wt, "verdict-pin", "run-verdict.sh", "--step", step, "--fast-cmd", settled["fast_cmd"],
                  "--branch-base", fused_step.branch_base(where, wt, n), "pin",
-                 SPEC % n, values["test_path"], values["target_test"],
+                 SPEC % n, fused_step.red_test_id(values["test_path"], values["target_test"]),
                  env=fused.step_env(n, step, VERI_TEST_CMD=settled["fast_cmd"]), out=".tdd/verify-pin.reason",
                  err=".tdd/verify-pin.err")
 
