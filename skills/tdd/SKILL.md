@@ -388,7 +388,7 @@ of at scoping time.
 
 **A step names exactly one observable outcome.** A behaviour and each distinct refusal, exit code or fail-closed branch its criterion names are planned as separate steps, one outcome per step: the Red phase's one-case rule ("One criterion, one case") allows a step exactly one new case, and verify-green's demand that every guard be pinned by a case rejects a guard no case pins, so a step naming two outcomes cannot satisfy both and cannot go green. The rule is keyed on the count of named outcomes, never on the mere presence of a guard: a step naming one outcome alone, a behaviour or one guard, is not split (#2553).
 
-**Before the ledger is written, each candidate step is checked against the before-state.** A step planned as a Red/Green behaviour change whose test would already pass there is never written as its own Red/Green step: it is dropped when the behaviour already holds before the run, or folded into the earlier step that makes it hold (below). This does not cover a deliberate pin step (below: its Red reports "already passes", see `PIN.md`) or a `⟦replaces-case⟧` step, whose new case passes on the before-state by design.
+**Before the ledger is written, each candidate step is checked against the before-state.** A step planned as a Red/Green behaviour change whose test would already pass there is never written as its own Red/Green step: it is dropped when the behaviour already holds before the run, or folded into the earlier step that makes it hold (below). This does not cover a deliberate already-holding step (below) or a `⟦replaces-case⟧` step, whose new case passes on the before-state by design.
 
 **Each candidate step is checked against the earlier steps' tests too, including the case a missing reroute would add.** A step whose behaviour an earlier step's test already covers is folded into that earlier step, never kept as a separate step.
 
@@ -481,9 +481,9 @@ of at scoping time.
    keep (a medium case, with a real process), "no production change", and any end-to-end path
    through real processes that must stay covered. A step that can be satisfied only by editing
    a test is planned as a test-only step, never as Red/Green, since Green may not edit a test.
-   A step whose work adds a test case for behaviour that already holds is a pin step (an
-   ordinary step whose Red reports "already passes"), never `⟦diff-checked⟧`: that mark is
-   reserved for steps that leave no test behind.
+   A step whose criterion already holds is an already-holding step (its Red reports `HOLDS`
+   or `PASSES`), never `⟦diff-checked⟧`: that mark is reserved for steps that leave no test
+   behind.
 
    The one exception is a defect in a test's own fixture, stub or harness whose script under
    test is correct. Plan it as `- [ ] <criterion>: repairs the fixture '<fixture or stub name>' in
