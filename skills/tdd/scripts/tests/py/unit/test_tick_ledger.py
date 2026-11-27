@@ -1203,3 +1203,16 @@ def test_main_ticks_a_step_whose_go_red_marker_also_trails_it_on_its_probes_rece
     code = tick_ledger.main([str(ledger), "Go-red guard"])
 
     assert (code, "- [x] ⟦go-red⟧ Go-red guard" in ledger.read_text()) == (0, True)
+
+
+def test_cli_refuses_the_retired_unpinnable_flag_as_an_unknown_argument_with_exit_2_leaving_the_ledger_byte_identical(
+        tmp_path, run_cli, tick_ledger):
+    retired_flag = "--" + "unpin" + "nable"
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_text(STEPS)
+    reason = tmp_path / "verify-pin.reason"
+    reason.write_text("REASON: the case stays green on the before-state\n")
+
+    code, out, err = run_cli(tick_ledger, [retired_flag, str(reason), str(ledger), "collapse to single hyphen"])
+
+    assert (code, out, is_usage(err), retired_flag in err, ledger.read_text()) == (2, "", True, False, STEPS), err

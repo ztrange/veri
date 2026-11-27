@@ -13,7 +13,7 @@ import paths
 import tests_frozen
 
 USAGE = ("usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --surround-short"
-         " | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher>")
+         " | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher>")
 
 
 def complain(message):
@@ -205,10 +205,8 @@ def main(argv):
     pending, phase, owed, reason_file, case = False, None, False, None, None
     retire = None
     while True:
-        if argv[:1] in (["--already-holds"], ["--unpinnable"]) and len(argv) > 1:
-            if argv[0] == "--already-holds":
-                retire = "already-holds"
-            reason_file, argv = argv[1], argv[2:]
+        if argv[:1] == ["--already-holds"] and len(argv) > 1:
+            retire, reason_file, argv = "already-holds", argv[1], argv[2:]
             continue
         if argv[:1] == ["--case"] and len(argv) > 1:
             case, argv = argv[1], argv[2:]
@@ -220,7 +218,7 @@ def main(argv):
             phase, owed, argv = argv[1], True, argv[2:]
         else:
             break
-    if argv[:1] == ["--case"]:
+    if argv[:1] == ["--case"] or (argv or [""])[0].startswith("--"):
         print(USAGE, file=sys.stderr)
         return 2
     return tick((argv or [""])[0], (argv[1:] or [""])[0], case=case, pending=pending, phase=phase, owed=owed,
