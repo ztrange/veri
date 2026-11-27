@@ -13,7 +13,7 @@ import paths
 import tests_frozen
 
 USAGE = ("usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --surround-short"
-         " | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher>")
+         " | --already-holds <reason-file>] [--case <id>]... <ledger-file> <matcher>")
 
 
 def complain(message):
@@ -170,14 +170,14 @@ def surround_short(ledger_path, matcher):
 def main(argv):
     if argv[:1] == ["--surround-short"] and len(argv) == 3 and all(argv[1:]):
         return surround_short(argv[1], argv[2])
-    pending, phase, owed, reason_file, case = False, None, False, None, None
+    pending, phase, owed, reason_file, cases = False, None, False, None, []
     retire = None
     while True:
         if argv[:1] == ["--already-holds"] and len(argv) > 1:
             retire, reason_file, argv = "already-holds", argv[1], argv[2:]
             continue
         if argv[:1] == ["--case"] and len(argv) > 1:
-            case, argv = argv[1], argv[2:]
+            cases, argv = [*cases, argv[1]], argv[2:]
         elif argv[:1] == ["--refactor-pending"]:
             pending, argv = True, argv[1:]
         elif argv[:1] == ["--phase"] and len(argv) > 1:
@@ -189,16 +189,18 @@ def main(argv):
     if argv[:1] == ["--case"] or (argv or [""])[0].startswith("--"):
         print(USAGE, file=sys.stderr)
         return 2
-    return tick((argv or [""])[0], (argv[1:] or [""])[0], case=case, pending=pending, phase=phase, owed=owed,
+    return tick((argv or [""])[0], (argv[1:] or [""])[0], cases=cases, pending=pending, phase=phase, owed=owed,
                 retire=retire, reason_file=reason_file)
 
 
-def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=False, retire=None, reason_file=None):
+def tick(ledger_path, matcher, *, case=None, cases=(), pending=False, phase=None, owed=False, retire=None,
+         reason_file=None):
     """Tick the one unchecked step of the ledger at `ledger_path` that `matcher` names: what `tick-ledger.sh`
     does once its arguments are parsed.
 
-    `case` is a test id to run first (the tick waits for it to pass); `pending` appends the `⟂ refactor pending`
-    mark; `phase` ticks one phase of a step that lists phases, `owed` marking it owed (contract phases only);
+    `cases` are the test ids to run first, `case` one more (the tick waits for every one to pass); `pending` appends
+    the `⟂ refactor pending` mark; `phase` ticks one phase of a step that lists phases, `owed` marking it owed
+    (contract phases only);
     a non-empty `reason_file` retires the step ` ⟂ retired already holds` instead, appending one
     `already-holds-step` event; it needs a `case`; `retire` names that retirement ("already-holds"). `pending` and
     `phase` do not combine.
@@ -210,7 +212,8 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
     """
     retired_mark, event_name = ledger.retire_mark("already holds"), "already-holds-step"
     reason_text = ""
-    if reason_file and not case:
+    cases = [*cases, *([case] if case else [])]
+    if reason_file and not cases:
         complain(f"{matcher}: no case is named")
         return 1
     if reason_file:
@@ -220,14 +223,15 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
             line.startswith("REASON:") and line[7:].strip() for line in reason_text.splitlines()
         ):
             return 1
-    ran, ran_command, ran_code = run_case(case) if case else (0, "", 0)
-    if ran == 2:
-        complain(f"{matcher}: case {case} never run ({how_ended(ran_code)}): no such file path, no tests ran, or the"
-                 f" command could not run: {ran_command}")
-        return 2
-    if ran:
-        complain(f"{matcher}: case {case} fails")
-        return 1
+    for case in cases:
+        ran, ran_command, ran_code = run_case(case)
+        if ran == 2:
+            complain(f"{matcher}: case {case} never run ({how_ended(ran_code)}): no such file path, no tests ran, or"
+                     f" the command could not run: {ran_command}")
+            return 2
+        if ran:
+            complain(f"{matcher}: case {case} fails")
+            return 1
     if pending and phase:
         complain("--phase and --refactor-pending cannot be combined")
         return 2

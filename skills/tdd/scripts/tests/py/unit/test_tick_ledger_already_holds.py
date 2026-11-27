@@ -291,3 +291,25 @@ def test_main_already_holds_exits_1_naming_the_case_fails_when_the_command_ran_i
 
     assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, original, False), err
     assert "case tests/test_x.py::test_holds fails" in err and "never run" not in err
+
+
+def test_main_already_holds_with_two_passing_cases_runs_both_and_retires_the_step_with_one_already_holds_step_event(
+        tmp_path, run_cli, tick_ledger, monkeypatch):
+    ledger = tmp_path / ".tdd" / "issue-42.md"
+    ledger.parent.mkdir()
+    ledger.write_text("# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n")
+    reason = tmp_path / "reason.txt"
+    reason.write_text("REASON: covered by both cases\n")
+    ran = []
+    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (ran.append(case) or 0, "", 0))
+
+    code, out, err = run_cli(tick_ledger,
+                             ["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_a",
+                              "--case", "tests/py/test_y.py::test_b", str(ledger), "a one"],
+                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
+
+    events = [json.loads(line) for line in (ledger.parent / "events.jsonl").read_text().splitlines()]
+    assert (code, ledger.read_text()) == (
+        0, "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired already holds\n- [ ] b two ⟦criterion 2⟧\n"), err
+    assert sorted(ran) == ["tests/py/test_x.py::test_a", "tests/py/test_y.py::test_b"]
+    assert [e.get("event") for e in events].count("already-holds-step") == 1
