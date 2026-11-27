@@ -16,10 +16,13 @@ BRANCH_BASE = "abc1234"
 class Fake:
     """A run_script stand-in: records (basename, args, cwd, env, kw) and answers from <answers>, keyed by
     (basename, first argument or None) -> (code, stdout). extract-result.sh answers <report>, less its TEST_PATH: and
-    TARGET_TEST: lines when reading a revise red report, which never carries them (#4497)."""
+    TARGET_TEST: lines when reading a revise red report, which carries them only when the step's own red wrote no test
+    (#4497); <revised>, when given, is a revise red report's answer as written."""
 
-    def __init__(self, answers=None, report="OUTCOME: REWRITTEN\nAGAINST_UNMODIFIED: N/A\n", cost="1.00\n"):
+    def __init__(self, answers=None, report="OUTCOME: REWRITTEN\nAGAINST_UNMODIFIED: N/A\n", cost="1.00\n",
+                 revised=None):
         self.answers, self.calls, self.report, self.cost = dict(answers or {}), [], report, cost
+        self.revised = revised
 
     def __call__(self, name, *args, cwd=None, env=None, **kw):
         base = os.path.basename(name)
@@ -28,6 +31,8 @@ class Fake:
             if base == script and (first is None or args[:1] == (first,)):
                 return code, out, ""
         if base == "extract-result.sh":
+            if "revise-red" in kw.get("stdin", "") and self.revised is not None:
+                return 0, self.revised, ""
             if "revise-red" in kw.get("stdin", ""):
                 return 0, "".join(line for line in self.report.splitlines(True)
                                   if not line.startswith(("TEST_PATH:", "TARGET_TEST:"))), ""
@@ -453,6 +458,57 @@ def test_4770_a_holds_steps_red_revise_whose_verify_pin_passes_records_the_pass_
     assert ("comment.sh", ("12", "verify-revised", "red")) in [(c[0], c[1]) for c in fake.calls]
     record = json.loads((revise.wt / ".tdd" / "issue-12-red-half-wait").read_text())
     assert (record["at"], record["values"]["revised"]) == ("verdict-pin", True)
+
+
+HOLDS_THEN_WRITTEN = "TEST_PATH: tests/test_n.py\nTARGET_TEST: tests/test_n.py::test_new\n" \
+                     "AGAINST_UNMODIFIED: PASSES\nOUTCOME: REWRITTEN\n"
+
+
+def test_4779_a_holds_steps_red_revise_that_writes_a_passing_test_re_verifies_as_pin_over_that_test_and_freezes_it(
+        revise):
+    """PIN.md PN15: a HOLDS step's verify-pin REJECT sends a revise leaf that may write a test instead; its develop-red.out
+    names no TEST_PATH:, so the test is the revise report's TEST_PATH: and TARGET_TEST:, re-verified as pin over that one
+    id, frozen on the PASS and saved as the step's Red case."""
+    _red(revise)
+    code, out, err, fake = revise(fake=Fake({("git", "ls-files"): (0, HOLDS_TRACKED)}, report=HOLDS_REPORT,
+                                            revised=HOLDS_THEN_WRITTEN),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert (code, fake.launched()) == (0, ["revise-red-1", "verdict-pin"]), (out, err)
+    words = list(next(c for c in fake.calls if c[0] == "detach-leaf.sh" and c[1][1] == "verdict-pin")[1])
+    assert words[words.index("pin") + 1:] == [".tdd/issue-12-spec.md", "tests/test_n.py::test_new"]
+    assert fake.call("tests-frozen.sh", "record")[1] == (
+        "record", "--step", STEP, "--red-case", "tests/test_n.py::test_new", "tests/test_n.py")
+    record = json.loads((revise.wt / ".tdd" / "issue-12-red-half-wait").read_text())
+    assert (record["values"]["test_path"], record["values"]["target_test"]) == (
+        "tests/test_n.py", "tests/test_n.py::test_new")
+
+
+def test_4779_a_holds_steps_red_revise_that_writes_a_failing_test_re_verifies_as_red_over_that_test(revise):
+    """PIN.md PN15: a revise leaf answering a HOLDS step's verify-pin REJECT with a test that FAILS is re-verified as red
+    over the revise report's TEST_PATH: and TARGET_TEST:, the prediction gated first."""
+    _red(revise)
+    written = HOLDS_THEN_WRITTEN.replace("AGAINST_UNMODIFIED: PASSES", "AGAINST_UNMODIFIED: FAILS")
+    code, out, err, fake = revise(fake=Fake({("git", "ls-files"): (0, HOLDS_TRACKED), ("red-divergence.sh", None): (3, "")},
+                                            report=HOLDS_REPORT, revised=written),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert (code, fake.launched()) == (0, ["revise-red-1", "verdict-red"]), (out, err)
+    verdict = next(c for c in fake.calls if c[0] == "detach-leaf.sh" and c[1][1] == "verdict-red")
+    assert _short(verdict[1])[-4:] == ("red", ".tdd/issue-12-spec.md", "tests/test_n.py", "tests/test_n.py::test_new")
+
+
+def test_4779_a_holds_steps_red_revise_that_writes_a_test_but_names_no_test_path_stops_with_exit_2(revise):
+    """A HOLDS step's revise report answering PASSES or FAILS with no TEST_PATH: names no test to verify: revise stops
+    with exit 2 naming the missing line, launching no verifier."""
+    _red(revise)
+    written = HOLDS_THEN_WRITTEN.replace("TEST_PATH: tests/test_n.py\n", "")
+    code, out, err, fake = revise(fake=Fake({("git", "ls-files"): (0, HOLDS_TRACKED)}, report=HOLDS_REPORT,
+                                            revised=written),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert (code, fake.launched()) == (2, ["revise-red-1"]), (out, err)
+    assert "TEST_PATH" in out.splitlines()[-1]
 
 
 def test_4770_a_revised_red_whose_covering_tests_name_an_untracked_path_stops_with_exit_2(revise):
