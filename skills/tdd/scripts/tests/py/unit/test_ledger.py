@@ -280,9 +280,9 @@ def test_tick_line_ticks_the_box_of_a_matched_step_line_and_keeps_the_rest():
 
 def test_retire_mark_and_is_retired_agree_on_the_marks_a_retired_step_carries():
     ledger = importlib.import_module("veri.ledger")
-    assert ledger.retire_mark("unpinnable") == " ⟂ retired unpinnable"
+    assert ledger.retire_mark("superseded") == " ⟂ retired superseded"
     assert ledger.retire_mark("already holds") == " ⟂ retired already holds"
-    assert ledger.is_retired("- [x] a step" + ledger.retire_mark("unpinnable"))
+    assert ledger.is_retired("- [x] a step" + ledger.retire_mark("superseded"))
     assert not ledger.is_retired("- [x] a step ⟂ red done")
 
 
