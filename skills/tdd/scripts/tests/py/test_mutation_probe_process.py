@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from repo_builder import new_repo
+
 PROBE = Path(__file__).resolve().parents[2] / "mutation-probe.sh"
 
 
@@ -27,7 +29,7 @@ def test_probe_sent_sigterm_while_the_command_runs_restores_the_file_and_leaves_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     target = tmp_path / "target.txt"
     target.write_text("keep alpha keep\n")
     git("add", "target.txt")
@@ -59,7 +61,7 @@ def test_issue_2900_before_state_probe_exits_1_when_the_test_stays_green_on_the_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "view.txt").write_text("view\n")
     (tmp_path / "quote.txt").write_text("0\n")
     git("add", ".")
@@ -84,7 +86,7 @@ def test_issue_2900_before_state_probe_runs_the_kept_file_as_it_is_and_exits_0_w
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "quote.txt").write_text("0\n")
     git("add", ".")
     git("commit", "-q", "-m", "base")
@@ -103,7 +105,7 @@ def test_issue_2900_before_state_probe_leaves_a_kept_file_that_differs_from_the_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "quote.txt").write_text("0\n")
     (tmp_path / "test.sh").write_text("exit 0\n")
     git("add", ".")
@@ -123,7 +125,7 @@ def test_issue_2900_before_state_probe_leaves_every_file_under_tdd_as_it_is_in_t
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "ledger.md").write_text("old\n")
     (tmp_path / "quote.txt").write_text("0\n")
@@ -145,7 +147,7 @@ def test_issue_2900_before_state_probe_removes_a_file_added_since_the_sha_tracke
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "quote.txt").write_text("0\n")
     git("add", ".")
     git("commit", "-q", "-m", "base")
@@ -167,7 +169,7 @@ def test_issue_2900_before_state_probe_keeps_a_test_path_that_is_new_since_the_s
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "quote.txt").write_text("0\n")
     git("add", ".")
     git("commit", "-q", "-m", "base")
@@ -186,7 +188,7 @@ def test_issue_2900_before_state_probe_brings_back_a_file_deleted_since_the_sha_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "quote.txt").write_text("0\n")
     (tmp_path / "gone.txt").write_text("sha-content\n")
     git("add", ".")
@@ -209,7 +211,7 @@ def test_issue_2900_before_state_probe_restores_the_working_tree_when_the_comman
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "a_gone.txt").write_text("sha-content\n")
     (tmp_path / "b_changed.txt").write_text("sha-content\n")
     git("add", ".")
@@ -231,7 +233,7 @@ def test_issue_2900_before_state_probe_restores_a_renamed_file_as_the_new_name_r
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "old_name.txt").write_text("sha-content line one\nsha-content line two\nsha-content line three\n")
     git("add", ".")
     git("commit", "-q", "-m", "base")
@@ -254,7 +256,7 @@ def test_issue_2900_before_state_probe_puts_a_restored_tracked_file_back_to_its_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "prod.bin").write_bytes(b"sha-content\n")
     git("add", ".")
     git("commit", "-q", "-m", "base")
@@ -277,7 +279,7 @@ def test_issue_2900_before_state_probe_removes_again_a_file_it_brought_back_when
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "gone.txt").write_text("sha-content\n")
     (tmp_path / "test.sh").write_text("exit 0\n")
     git("add", ".")
@@ -297,7 +299,7 @@ def test_issue_2900_before_state_probe_puts_back_an_untracked_file_it_removed_by
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "prod.txt").write_text("sha-content\n")
     git("add", ".")
     git("commit", "-q", "-m", "base")
@@ -319,7 +321,7 @@ def test_issue_2900_before_state_probe_exits_2_without_running_the_command_when_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "quote.txt").write_text("0\n")
     git("add", ".")
     git("commit", "-q", "-m", "base")
@@ -334,7 +336,7 @@ def test_issue_2900_before_state_probe_exits_2_without_running_the_command_when_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "quote.txt").write_text("0\n")
     git("add", ".")
     git("commit", "-q", "-m", "base")
@@ -349,7 +351,7 @@ def test_issue_2900_before_state_probe_exits_2_without_running_the_command_when_
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "quote.txt").write_text("0\n")
     (tmp_path / "test.sh").write_text("old\n")
     git("add", ".")
@@ -368,7 +370,7 @@ def test_issue_2900_before_state_probe_exits_1_for_a_test_stubbing_the_quote_and
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "view.py").write_text('def render(q): return str(q["deps"])\n')
     (tmp_path / "quote.py").write_text('def fetch(deps=()): return {"deps": 0}\n')
     git("add", ".")
@@ -403,7 +405,7 @@ def test_issue_3383_probe_dropping_o_append_from_event_py_leaves_the_live_journa
     shutil.copy(PROBE.parent / "timed-test-run.sh", scripts)
     shutil.copytree(PROBE.parent / "lib", scripts / "lib")
     shutil.copytree(PROBE.parent / "veri", scripts / "veri", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / ".gitignore").write_text(".tdd/events.jsonl\n")
     (tmp_path / ".tdd").mkdir()
     git("add", "-A")
@@ -460,7 +462,7 @@ def test_issue_4445_before_state_probe_exits_2_without_a_record_when_the_command
     def git(*words):
         return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.com", *words], cwd=tmp_path,
                               capture_output=True, text=True, timeout=20, check=True).stdout
-    git("init", "-q")
+    new_repo(tmp_path)
     (tmp_path / "quote.txt").write_text("0\n")
     git("add", ".")
     git("commit", "-q", "-m", "base")
