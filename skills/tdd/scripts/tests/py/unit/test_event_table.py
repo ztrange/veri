@@ -21,10 +21,10 @@ def test_the_table_module_imports_no_other_veri_module():
     assert not siblings, f"veri/event_table.py imports veri modules {siblings}; it must be readable alone"
 
 
-def test_the_table_declares_the_five_events_journal_md_lacked_with_the_keys_their_writers_pass():
+def test_the_table_declares_the_events_journal_md_lacked_with_the_keys_their_writers_pass():
     from veri import event_table
 
-    written = {"grading": {"unit", "verdict", "failing", "cost_usd", "id", "effort"}, "unpinnable-missing": {"step"},
+    written = {"grading": {"unit", "verdict", "failing", "cost_usd", "id", "effort"},
                "prose-owed-waived": {"unit", "step"}, "suite-flake": {"at", "files"}, "skill-edit-no-author": {"unit"}}
 
     assert {event: set(event_table.keys(event)) for event in written} == written

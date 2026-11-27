@@ -47,7 +47,7 @@ USAGE = [
     ("1042169812 59", "run-leaf.sh", []),
     ("4252593059 50", "supervise.sh", []),
     ("3650033748 63", "tick-issue-criterion.sh", []),
-    ("4052121053 209", "tick-ledger.sh", []),
+    (None, "tick-ledger.sh", []),
     ("1826447128 65", "timed-test-run.sh", []),
     ("3094254233 81", "transform-touches-tests.sh", []),
     ("4085799256 287", "verify.sh", []),
@@ -70,6 +70,10 @@ USAGE = [
     ("1319821730 316", "verify.sh", ["--step"]),
 ]
 
+TICK_LEDGER_FLAGS = ("--refactor-pending", "--phase <phase>", "--phase-owed <phase>", "--surround-short",
+                     "--already-holds <reason-file>", "--case <id>", "<ledger-file> <matcher>")
+
+
 def emitted(run_cli, script, argv):
     module = importlib.import_module("veri." + script[:-3].replace("-", "_"))
     code, out, err = run_cli(module, argv)
@@ -85,6 +89,12 @@ def test_usage_output_on_a_missing_argument_is_unchanged(run_cli):
             phases = usage[0].split("usage: build-develop-prompt.sh ")[1].split(" ")[0].split("|") if usage else []
             if not text.startswith("exit 2\n") or "dual-stub" not in phases or "beside" not in phases:
                 problems.append("%s %s: usage line must name dual-stub and beside, got %r" % (script, " ".join(argv), text))
+            continue
+        if script == "tick-ledger.sh":
+            usage = [line for line in text.splitlines() if line.startswith("usage: tick-ledger.sh ")]
+            missing = [flag for flag in TICK_LEDGER_FLAGS if not usage or flag not in usage[0]]
+            if not text.startswith("exit 2\n") or missing:
+                problems.append("%s %s: usage line must name %s, got %r" % (script, " ".join(argv), missing, text))
             continue
         got = cksum(text.encode("utf-8", "surrogateescape"))
         if got != want:

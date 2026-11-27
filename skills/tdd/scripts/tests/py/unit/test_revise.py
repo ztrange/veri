@@ -1,7 +1,5 @@
 """In-process cases for veri/revise.py, the module revise.sh is a shim over (PRD 038.9, #4433)."""
-import contextlib
 import importlib
-import io
 import json
 import os
 
@@ -969,106 +967,6 @@ def test_4735_after_a_pin_reject_attempt_2_compares_the_prior_red_reason_with_th
 
     assert fake.launched() == ["revise-red-1", "verdict-pin", "revise-red-2"], (code, out, err)
     assert fake.compared == [REASON, pin_reason]
-
-
-def test_4735_after_a_pin_reject_it_routes_the_pin_reason_and_on_route_exit_1_launches_attempt_2(revise):
-    """REVISE.md sub-step 5: a red revise's verify-pin REJECT runs pin-reject-route.sh on the pin's reason, the ledger,
-    the step and develop-red.out's TARGET_TEST before attempt k+1; its exit 1 goes on to revise-red-2."""
-    _red(revise)
-    (revise.wt / ".tdd" / "verify-pin.reason").write_text("VERDICT: REJECT\nthe case pins behaviour the tree has\n")
-    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS", "AGAINST_UNMODIFIED: PASSES")
-    code, out, err, fake = revise(fake=Fake({("wait-leaf.sh", "verdict-pin"): (1, ""),
-                                             ("wait-leaf.sh", "revise-red-2"): (3, ""),
-                                             ("pin-reject-route.sh", None): (1, "")}, report=report),
-                                  argv=("12", "red"), missing=("red-half",))
-
-    routes = [(c[1], c[2]) for c in fake.calls if c[0] == "pin-reject-route.sh"]
-    assert routes == [((".tdd/verify-pin.reason", ".tdd/issue-12.md", STEP, "tests/test_b.py::test_two"),
-                       str(revise.wt))], (code, out, err)
-    assert fake.launched() == ["revise-red-1", "verdict-pin", "revise-red-2"], (code, out, err)
-    second = next(i for i, c in enumerate(fake.calls) if c[0] == "detach-leaf.sh" and c[1][1] == "revise-red-2")
-    assert fake.names().index("pin-reject-route.sh") < second
-
-
-def test_4735_after_a_pin_reject_route_exit_0_retires_the_step_launches_no_attempt_2_and_exits_1(revise):
-    """REVISE.md sub-step 5: pin-reject-route.sh exit 0 after a red revise's verify-pin REJECT retired the step; the
-    loop ends there, no revise-red-2, exit 1 with a last line naming the retirement."""
-    _red(revise)
-    (revise.wt / ".tdd" / "verify-pin.reason").write_text("VERDICT: REJECT\nthe case pins behaviour the tree has\n")
-    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS", "AGAINST_UNMODIFIED: PASSES")
-    code, out, err, fake = revise(fake=Fake({("wait-leaf.sh", "verdict-pin"): (1, ""),
-                                             ("wait-leaf.sh", "revise-red-2"): (3, ""),
-                                             ("pin-reject-route.sh", None): (0, "")}, report=report),
-                                  argv=("12", "red"), missing=("red-half",))
-
-    assert fake.launched() == ["revise-red-1", "verdict-pin"], (code, out, err)
-    assert code == 1
-    assert "pin-reject-route.sh" in out.splitlines()[-1] and "retired" in out.splitlines()[-1], out
-
-
-def test_4735_after_a_pin_reject_route_exit_2_launches_no_attempt_2_and_exits_2(revise):
-    """REVISE.md sub-step 5: pin-reject-route.sh exit 2 after a red revise's verify-pin REJECT is no answer; the loop
-    bails there, no revise-red-2, exit 2."""
-    _red(revise)
-    (revise.wt / ".tdd" / "verify-pin.reason").write_text("VERDICT: REJECT\nthe case pins behaviour the tree has\n")
-    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS", "AGAINST_UNMODIFIED: PASSES")
-    code, out, err, fake = revise(fake=Fake({("wait-leaf.sh", "verdict-pin"): (1, ""),
-                                             ("wait-leaf.sh", "revise-red-2"): (3, ""),
-                                             ("pin-reject-route.sh", None): (2, "")}, report=report),
-                                  argv=("12", "red"), missing=("red-half",))
-
-    assert fake.launched() == ["revise-red-1", "verdict-pin"], (code, out, err)
-    assert code == 2
-
-
-def test_4735_after_a_pin_reject_route_exit_3_launches_no_attempt_2_and_exits_1(revise):
-    """REVISE.md sub-step 5: pin-reject-route.sh exit 3 (no unchecked step matched) after a red revise's verify-pin
-    REJECT is a stop, never an attempt k+1; revise.sh maps that nothing-to-do code to exit 1."""
-    _red(revise)
-    (revise.wt / ".tdd" / "verify-pin.reason").write_text("VERDICT: REJECT\nthe case pins behaviour the tree has\n")
-    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS", "AGAINST_UNMODIFIED: PASSES")
-    code, out, err, fake = revise(fake=Fake({("wait-leaf.sh", "verdict-pin"): (1, ""),
-                                             ("wait-leaf.sh", "revise-red-2"): (3, ""),
-                                             ("pin-reject-route.sh", None): (3, "")}, report=report),
-                                  argv=("12", "red"), missing=("red-half",))
-
-    assert fake.launched() == ["revise-red-1", "verdict-pin"], (code, out, err)
-    assert code == 1
-    assert out.splitlines()[-1] == "stopped at 5 pin-reject-route.sh exit 3", out
-
-
-class RoutingFake(Fake):
-    """A Fake that runs the real pin-reject-route.sh in-process (veri.pin_reject_route.main, from the call's cwd)."""
-
-    def __call__(self, name, *args, cwd=None, env=None, **kw):
-        if os.path.basename(name) != "pin-reject-route.sh":
-            return super().__call__(name, *args, cwd=cwd, env=env, **kw)
-        self.calls.append(("pin-reject-route.sh", args, cwd, env, kw))
-        route = importlib.import_module("veri.pin_reject_route")
-        out = io.StringIO()
-        with contextlib.chdir(cwd), contextlib.redirect_stdout(out):
-            code = route.main(list(args))
-        return code, out.getvalue(), ""
-
-
-def test_4735_on_a_missing_rerouted_step_a_before_state_green_pin_reject_is_unpinnable_missing_and_exits_2(revise):
-    """PIN.md: a step reached by a `missing` reroute passes `--missing-reroute`, so a red revise's verify-pin REJECT
-    whose reason says the case is green on the before-state gets pin-reject-route.sh's exit 2 `unpinnable-missing`;
-    revise.sh launches no attempt 2 and exits 2."""
-    _red(revise)
-    events = revise.wt / ".tdd" / "events.jsonl"
-    events.write_text(json.dumps({"event": "reroute", "step": STEP, "kind": "missing", "case": "x"}) + "\n")
-    (revise.wt / ".tdd" / "verify-pin.reason").write_text("VERDICT: REJECT\nthe case is green on the before-state\n")
-    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS", "AGAINST_UNMODIFIED: PASSES")
-    code, out, err, fake = revise(fake=RoutingFake({("wait-leaf.sh", "verdict-pin"): (1, ""),
-                                                    ("wait-leaf.sh", "revise-red-2"): (3, "")}, report=report),
-                                  argv=("12", "red"), missing=("red-half",))
-
-    assert fake.call("pin-reject-route.sh")[1][0] == "--missing-reroute", (code, out, err)
-    written = [json.loads(line) for line in events.read_text().splitlines()]
-    assert [e["event"] for e in written][-1] == "unpinnable-missing", written
-    assert fake.launched() == ["revise-red-1", "verdict-pin"], (code, out, err)
-    assert code == 2
 
 
 def test_4734_a_red_revise_opened_while_a_steps_refactor_is_pending_names_that_step_not_the_next_unchecked(revise):

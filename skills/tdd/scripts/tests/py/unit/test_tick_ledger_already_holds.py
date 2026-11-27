@@ -37,24 +37,6 @@ def test_main_already_holds_retires_the_step_with_an_already_holds_step_event_an
     assert "stays green" not in dumped and "mutation" not in dumped
 
 
-def test_main_unpinnable_refuses_an_already_holds_reason_file_and_leaves_ledger_and_events_untouched_3100(
-        tmp_path, run_cli, tick_ledger, monkeypatch):
-    ledger = tmp_path / ".tdd" / "issue-42.md"
-    ledger.parent.mkdir()
-    original = "# Plan for #42\n\n- [ ] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
-    ledger.write_text(original)
-    reason = tmp_path / "reason.txt"
-    reason.write_text("REASON: already holds; rerouted to pin step 4\n")
-
-    monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
-
-    code, out, err = run_cli(tick_ledger, ["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds",
-                              str(ledger), "a one"],
-                             env={"VERI_ISSUE": "42"}, cwd=tmp_path)
-
-    assert (code, ledger.read_text(), (ledger.parent / "events.jsonl").exists()) == (1, original, False), err
-
-
 def test_main_already_holds_refuses_a_reason_file_with_no_reason_text_and_leaves_ledger_and_events_untouched_3116(
         tmp_path, run_cli, tick_ledger, monkeypatch):
     ledger = tmp_path / ".tdd" / "issue-42.md"

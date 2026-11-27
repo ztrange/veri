@@ -39,16 +39,6 @@ def test_a_decimal_spent_and_budget_are_accepted(bdp):
     assert parsed.args == ["spec", "step", "cmd", "3", "1.5"]
 
 
-def test_a_verify_pin_reason_with_a_before_state_green_clause_is_refused_when_revising_red(bdp, tmp_path):
-    reason = tmp_path / "verify-pin.reason"
-    reason.write_bytes(b"REASON: before-state green\n")
-
-    refusal = bdp.arguments(["revise", "red", "spec", "step", "cmd", str(reason)])
-
-    assert refusal.message == ("build-develop-prompt: a verify-pin rejection with a before-state-green clause is "
-                               "routed by pin-reject-route.sh, not revised")
-
-
 def test_a_revise_answers_the_phase_being_revised_the_names_and_the_arguments_without_it(bdp):
     parsed = bdp.arguments(["revise", "diff", "spec", "step", "cmd", "reason.md", "fast"])
 

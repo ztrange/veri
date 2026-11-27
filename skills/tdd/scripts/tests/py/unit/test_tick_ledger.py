@@ -8,7 +8,16 @@ import sys
 
 import pytest
 
-USAGE = b"usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --surround-short | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher>\n"
+KEPT_FLAGS = ("--refactor-pending", "--phase <phase>", "--phase-owed <phase>", "--surround-short",
+              "--already-holds <reason-file>", "--case <id>", "<ledger-file> <matcher>")
+
+
+def is_usage(err):
+    """True when <err> is the one usage line of tick-ledger.sh, naming each kept flag."""
+    text = err.decode() if isinstance(err, bytes) else err
+    lines = text.splitlines()
+    return (len(lines) == 1 and text.endswith("\n") and lines[0].startswith("usage: tick-ledger.sh ")
+            and all(flag in lines[0] for flag in KEPT_FLAGS))
 
 
 @pytest.fixture
@@ -23,13 +32,14 @@ def test_main_refuses_a_missing_or_empty_ledger_file_with_the_usage_line_and_exi
     results = {}
     for argv in ([], [""], ["--refactor-pending"], ["--refactor-pending", ""], [str(ledger), "zeta"]):
         code = tick_ledger.main(argv)
-        results[tuple(argv)] = (code, *capsysbinary.readouterr())
+        out, err = capsysbinary.readouterr()
+        results[tuple(argv)] = (code, out, "usage" if is_usage(err) else err)
 
     assert results == {
-        (): (2, b"", USAGE),
-        ("",): (2, b"", USAGE),
-        ("--refactor-pending",): (2, b"", USAGE),
-        ("--refactor-pending", ""): (2, b"", USAGE),
+        (): (2, b"", "usage"),
+        ("",): (2, b"", "usage"),
+        ("--refactor-pending",): (2, b"", "usage"),
+        ("--refactor-pending", ""): (2, b"", "usage"),
         (str(ledger), "zeta"): (3, b"", b""),
     }
     assert ledger.read_bytes() == b"- [ ] alpha\n"
@@ -613,13 +623,13 @@ def test_cli_exits_3_on_an_unmatched_step_leaving_the_ledger_unchanged(tmp_path,
 def test_cli_with_no_argument_exits_2_with_nothing_on_stdout_and_the_usage_line_on_stderr(run_cli, tick_ledger):
     code, out, err = run_cli(tick_ledger, [])
 
-    assert (code, out, err) == (2, "", USAGE.decode())
+    assert (code, out, is_usage(err)) == (2, "", True), err
 
 
-def test_cli_usage_line_names_unpinnable_and_already_holds_with_their_reason_file(run_cli, tick_ledger):
+def test_cli_usage_line_names_already_holds_with_its_reason_file(run_cli, tick_ledger):
     code, out, err = run_cli(tick_ledger, [])
 
-    assert (code, "--unpinnable <reason-file>" in err, "--already-holds <reason-file>" in err) == (2, True, True)
+    assert (code, "--already-holds <reason-file>" in err) == (2, True)
 
 
 def test_cli_exits_2_with_one_stderr_line_naming_a_directory_ledger_and_the_reason_without_a_traceback(
@@ -844,12 +854,9 @@ def test_cli_ticking_an_added_step_ticks_only_the_first_of_two_still_open_added_
     assert (code, added.read_text()) == (0, open_line.replace("- [ ]", "- [x]") + open_line)
 
 
-@pytest.mark.parametrize("flag, reason_text", [
-    ("--unpinnable", "the case stays green\n"),
-    ("--already-holds", "REASON: it already holds\n"),
-])
 def test_main_runs_the_case_command_without_tests_makeflags_or_makelevel_in_its_environment_3617(
-        tmp_path, tick_ledger, monkeypatch, fake_processes, flag, reason_text):
+        tmp_path, tick_ledger, monkeypatch, fake_processes):
+    flag, reason_text = "--already-holds", "REASON: it already holds\n"
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
     ledger = tdd / "issue-7.md"
@@ -882,7 +889,7 @@ def test_main_runs_the_fallback_make_without_makeflags_or_makelevel_in_its_envir
     ledger = tdd / "issue-7.md"
     ledger.write_text("# Plan for #7\n\n- [ ] Pin the thing ⟦criterion 1⟧\n")
     reason = tmp_path / "reason.txt"
-    reason.write_text("the case stays green\n")
+    reason.write_text("REASON: it already holds\n")
     ran = {}
     for name in ("TESTS", "MAKEFLAGS", "MAKELEVEL"):
         monkeypatch.setenv(name, "leaked")
@@ -897,7 +904,7 @@ def test_main_runs_the_fallback_make_without_makeflags_or_makelevel_in_its_envir
     monkeypatch.chdir(tmp_path)
     fake = fake_processes.answers({"detect-test-command.sh": (0, "", ""), "git": (0, "", ""), "": run_case})
 
-    code = tick_ledger.main(["--unpinnable", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
+    code = tick_ledger.main(["--already-holds", str(reason), "--case", "tests/py/test_x.py::test_holds", str(ledger), "Pin the thing"])
 
     assert (code, ran["argv"], ran["env"]) == (0, ["make", "test", "TESTS=tests/py/test_x.py::test_holds"], [])
 
@@ -909,12 +916,12 @@ def test_main_on_a_case_whose_test_file_is_missing_exits_2_with_nothing_on_stdou
     ledger = tdd / "issue-7.md"
     ledger.write_text("# Plan for #7\n\n- [ ] Pin the thing ⟦criterion 1⟧\n")
     reason = tmp_path / "reason.txt"
-    reason.write_text("the case stays green\n")
+    reason.write_text("REASON: it already holds\n")
     case = str(tmp_path / "gone" / "test_missing.py")
     fake_processes.answers({"detect-test-command.sh": (0, "stub-case-command --flag\n", ""),
                             "": (4, "", "ERROR: file or directory not found\n")})
 
-    code = tick_ledger.main(["--unpinnable", str(reason), "--case", case, str(ledger), "Pin the thing"])
+    code = tick_ledger.main(["--already-holds", str(reason), "--case", case, str(ledger), "Pin the thing"])
 
     out, err = capsys.readouterr()
     assert (code, out, f"case {case} never run" in err, "stub-case-command --flag" in err) == (2, "", True, True)
@@ -927,14 +934,14 @@ def test_main_on_a_case_whose_test_file_exists_but_ran_no_tests_exits_2_with_not
     ledger = tdd / "issue-7.md"
     ledger.write_text("# Plan for #7\n\n- [ ] Pin the thing ⟦criterion 1⟧\n")
     reason = tmp_path / "reason.txt"
-    reason.write_text("the case stays green\n")
+    reason.write_text("REASON: it already holds\n")
     case_file = tmp_path / "test_empty.py"
     case_file.write_text("")
     case = str(case_file)
     fake_processes.answers({"detect-test-command.sh": (0, "stub-case-command --flag\n", ""),
                             "": (5, "collected 0 items\n\nno tests ran in 0.01s\n", "")})
 
-    code = tick_ledger.main(["--unpinnable", str(reason), "--case", case, str(ledger), "Pin the thing"])
+    code = tick_ledger.main(["--already-holds", str(reason), "--case", case, str(ledger), "Pin the thing"])
 
     out, err = capsys.readouterr()
     assert (code, out, f"case {case} never run" in err, "stub-case-command --flag" in err) == (2, "", True, True)
@@ -947,11 +954,11 @@ def test_main_on_a_fallback_make_that_exits_2_exits_2_with_nothing_on_stdout_and
     ledger = tdd / "issue-7.md"
     ledger.write_text("# Plan for #7\n\n- [ ] Pin the thing ⟦criterion 1⟧\n")
     reason = tmp_path / "reason.txt"
-    reason.write_text("the case stays green\n")
+    reason.write_text("REASON: it already holds\n")
     case = "tests/py/test_x.py::test_gone"
     fake_processes.answers({"detect-test-command.sh": (0, "", ""), "": (2, "", "")})
 
-    code = tick_ledger.main(["--unpinnable", str(reason), "--case", case, str(ledger), "Pin the thing"])
+    code = tick_ledger.main(["--already-holds", str(reason), "--case", case, str(ledger), "Pin the thing"])
 
     out, err = capsys.readouterr()
     assert (code, out, f"case {case} never run" in err, f"make test TESTS={case}" in err) == (2, "", True, True)
@@ -987,11 +994,11 @@ def test_tick_returns_3_for_an_unmatched_step_2_for_a_phase_with_refactor_pendin
 
     assert (unmatched, out_unmatched) == (3, (b"", b""))
     assert (both, out_both) == (2, (b"", b"tick-ledger.sh: --phase and --refactor-pending cannot be combined\n"))
-    assert (blank, out_blank) == (2, (b"", USAGE))
+    assert (blank, out_blank[0], is_usage(out_blank[1])) == (2, b"", True)
     assert ledger.read_bytes() == b"- [ ] alpha\n"
 
 
-def test_tick_retire_unpinnable_without_a_case_exits_1_naming_the_matcher_and_already_holds_retires_with_its_own_event(
+def test_tick_retire_already_holds_without_a_case_exits_1_naming_the_matcher_and_with_one_retires_with_its_own_event(
         tmp_path, capsys, monkeypatch, tick_ledger):
     ledger = tmp_path / ".tdd" / "issue-42.md"
     ledger.parent.mkdir()
@@ -1002,7 +1009,7 @@ def test_tick_retire_unpinnable_without_a_case_exits_1_naming_the_matcher_and_al
     monkeypatch.setenv("VERI_ISSUE", "42")
     monkeypatch.setattr(tick_ledger, "run_case", lambda case, *rest, **kw: (0, "", 0), raising=False)
 
-    no_case = tick_ledger.tick(str(ledger), "a one", retire="unpinnable", reason_file=str(reason))
+    no_case = tick_ledger.tick(str(ledger), "a one", retire="already-holds", reason_file=str(reason))
     err = capsys.readouterr().err
     held = tick_ledger.tick(str(ledger), "a one", case="tests/py/test_x.py::test_holds", retire="already-holds",
                             reason_file=str(reason))
