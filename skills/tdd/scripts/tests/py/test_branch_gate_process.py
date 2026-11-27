@@ -40,7 +40,7 @@ def test_4030_a_local_full_run_is_started_detached_waited_on_and_timed_or_stops_
 
     monkeypatch.setattr(fused, "run_script", answer)
     code, out, err = run_cli(branch_gate, ["12"], cwd=str(tmp_path),
-                             env={"VERI_BRANCH_SUITE": "", "VERI_CI_ON_PR": "", "VERI_POLL": "1"})
+                             env={"VERI_BRANCH_SUITE": "", "VERI_CI_ON_PR": "", "VERI_POLL": "0.05"})
 
     assert code == status, out + err
     assert (wt / ".tdd" / "issue-12.md").read_text() == LEDGER
