@@ -19,6 +19,10 @@ ALLOWED = {
         "names the Red heading only to exclude it",
     "unit/test_skill_event_files.py::test_every_line_sending_the_run_into_the_revise_loop_points_at_revise_md_1855":
         "names the Red heading only to exclude it",
+    "unit/test_skill_leaf_launch.py::test_blind_re_admits_the_pin_launch_with_one_to_five_test_ids_after_the_spec_file":
+        "plants ids into the one pin launch line it finds, to run the leaf-launch guard on it; not Red's prose",
+    "unit/test_skill_leaf_launch.py::test_blind_re_refuses_the_pin_launch_with_six_ids_free_text_or_a_rationale_file_after_the_spec_file":
+        "plants ids into the one pin launch line it finds, to run the leaf-launch guard on it; not Red's prose",
 }
 
 

@@ -29,7 +29,7 @@ about twelve lines.
 - **Budgets and cost**: The budgets (steps, time, refactor, context, affordability) and what leaves cost.
 - **Veri's own test runner**: How veri's own suite runs (`make test`, `make unit`, `make profile`): what the pytest leg shares with the launches, the bytecode cache, the one-full-run lock, the fast-tier admission guard and the per-case profiler.
 - **Target suites and tiers**: Choosing and running the suites of the project veri works on: finding its test commands, the suites a change affects, timed, baseline, branch and rebased-tip runs, flakes, reruns and mutation probes.
-- **Frozen tests and case history**: The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, ticking a ledger step (which re-records the earlier steps' cases), routing a rejected pin or wrong test, and the git history of cases.
+- **Frozen tests and case history**: The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, ticking a ledger step (which re-records the earlier steps' cases), gating an already-holding step, routing a wrong test, and the git history of cases.
 - **GitHub and issues**: gh access, issue selection (solvable, parked, blocked), claiming and releasing issues, specs captured from issues and ticking an issue's criteria.
 - **Branch, PR and merge**: Worktrees, pushing a branch, readying and merging the pull request, waiting for CI.
 - **Prose grading and requirements**: Graded prose: the Requirements rows of a unit, grading them with a leaf, the prose still owed grading and the skill-edit step.
@@ -454,7 +454,7 @@ The ledger is a checkbox list; steps carry `⟦…⟧` markers and `⟂` phase m
 - A step: `listed_phases`, `next_phase`, `unphased`, `trailing_markers`, `unit_of` (str/list/None), `carries_mark(text, name)`, `body(step)` (the text before its first ` ⟂ `), `is_added`, `is_human_owed`, `has_kind(step, mark)` (a kind mark in the trailing marker run or a leading ⟦skill-edit⟧; a mark quoted elsewhere is none), `is_skill_edit`, `is_go_red`, `go_red_probe(step)` (`(file, old, new, case)` of a ⟦go-red⟧ step's probe, `None` without one), `is_retired(text)`, `handed_out(record)`: predicates and parts of its text. `same_step(one, other)`: two step texts name one step, equal once each drops its `⟦…⟧` marks and its trailing ` ⟂ ` suffix (PRD 038.1 SC3); the one comparison a fused stage makes of its record's step.
 - Resolving a reference: `step_at(steps, reference, *, text_matches=same_text, by_index=False)` is the `Step` a step number or a step's text names, `None` for "no such step". By default digits are a 1-based position (`"01"` is step 1, never looked up as text); `by_index=True` takes only a step's own `number` string and then falls back to text; `text_matches(reference, text)` is the text rule (equal, the first match wins). `supervise` (equal text, and prefix text for `⟦ci-repair⟧`) and `preserve_attempt` (`by_index`, text or text without its criterion tag) call it.
 - Building and checking: `new_step(text, criterion)`, `open_step_line(text)`, `retire_mark(reason)`, `multi_tag_refusal(steps)` (`""` if fine), `ledger_path(run_dir, issue)` (a delegate of `run_dir.ledger`; only `wrong_test_route` calls it, deleted once PR #3792 lands), `added_file(path)` (the sibling `-added.md` path of a ledger file).
-- Constants: `BEFORE_STATE_GREEN` (compiled pattern: a clause of a pin's reason that calls the before-state green; tick-ledger and pin-reject-route read it), `STEP_RE`, `ITEM_RE`, `KIND_RE`, `CRITERION_RE`, `CRITERION_TAG`, `ADDED_MARK`, `PENDING_MARK`, `OPEN_STEP`, `TICKED_STEP`, `GO_RED_MARK`, `GO_RED_PROBE_RE` (a ⟦go-red⟧ step's probe: go_red_step and tick_ledger read it), `INTERFACE_PHASES` (the phases of an interface change: `expand`, `cover-new`, `migrate`, `contract-a`, `contract-b`).
+- Constants: `STEP_RE`, `ITEM_RE`, `KIND_RE`, `CRITERION_RE`, `CRITERION_TAG`, `ADDED_MARK`, `PENDING_MARK`, `OPEN_STEP`, `TICKED_STEP`, `GO_RED_MARK`, `GO_RED_PROBE_RE` (a ⟦go-red⟧ step's probe: go_red_step and tick_ledger read it), `INTERFACE_PHASES` (the phases of an interface change: `expand`, `cover-new`, `migrate`, `contract-a`, `contract-b`).
 
 ## ledger_steps
 - `current_record(records)`: the current step of `ledger.ledger_steps` records (the first done step whose refactor is pending, else the first open step), `None` when there is none.
@@ -520,6 +520,7 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 - `build-develop-prompt.sh`: render a developer leaf's prompt (red, green, refactor, revise).
 - `build-verify-prompt.sh`: render the blind verifier's prompt.
 - `cover-outcome.sh`: read a cover leaf's report on stdin.
+- `covering_tests`: a `HOLDS` red report's `COVERING_TESTS:` ids.
 - `near-duplicates.sh`: list the blocks a commit added that repeat code in the files it touched.
 - `pin-target.sh`: read a pin leaf's target from its report.
 - `quality_findings`: test-quality.sh: list the test files a run's range touched, and check and record the develop-test-quality leaf's `FINDING:` lines.
@@ -538,6 +539,10 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 - `KEY`: the `CANDIDATES:` marker. `line(text)`: what follows it and any ASCII whitespace on one line (str or bytes), found through `report`; `None` for another line.
 - `CLASSES`: the four classes a candidate may name (`structural`, `cosmetic`, `test-only`, `out-of-scope`).
 - `candidate(text, cls)`: the text after the bar of a `CANDIDATES: <cls> | <text>` line, whitespace allowed around class and bar; `None` otherwise.
+
+## covering_tests
+- `MOST`: the most ids one `COVERING_TESTS:` line or one verify-pin launch may name (5).
+- `ids(line, tracked)`: the space-separated ids of a `COVERING_TESTS:` value; raises ValueError naming the line when it holds none, more than `MOST`, or an id whose path is not in `tracked` (the `git ls-files` paths).
 
 ## prompt_template
 - `read(path)`: the file's bytes without trailing newlines; raises OSError. `spec_text_of(path)`: the same, `b""` when unreadable.
@@ -676,11 +681,11 @@ Choosing and running the suites of the project veri works on: finding its test c
 
 # Frozen tests and case history
 
-The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, ticking a ledger step (which re-records the earlier steps' cases), routing a rejected pin or wrong test, and the git history of cases. Builds on Ledger and plan, Run state and journal and Foundations.
+The tests-frozen rule: recording and checking that a step's tests are not changed afterwards, ticking a ledger step (which re-records the earlier steps' cases), gating an already-holding step, routing a wrong test, and the git history of cases. Builds on Ledger and plan, Run state and journal and Foundations.
 
 - `case_identity`: when a case in the tree is the same case as a recorded one (moves, renames, refactors) and the digest of the helpers it calls; tests_frozen decides, this module only identifies.
 - `case_history`: the git history queries tests_frozen's record policy asks; it decides, this module only looks.
-- `pin-reject-route.sh`: route a rejected pin to a ledger step.
+- `holds-step.sh`: an already-holding step's gate: refuse a worktree that differs from the step's start, then run each named covering case.
 - `production-frozen.sh`: whether production code changed in a range.
 - `restore-production.sh`: restore production files changed against the frozen record.
 - `tick-ledger.sh`: tick a ledger step, re-recording the earlier steps' frozen cases.
@@ -711,12 +716,6 @@ The record of a step's frozen tests (`.tdd/tests-frozen-<key>.record`) and its p
 - `record(record_file, files, step=None)`, `check(record_file, step=None)`: the `record` and `check` subcommands with explicit arguments; each returns the exit code (0, 1 or 2) and speaks as the CLI does. `step=None` records or checks the files given; with a step it also covers the test files that differ from HEAD.
 - `record_path`: `frozen_record.record_path`, imported. `diff(record_file, step)`: the `diff --step` subcommand with an explicit record: for each file `check` would name, prints the unified diff to its current content from its kept content, from nothing for a recorded deletion or an untracked file, and from its HEAD content for an unrecorded tracked test file; returns 0, or 2 where `check` gives no answer or a kept content cannot be read. The `snapshot --step` subcommand writes, through a scratch index beside the record, a base commit of the working tree with each file `check` would name returned to the content `diff` diffs it from, then a tip commit on it holding those files at their content on disk, and prints the tip, the real index never written, exit 0, or exits 2 where `diff` does or on a failing git call.
 - `is_diff_checked(line)`: bool for a `⟦diff-checked⟧` step. `rerecord_earlier(ledger, step)`, `rerecord_committed(step, root)`: re-record earlier steps' frozen cases; `rerecord_earlier` returns 3 for a step that is not diff-checked, 2 on an unreadable ledger or outside a repo.
-
-## wrong_test_route
-- `IDENTIFIER`: the pattern of a criterion (`⟦criterion k⟧`, `criterion k`) or requirement id (letters then digits) a behaviour names.
-- `later_owner(behaviour, spec, after)`: the first step name of `after` whose criterion text in `spec` contains `behaviour` or is contained in it, case-insensitively; `None` for none.
-- `later_owner_by_id(behaviour, spec, after)`: the first step name of `after` that `behaviour` names by an `IDENTIFIER`; `None` for none.
-- `missing_reroutes(step)`: how many `reroute` events of kind `missing` name `step` since the last `resume`, read from the cwd's `.tdd/events.jsonl`.
 
 # GitHub and issues
 
