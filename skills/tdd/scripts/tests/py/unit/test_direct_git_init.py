@@ -66,7 +66,6 @@ FILES_RUNNING_GIT_INIT = (
     "test_restore_production_process.py",
     "test_resume_clean_process.py",
     "test_retired_filers_sweep_process.py",
-    "test_role_state_process.py",
     "test_run_conductor_process.py",
     "test_run_done_process.py",
     "test_run_finished_process.py",
