@@ -73,7 +73,6 @@ FILES_RUNNING_GIT_INIT = (
     "test_skill_ci_conflict.py",
     "test_skill_ci_conflict_graded_process.py",
     "test_skill_edit_guard_process.py",
-    "test_skill_edit_step_process.py",
     "test_skill_leaf_env.py",
     "test_skill_preflight_process.py",
     "test_skill_refactor_touched.py",
