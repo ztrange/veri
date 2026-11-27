@@ -360,7 +360,7 @@ FLOOR_T = 2
 
 def _lower_n(state, world, cases):
     """Lowers the role state's numeric N by 1, never below 1 (PRD 036.8): writes n=, drops every unexpired timed-n
-    line above the new N so it cannot raise N back, and adds a `veri (load)` message; (old, new), or None when N is
+    line so no earlier one takes over or raises N back, and adds a `veri (load)` message; (old, new), or None when N is
     already at most 1. Never raised back: only the human raises N."""
     old = state.target
     new = max(1, old - 1)
@@ -368,13 +368,12 @@ def _lower_n(state, world, cases):
         return None
     lines = world.role_state()
     parsed = role_state.State(lines)
-    expired = [line for line, (value, expiry) in zip(parsed.items("timed-n"), parsed.timed_ns(), strict=True)
-               if world.clock() < expiry and value > new]
-    kept = [line for line in lines if line not in expired]
+    unexpired = [line for line, (_, expiry) in zip(parsed.items("timed-n"), parsed.timed_ns(), strict=True)
+               if world.clock() < expiry]
+    kept = [line for line in lines if line not in unexpired]
     stamp = time.strftime(role_state.STAMP, time.localtime(world.clock()))
     text = f"veri (load) lowered N from {old} to {new} after {cases} timed out with T at its floor of {FLOOR_T}"
     world.write_role_state(kept + [f"n={new}", role_state.item_line(kept, "message", text, stamp)])
-    state.target = new
     return old, new
 
 
