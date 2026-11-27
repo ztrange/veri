@@ -8,6 +8,7 @@ import time
 
 import fused
 import fused_step
+import github_queue
 import plan_publish
 import run_dir
 import tunables
@@ -77,16 +78,33 @@ def ledger_text(wt, n):
 
 def mirror(wt, n, step):
     """6's mirror (CO7): the step-done comment, each `⟦criterion k⟧` of the step asked whether it is finished (0 ticks
-    criterion k's first line in the issue body, 3 ticks nothing), then the step-done mark."""
+    criterion k's first line in the issue body, 3 ticks nothing), then the step-done mark. While GitHub is down
+    (#4803) a finished criterion is queued as a `tick` for `github-queue.sh replay` instead: at once, reading no issue
+    body, with `.tdd/github-outage` in the main working tree; after a body read or tick that got no answer, during a
+    github-status incident."""
     fused.checked("6", fused.script("comment.sh"), n, "step-done", cwd=wt)
+    top = github_queue.root(wt)
     for k in re.findall(r"⟦criterion (\d+)⟧", step):
         if asked(fused.script("criterion-finished.sh"), k, cwd=wt, stdin=ledger_text(wt, n),
                  err=".tdd/criterion-finished.err") == 0:
-            body = plan_publish.gh("6", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", wt=wt)
-            line = fused.checked("6", fused.script("ledger-steps.sh"), "criterion", k, cwd=wt, stdin=body).strip()
-            fused.checked("6", fused.script("tick-issue-criterion.sh"), n, line, ok=(0, 3), cwd=wt)
+            if top is not None and github_queue.outage(top):
+                github_queue.queue_tick(top, n, k)
+                continue
+            try:
+                tick(wt, n, k)
+            except fused.Stop as stop:
+                if stop.code != 2 or top is None or not github_queue.incident():
+                    raise
+                github_queue.queue_tick(top, n, k)
     done = fused.checked("6", fused.script("ledger-steps.sh"), "last-done", cwd=wt, stdin=ledger_text(wt, n)).strip()
     fused.mark("6", wt, n, done, "step-done")
+
+
+def tick(wt, n, k):
+    """Criterion k's first line in the issue body, ticked with tick-issue-criterion.sh, whose 3 goes on like its 0."""
+    body = plan_publish.gh("6", "api", "repos/{owner}/{repo}/issues/%s" % n, "-q", ".body", wt=wt)
+    line = fused.checked("6", fused.script("ledger-steps.sh"), "criterion", k, cwd=wt, stdin=body).strip()
+    fused.checked("6", fused.script("tick-issue-criterion.sh"), n, line, ok=(0, 3), cwd=wt)
 
 
 def next_stop(wt, n):
