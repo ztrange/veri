@@ -1,29 +1,32 @@
 ## Already satisfied — the pin
 
 A step whose criterion **earlier work already satisfies** has no failing test to write: the
-honest test passes against the unmodified code. That is an **outcome** of the step, not a
-failure of it — the behaviour exists and what it wants is a **regression pin**. You reach
-this section from Red when the developer leaf reported `AGAINST_UNMODIFIED: PASSES` and you
-ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
-`### 🔴 Red` / `### 🔎 verify-red` pair, the comments `$S/comment.sh <n> red` and
+behaviour exists, and the step is an **outcome**, not a failure. Such an already-holding step
+takes one of two forms. Either the Red leaf names the existing tests that cover the criterion
+(`AGAINST_UNMODIFIED: HOLDS`, with `COVERING_TESTS: <id>…`) and writes nothing, or no existing
+test covers it and the leaf adds one test that passes against the unmodified code
+(`AGAINST_UNMODIFIED: PASSES`). Neither owes a fail-at-base or a mutation: the test is never
+shown to fail on any earlier commit, and no production code is broken to watch it go red. You reach this section from
+Red, which ran `$S/holds-step.sh` on `HOLDS` and then `$S/verify.sh pin …` in place of verify-red, with the
+`COVERING_TESTS:` ids on `HOLDS` and the step's `TARGET_TEST` on `PASSES`. The verify-pin verdict replaces the
+`### 🔴 Red` / `### 🔎 verify-red` comment pair, the comments `$S/comment.sh <n> red` and
 `$S/comment.sh <n> verify-red` would otherwise post.
 
-`verify-pin` runs its probe but records nothing: no file is committed with the pin's tick.
+verify-pin judges only that the named tests pass now and cover the criterion, and their quality: it runs
+no probe and applies no mutation, so no file but the test is committed with a `PASSES` pin's tick.
 
-**Switched off:** with `pin` listed in `.tdd/issue-<n>-skip-verify`, no verify-pin launches —
-not on Red's `PASSES`, not on a `red-missing` added case that passes, not as a revised red's
-re-verify. Record `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh verify-pin-skipped reason=switched-off`,
-write `skipped` to `.tdd/verdict-pin.exit`, and take the PASS branch below as on exit 0,
-`pin-fast-tier.sh` (and `rerun-alone.sh` on its exit 1) included, or the `⟦replaces-case⟧`
-deletion path; the `### 📌 Already satisfied — <STEP>` mirror comment carries `verify-pin — SKIPPED (switched off)` where it would
-carry the verifier's reason. No retirement is possible, since `pin-reject-route.sh` runs
-only on a REJECT. **The one exception:** a step whose text names a go-red control
-(`mutation-probe.sh --before <sha>` or `the go-red control is <file> at <sha>`) runs verify-pin
-even with `pin` in `.tdd/issue-<n>-skip-verify`, and its verdict is read as below: the criterion
-itself names the probe, and that verify-pin run is its evidence.
+**Switched off:** with `pin` listed in `.tdd/issue-<n>-skip-verify`, no verify-pin launches on any
+step — not on Red's `PASSES` or `HOLDS`, not on a `red-missing` added case that passes, not as a
+revised red's re-verify. Record `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh verify-pin-skipped reason=switched-off`,
+write `skipped` to `.tdd/verdict-pin.exit`, and take the PASS branch below as on exit 0: on `PASSES`
+with `pin-fast-tier.sh` (and `rerun-alone.sh` on its exit 1), on `HOLDS` with the tick resting on
+`holds-step.sh` exit 0 alone, or the `⟦replaces-case⟧` deletion path. The
+`### 📌 Already satisfied — <STEP>` mirror comment carries `verify-pin — SKIPPED (switched off)` where it would
+carry the verifier's reason.
 
-A `⟦replaces-case⟧` step whose Red reports `AGAINST_UNMODIFIED: PASSES` takes a different
-path after verify-pin, because deleting the named bash cases is still owed.
+A `⟦replaces-case⟧` step whose Red reports `AGAINST_UNMODIFIED: PASSES` is verified by the
+reduced verify-pin like any other `PASSES` step, then takes a different path after it,
+because deleting the named bash cases is still owed.
 A `⟦replaces-case⟧` step skips verify-red, so on that verify-pin PASS first run
 `$S/tests-frozen.sh record --step "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" <test-path>` to record its replacement
 cases before the deletion green checks them; tests-frozen exit 2 is a bail. Then commit nothing yet,
@@ -41,11 +44,16 @@ That tick carries `--refactor-pending`, so the ` ⟂ refactor pending` mark foll
 deletion green and the Refactor phase runs on the step as after any Green.
 Every other step takes the verdict as follows:
 
-- **PASS (exit 0) — on a `⟦replaces-case⟧` step, take the deletion path above instead;
-  on any other step, commit the test as the pin, ticking the ledger atomically.** Same
+- **PASS (exit 0) — on a `⟦replaces-case⟧` step, take the deletion path above instead.**
+  **On `HOLDS`** retire the step, with no commit of a test: tick it with
+  `$S/tick-ledger.sh --already-holds .tdd/verify-pin.reason --case <id> .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"`,
+  one `--case` per `COVERING_TESTS:` id, which marks it ` ⟂ retired already holds`; commit that
+  ticked ledger alone, post `$S/comment.sh <n> retire`, run no Green and no Refactor, and loop back
+  to the top of **step 3** for the next unchecked ledger step.
+  **On `PASSES`** commit the test as the pin, ticking the ledger atomically. Same
   tick-and-commit shape as Green, but the commit carries the **test alone** and the `test:`
-  type, because no production code was written (the verifier reverted its own mutation, so
-  the tree holds only the new test and the ticked ledger):
+  type, because no production code was written, so the tree holds only the new test and the
+  ticked ledger:
   Before it, run `$S/pin-fast-tier.sh '<fast-cmd>'`: on exit 1 first run
   `$S/rerun-alone.sh '<alone-cmd>' .tdd/verify-pin.reason`, where `<alone-cmd>` is the value of
   the repo CLAUDE.md's `veri: one test file:` line (the repo's own runner for one test target,
@@ -78,47 +86,15 @@ Every other step takes the verdict as follows:
   The step is **done** — **no Green and no Refactor**, since there is no new production
   code to write or to tidy. Loop back to the top of **step 3** for the next unchecked
   ledger step.
-- **REJECT (exit 1):** run
-  `$S/pin-reject-route.sh [--missing-reroute] .tdd/verify-pin.reason .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" <target-test>`,
-  passing `--missing-reroute` on a step reached by a `missing` reroute, and `<target-test>`
-  the step's `TARGET_TEST` from the red leaf's report. On a step reached by a `missing`
-  reroute, take `<target-test>` from `pin-target.sh` (the step's own red report's
-  `TARGET_TEST:`), never from the `red-missing` leaf's report. The script retires the step only when
-  that case passes, and it runs the case to find out; a failing case makes it print `revise`
-  and exit 1, leaving the line unticked and unmarked with no retirement event, so you enter
-  the revise loop for red (or park the step when the revise budget is spent), never retiring
-  it by hand. It prints `retired`
-  or `revise`, except that under `--missing-reroute` a reason with a before-state-green clause
-  (a clause naming the before-state and green or pass, with no fail, red, not, n't or after in it) prints `unpinnable-missing`, ticks nothing and exits 2: only the
-  added missing case is unpinnable, not the step. Under `--missing-reroute` a reason with no such clause and no `stays green` retires the step via `--already-holds`. A reason reporting a surviving mutant of the
-  added case (`stays green`, the target red on the before-state) is exit 1 and enters the revise
-  loop for red only under `--missing-reroute`; without it, that reason retires the step. The routing is the script's decision, never your reading of the reason. On its
-  exit **0** the step is retired. A retire whose reason qualified on a surviving mutation alone (no
-  before-state-green clause) has also returned the step's uncommitted Red test changes to HEAD
-  (every test file differing from HEAD: an untracked one deleted, a modified one restored) before
-  you commit the retired ledger, so the test the verifier showed pins nothing is never committed; a
-  retire whose reason has a before-state-green clause keeps the step's test, green on the
-  before-state and still a guard. Commit the retired ledger, write no `revise` mark, spend no
-  `REVISE_BUDGET` attempt, post the step's retirement to the thread with `$S/comment.sh <n> retire`, and loop back to
-  `next-unchecked.sh` for the next unchecked ledger step; this holds on a step reached by a
-  `missing` reroute too, whose green is then not re-run. On its exit **1** enter the revise
-  loop as follows (`build-develop-prompt.sh revise red` refuses, exit 2, only a `verify-pin.reason`
-  with a before-state-green clause, so that reason never reaches it; a `stays green` reason
-  reaches it only by `--missing-reroute`, the one route that sends such a reason to revise); on its exit **2** printing
-  `unpinnable-missing` (only under `--missing-reroute`) **bail** with `cause=unpinnable-missing`
-  as a **process** failure, and on any other (bare) exit **2** **bail** as a
-  **system** failure. Exit 2 still means bad arguments (a missing `<target-test>` included) or
-  no answer: read exit 1 as the methodology speaking and exit 2 as the plumbing breaking, except
-  when it prints `unpinnable-missing`, which is the methodology speaking (a process failure).
-  The revise loop: enter it for the **red** phase, building the prompt as
-  `revise red … .tdd/verify-pin.reason` (when a verifier answers `REJECT`, `Read` `<base directory>/REVISE.md`). The phase argument
+- **REJECT (exit 1):** enter the revise loop for the **red** phase on `REVISE_BUDGET`
+  (`Read` `<base directory>/REVISE.md`), straight from the verdict, building the prompt as
+  `revise red … .tdd/verify-pin.reason`; no script routes the REJECT and no step is retired on it. The phase argument
   is the *developer* phase being redone, while the reason file is named for the *verifier*
   that rejected, here `pin`. The rejection reason is the carry-forward signal that tells the
-  fresh leaf which way to go: either the pin is weak (trivial, over-coupled, or it survives
-  the mutation) or a genuinely failing test exists after all. Re-verify with the phase the
-  revise leaf's own `AGAINST_UNMODIFIED` line selects — `pin` on `PASSES`, `red` on `FAILS`.
-  (That line's third value, `N/A`, cannot arise here: a revise of red always touches a
-  test.) On a recovered `PASS` from `pin`, do the tick-and-commit above, or the deletion path
+  fresh leaf which way to go: the tests do not cover the criterion, the added test is weak
+  (trivial or over-coupled), or a genuinely failing test exists after all. Re-verify with the phase the
+  revise leaf's own `AGAINST_UNMODIFIED` line selects — `pin` on `PASSES` or `HOLDS`, `red` on `FAILS`.
+  On a recovered `PASS` from `pin`, do the PASS bullet's tick above, or the deletion path
   on a `⟦replaces-case⟧` step; from `red`,
   continue to Green. On budget-exhausted, **bail** as a **process** failure.
 - **Malformed / killed-stuck (exit 2):** **bail** as a **system** failure (`no-verdict`) —
