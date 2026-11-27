@@ -37,7 +37,7 @@ def test_each_of_the_10_renamed_units_with_a_requirements_list_has_a_graded_line
     grade_prose = importlib.import_module("veri.grade_prose")
     requirements = importlib.import_module("veri.requirements")
     monkeypatch.chdir(ROOT)
-    # Every list prose-owed.sh reads, found as requirements.tracked finds them with no git (a unit case may not start
+    # Every list the owed-grade check reads, found as requirements.tracked finds them with no git (a unit case may not start
     # git against this repository): signature() would otherwise list the tracked lists with git (#4016).
     import glob
     units = [u for p in sorted(glob.glob("**/REQUIREMENTS.md", recursive=True)) for u in requirements.listed_units(p)]
