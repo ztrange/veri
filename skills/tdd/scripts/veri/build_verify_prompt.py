@@ -6,6 +6,7 @@ import re
 import sys
 
 import case_reader
+import covering_tests
 import detect_test_command
 import event_log
 import git
@@ -151,6 +152,13 @@ def pin_ids(words):
     return words[:4], tuple(words[2:])
 
 
+def pin_ids_refusal(test_ids):
+    """Why the pin phase's <test_ids> cannot be judged, or "" when they can: more than covering_tests.MOST of them."""
+    if len(test_ids) > covering_tests.MOST:
+        return f"build-verify-prompt: pin takes at most {covering_tests.MOST} test ids, got {len(test_ids)}"
+    return ""
+
+
 TOUCHING_HEADING = b"### Test cases touching the files the plan names"
 SKIPPED_DIRS = {".git", ".tdd", ".venv", "node_modules"}
 
@@ -240,12 +248,9 @@ def _refused(message=None):
 
 def _option_refusal(phase, branch_base, supersede_base, step_green, frozen_edit):
     """The message refusing an option's value, its pairing or the phase's name, or None."""
-    if branch_base and not HEX_SHA.fullmatch(branch_base):
-        return f"build-verify-prompt: --branch-base needs 7-40 lowercase hex characters, got '{branch_base}'"
-    if step_green and not HEX_SHA.fullmatch(step_green):
-        return f"build-verify-prompt: --step-green needs 7-40 lowercase hex characters, got '{step_green}'"
-    if frozen_edit and not HEX_SHA.fullmatch(frozen_edit):
-        return f"build-verify-prompt: --frozen-edit needs 7-40 lowercase hex characters, got '{frozen_edit}'"
+    for flag, value in (("--branch-base", branch_base), ("--step-green", step_green), ("--frozen-edit", frozen_edit)):
+        if value and not HEX_SHA.fullmatch(value):
+            return f"build-verify-prompt: {flag} needs 7-40 lowercase hex characters, got '{value}'"
     if frozen_edit and phase != "diff":
         return f"build-verify-prompt: --frozen-edit is the diff phase's alone, not {phase}'s"
     if frozen_edit and supersede_base:
@@ -304,6 +309,9 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
     refused = _option_refusal(phase, branch_base, supersede_base, step_green, frozen_edit)
     if refused is not None:
         return _refused(refused)
+    refusal = pin_ids_refusal(test_ids)
+    if refusal:
+        return _refused(refusal)
     cap = tunables.get("VERI_PLAN_TOUCHING_CASES")
     if phase == "plan" and not tunables.parses("VERI_PLAN_TOUCHING_CASES", cap):
         write(sys.stderr, f"build-verify-prompt: VERI_PLAN_TOUCHING_CASES must be a whole number, got '{cap}'",
