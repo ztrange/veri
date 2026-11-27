@@ -2296,3 +2296,20 @@ def test_4803_a_post_behind_an_unreadable_queue_entry_exits_2_posting_and_queuei
     assert (code, out, posted) == (2, "", [])
     assert "unreadable entry" in err
     assert (tmp_path / ".tdd" / "github-queue").read_text() == "not json\n"
+
+
+def test_4803_a_post_in_a_linked_worktree_whose_gitdir_is_unreadable_exits_2_queueing_nothing_without_a_traceback(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    _offline_step_done(monkeypatch, tmp_path, incident=True)
+    (tmp_path / ".tdd" / "github-outage").write_text("")
+    wt = tmp_path / ".tdd" / "wt" / "7"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".git").write_text("gitdir: %s\n" % (tmp_path / "gone"))
+    (wt / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] second step bravo\n")
+
+    code, out, err = run_cli(comment, ["7", "step-done"], cwd=wt)
+
+    assert (code, out) == (2, "")
+    assert "Traceback" not in err and "TypeError" not in err
+    assert _queued(tmp_path) is None and not (wt / ".tdd" / "github-queue").exists()

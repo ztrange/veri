@@ -60,6 +60,7 @@ def close(monkeypatch, run_cli, tmp_path):
     (code, stdout, stderr, fake)."""
     fused = importlib.import_module("veri.fused")
     step_close = importlib.import_module("veri.step_close")
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: False)
     wt = tmp_path / ".tdd" / "wt" / "12"
     (wt / ".tdd").mkdir(parents=True)
     (tmp_path / ".git").mkdir()
@@ -585,9 +586,9 @@ def test_4803_with_the_outage_file_each_finished_criterion_is_queued_as_a_tick_w
     assert fake.call("event.sh", "step-done")
 
 
-def test_4803_a_body_read_that_gets_no_answer_during_an_incident_queues_the_tick_and_exits_0(
+def test_4803_a_body_read_that_gets_no_answer_during_an_incident_begun_after_the_up_front_check_queues_the_tick(
         close, tmp_path, monkeypatch):
-    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: True)
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", iter([False, True]).__next__)
 
     code, out, err, fake = close(answers={("gh", None): (2, "")})
 
@@ -605,11 +606,22 @@ def test_4803_a_body_read_that_gets_no_answer_with_no_incident_still_stops_at_6_
     assert not (tmp_path / ".tdd" / "github-queue").exists()
 
 
-def test_4803_a_body_read_refused_with_exit_1_during_an_incident_still_stops_at_6_and_queues_nothing(
+def test_4803_a_body_read_refused_with_exit_1_during_an_incident_begun_after_the_up_front_check_still_stops_at_6(
         close, tmp_path, monkeypatch):
-    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: True)
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", iter([False, True]).__next__)
 
     code, out, err, fake = close(answers={("gh", None): (1, "")})
 
     assert (code, fake.names()[-1]) == (1, "gh")
     assert not (tmp_path / ".tdd" / "github-queue").exists()
+
+
+def test_4803_during_an_incident_with_no_outage_file_each_finished_criterion_is_queued_without_reading_the_body(
+        close, tmp_path, monkeypatch):
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: True)
+
+    code, out, err, fake = close(step="one thing works ⟦criterion 1⟧ ⟦criterion 3⟧")
+
+    assert code == 0, out
+    assert not {"gh", "tick-issue-criterion.sh"} & set(fake.names())
+    assert _queued(tmp_path) == [("tick", "12", 1), ("tick", "12", 3)]

@@ -248,3 +248,21 @@ def test_4803_incident_counts_only_a_status_read_that_reports_one(monkeypatch, a
     monkeypatch.setattr(importlib.import_module("github_status"), "default_read", lambda: answer)
 
     assert importlib.import_module("veri.github_queue").incident() is counted
+
+
+def test_4803_replay_of_a_queue_of_blank_lines_only_removes_the_file_and_exits_0(hub, run_cli):
+    (hub.root / ".tdd" / "github-queue").write_text("\n\n")
+
+    code, out, err = run_cli(hub.queue, ["replay"], cwd=hub.root)
+
+    assert code == 0, err
+    assert not (hub.root / ".tdd" / "github-queue").exists()
+    assert hub.posted == []
+
+
+def test_4803_a_queued_comment_is_redacted_on_disk_so_no_local_path_sits_in_the_queue(hub):
+    hub.queue.queue_comment(str(hub.root), "7", "step-done", "see /home/someone/run/.tdd/issue-7.md")
+
+    on_disk = (hub.root / ".tdd" / "github-queue").read_text()
+    assert "/home/someone" not in on_disk
+    assert "<path>" in on_disk
