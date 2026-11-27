@@ -21,10 +21,12 @@ needed, and name none from memory.
 With no argument the groom is the sweep over every open issue; each argument form narrows it.
 
 - No argument — **the sweep** (below): every open issue, whatever its labels — issues without
-  the opt-in label (bare or scoped), issues already carrying it, refactor-owed items and PRD
-  trackers (titled `PRD <nnn>: …`) — save one kind: the sweep leaves out every issue carrying a
-  `taken:` label (any lane), which a run holds in place of the opt-in label, and reports each one
-  as skipped, naming why: grooming under a live run would race it.
+  the opt-in label (bare or scoped), issues already carrying it, `parked` and `bailed` issues,
+  refactor-owed items and PRD trackers (titled `PRD <nnn>: …`) — save one kind: the sweep leaves
+  out every issue carrying a `taken:` label (any lane) and neither `parked` nor `bailed`, which a
+  live run holds in place of the opt-in label, and reports each one as skipped, naming why:
+  grooming under a live run would race it. A `parked` or `bailed` one holds no live run, so it is
+  in the sweep, its `taken:` label notwithstanding.
 - `<issue>...` and `<range>...` — narrow the groom to exactly those issues, whatever their
   labels. Read them flexibly: one or more issue ids written `4261` or `#4261`, separated by spaces
   or commas (`4261 4262`, `4261,4262`), and inclusive ranges written `4260-4270` or
@@ -38,8 +40,10 @@ it is only reported (*The sweep*).
 
 ## The sweep
 
-The sweep's scope is every open issue but the `taken:` ones (*Invocation*): issues without the
-opt-in label (bare or scoped), issues already opted in, the refactor-owed items, which go through
+The sweep's scope is every open issue but the `taken:` ones carrying neither `parked` nor
+`bailed` (*Invocation*): issues without the opt-in label (bare or scoped), issues already opted
+in, `parked` and `bailed` issues, a `taken:` one included, which go through `### Parked and
+bailed issues`, the refactor-owed items, which go through
 the `--refactor-owed` consolidation (below) as part of the sweep, and PRD trackers, which go
 through `### Missing PRD parents` and `### PRD trackers`. Every issue in scope gets one report
 line, and every one but a `draft` ends the run with exactly one outcome; none is skipped or left
@@ -52,10 +56,10 @@ cause landed or whose draft condition lapsed is groomed on the next sweep.
 **Every open issue the sweep leaves without the opt-in label carries exactly one reason**, the
 `taken:` and `draft` ones included, from this closed list:
 
-- taken by a live run (a `taken:` label);
+- taken by a live run (a `taken:` label on an issue carrying neither `parked` nor `bailed`);
 - blocked by an open issue it names (`#N`);
 - draft waiting on the condition its `## Not ready` names;
-- needs a human decision on a question stated in full;
+- needs a human decision on a question stated in full, a park on a question to the human included;
 - parked or bailed, with the cause its label's comment names unresolved;
 - folded into an issue it names (`#N`);
 - not planned now: a draft whose `## Not ready` condition no longer holds, not yet planned.
@@ -89,6 +93,27 @@ columns are the issue's number, its title and its reason from the closed list ab
 ready` says) and whether its body still meets `../vfile/SKILL.md`'s `## The issue body`. The groom
 removes its opt-in label only with the reason stated in that issue's report line, and never
 otherwise; a `ready` one keeps the label it has.
+
+### Parked and bailed issues
+
+A `parked` or `bailed` issue's cause is its newest `### ⏸ Parked` or `### ⛔ Bailed` comment
+written by the repository's `OWNER` or a `COLLABORATOR` (the comment's `author_association`);
+no other author's comment is read as its cause.
+
+- **Parked on a question.** When that comment is a `### ⏸ Parked` one holding a `#### Question`
+  heading (a `park-issue.sh --question-file` park), the sweep never releases the issue, whatever
+  it names; its reason is needs-human.
+- **Fix landed.** Otherwise the fix it waited on has landed when the comment names at least one
+  issue or PR (`#N`) other than the issue itself and its own run's PR (the PR saying
+  `Closes #<issue>`), every issue it names is closed and every PR it names is merged. A comment
+  naming none has not landed. A landed one is released with `$S/release-issue.sh <issue>`, never
+  by taking a label off by hand: it adds the opt-in label and removes `parked`, `bailed` and this
+  lane's `taken:` claim together. On exit 0 the issue is groomed as one already opted in (above).
+  Exit 2 (another lane's claim, or no answer from gh) is reported in the issue's report line and
+  leaves the issue as it was, its reason parked or bailed.
+- **Not released.** Every other `parked` or `bailed` issue is only reported: the sweep never adds
+  the opt-in label to, rewrites, splits or closes it, and its report line and table row name the
+  cause its comment states.
 
 ## Triage
 
