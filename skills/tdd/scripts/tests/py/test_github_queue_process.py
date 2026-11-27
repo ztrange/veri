@@ -32,7 +32,7 @@ def landed_world(tmp_path, runs=RUNS, trailers=None, held=(), before=(), after=N
     """The clone `work` of a bare origin whose default branch is trunk, its stack holding first each subject of
     <before> (a run joined online before the outage, no trailer), then <runs> ((issue, subjects) pairs), each run's
     last commit carrying the run's Veri-Joined trailer and the Veri-Joined-Onto trailer naming the stack's tip it was
-    joined onto, or the trailer block <trailers> maps its (issue, index) to, each followed by the subjects <after> maps
+    joined onto, or the trailer block <trailers> maps its (issue, index) to (a callable gets the sha it is joined onto), each followed by the subjects <after> maps
     its issue to (a repair committed on the stack between two joins). A second clone first commits each subject of
     <held> on trunk (a held pull request merged before the landing), then lands the stack but its last <unlanded>
     commits on origin's trunk under new shas; `work` never fetches it. Returns (work, the stack's tip, [(issue, [(short sha, subject)])] as landed,
@@ -52,6 +52,7 @@ def landed_world(tmp_path, runs=RUNS, trailers=None, held=(), before=(), after=N
         last = len(subjects) - 1
         for index, subject in enumerate(subjects):
             block = (trailers or {}).get((issue, index), joined(issue) + "\n" + onto(base) if index == last else "")
+            block = block(base) if callable(block) else block
             commit_all(work, subject + ("\n\n" + block if block else ""), **{"f%d-%d.txt" % (number, index): "x\n"})
         for index, subject in enumerate((after or {}).get(issue, ())):
             commit_all(work, subject, **{"after-%d-%d.txt" % (number, index): "a\n"})
@@ -358,10 +359,13 @@ def test_4823_close_landed_over_a_garbled_veri_joined_trailer_queues_nothing_and
 
 
 @pytest.mark.process(PROCESS)
-@pytest.mark.parametrize("block", ["", "\nVeri-Joined-Onto: HEAD~1", "\nVeri-Joined-Onto: " + "a" * 40])
+@pytest.mark.parametrize("block", [
+    lambda base: "", lambda base: "\nVeri-Joined-Onto: HEAD~1", lambda base: "\nVeri-Joined-Onto: " + "a" * 40,
+    lambda base: "\n" + onto(base) + "\n" + onto(base), lambda base: "\nVeri-Joined-Onto: " + base[:12]],
+    ids=["none", "a-revision", "no-such-commit", "two-trailers", "a-short-sha"])
 def test_4823_close_landed_over_a_join_without_a_readable_veri_joined_onto_queues_nothing_and_exits_2(
         tmp_path, monkeypatch, run_cli, block):
-    work, tip, _, _ = landed_world(tmp_path, trailers={("12", 2): joined("12") + block})
+    work, tip, _, _ = landed_world(tmp_path, trailers={("12", 2): lambda base: joined("12") + block(base)})
     hub = Hub(monkeypatch)
 
     code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
