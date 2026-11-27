@@ -64,7 +64,7 @@ def solvable_issues():
     return [line.split()[0] for line in done.stdout.splitlines() if line.strip()]
 
 
-_pause = 2
+_pause = None
 
 
 def wait():
@@ -142,7 +142,8 @@ def main(argv):
         print("nothing to watch")
         return 3
     global _pause
-    _pause = 2 if max_wait is None else min(2, max_wait)
+    poll = float(tunables.get("VERI_WATCH_POLL"))
+    _pause = poll if max_wait is None else min(poll, max_wait)
     deadline = clock() + max_wait if max_wait is not None else None
     missed = set()
     resume_at = 0

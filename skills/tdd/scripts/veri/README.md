@@ -305,6 +305,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_TOOL_SLOW_SLEEP` | `900` | its readers' own words |
 | `VERI_TOOL_WAIT` | `3600` | its readers' own words |
 | `VERI_UNIT_BUDGET` | `10` | its readers' own words |
+| `VERI_WATCH_POLL` | `2` | its readers' own words |
 | `VERI_WATCH_QUEUE_INTERVAL` | `60` | its readers' own words |
 | `VERI_WORKQUEUE_LOCK_WAIT` | `30` | its readers' own words |
 
