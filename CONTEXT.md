@@ -126,12 +126,12 @@ line, and `/vmerge` reviews it before the merge.
 _Avoid_: exception, override, waiver (unqualified)
 
 **Pin**:
-A step outcome for a criterion that earlier work already satisfies: the developer leaf's
-honest test passes against the unmodified code. Instead of verify-red (which can only
-reject a passing test) the conductor runs **verify-pin**, a blind check that the test
-passes now, *fails* under a behaviour-removing mutation the verifier applies and reverts
-itself, and is behaviour-level. On `PASS` the test lands as a `test:` commit with the
-ledger tick atomic, narrated as `📌 Already satisfied`; Green and Refactor are skipped.
+A step whose criterion already holds: earlier work already satisfies it. It is ticked when a
+blind verifier, **verify-pin**, judges that named existing tests cover the criterion (the
+developer leaf reports `HOLDS`, writes no file, and the step is ticked ` ⟂ retired already holds`),
+or it lands one new test, already passing against the unmodified code, judged only for coverage
+of the criterion. No mutation is applied and no failure at the base is demanded; Green and
+Refactor are skipped, narrated as `📌 Already satisfied`.
 _Avoid_: skip, no-op step
 
 **Dependency marker**:
