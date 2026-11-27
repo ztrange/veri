@@ -63,7 +63,7 @@ def publish(monkeypatch, run_cli, tmp_path):
     title = tmp_path / "title.txt"
 
     def go(answers=None, fake=None, missing=(), argv=None):
-        files = {"branch_base": (wt / ".tdd" / "issue-12-branch-base", BRANCH_BASE + "\n"), 
+        files = {"branch_base": (wt / ".tdd" / "issue-12-branch-base", BRANCH_BASE + "\n"),
                  "preflight": (wt / ".tdd" / "issue-12-preflight",
                                "worktree=%s\nfast_cmd=make unit\ndefault_branch=main\nrun=fresh\n" % wt),
                  "ledger": (wt / ".tdd" / "issue-12.md", LEDGER), "title": (title, TITLE + "\n")}

@@ -45,7 +45,7 @@ def fake_git(fake_processes, answers):
     return Argvs(fake_processes.answers(table, exact=True))
 
 
-def test_main_refuses_a_bad_argument_list_with_the_usage_line_before_any_git_and_maps_a_dying_git_to_2(fake_processes, 
+def test_main_refuses_a_bad_argument_list_with_the_usage_line_before_any_git_and_maps_a_dying_git_to_2(fake_processes,
         monkeypatch, capsys, issue_worktree):
     for argv in ([], ["270"], ["--remove"], ["", "x"], ["7", ""]):
         calls = fake_git(fake_processes, {})
@@ -61,7 +61,7 @@ def test_main_refuses_a_bad_argument_list_with_the_usage_line_before_any_git_and
     assert (code, capsys.readouterr().out, calls[:1]) == (2, "", [["git", "worktree", "list", "--porcelain"]])
 
 
-def test_cli_hands_back_a_registered_worktree_whose_pid_file_holds_non_utf8_bytes_with_nothing_on_stderr_issue_965(fake_processes, 
+def test_cli_hands_back_a_registered_worktree_whose_pid_file_holds_non_utf8_bytes_with_nothing_on_stderr_issue_965(fake_processes,
         monkeypatch, tmp_path, issue_worktree, run_cli):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/965"
@@ -79,7 +79,7 @@ def test_cli_hands_back_a_registered_worktree_whose_pid_file_holds_non_utf8_byte
     assert (code, out, err) == (0, path + "\n", "")
 
 
-def test_cli_hand_back_leaves_a_marker_in_the_worktrees_tdd_dir_with_the_path_alone_on_stdout_issue_2460(fake_processes, 
+def test_cli_hand_back_leaves_a_marker_in_the_worktrees_tdd_dir_with_the_path_alone_on_stdout_issue_2460(fake_processes,
         monkeypatch, tmp_path, issue_worktree, run_cli):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/2460"
@@ -98,7 +98,7 @@ def test_cli_hand_back_leaves_a_marker_in_the_worktrees_tdd_dir_with_the_path_al
     assert (code, out, err, len(marker)) == (0, path + "\n", "", 1)
 
 
-def test_cli_refuses_an_n_that_is_not_a_positive_whole_number_with_the_usage_line_and_runs_no_git(fake_processes, 
+def test_cli_refuses_an_n_that_is_not_a_positive_whole_number_with_the_usage_line_and_runs_no_git(fake_processes,
         monkeypatch, tmp_path, issue_worktree, run_cli):
     for n in ("abc", "0", "-3", "7a", "../escape"):
         calls = fake_git(fake_processes, {})
@@ -108,7 +108,7 @@ def test_cli_refuses_an_n_that_is_not_a_positive_whole_number_with_the_usage_lin
         assert (n, code, out, err, calls, sorted(tmp_path.rglob("*"))) == (n, 2, "", USAGE, [], [])
 
 
-def test_cli_remove_refuses_an_n_that_is_not_a_positive_whole_number_with_the_usage_line_and_runs_no_git(fake_processes, 
+def test_cli_remove_refuses_an_n_that_is_not_a_positive_whole_number_with_the_usage_line_and_runs_no_git(fake_processes,
         monkeypatch, tmp_path, issue_worktree, run_cli):
     victim = tmp_path / ".claude" / "worktrees" / "victim"
     victim.mkdir(parents=True)
@@ -152,7 +152,7 @@ def routing_git(fake_processes, answers):
     return Argvs(fake_processes.answers({}, default=answer))
 
 
-def test_main_remove_refuses_a_dirty_worktree_and_removes_a_clean_one_without_force_at_the_unnormalised_registry_path(fake_processes, 
+def test_main_remove_refuses_a_dirty_worktree_and_removes_a_clean_one_without_force_at_the_unnormalised_registry_path(fake_processes,
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/a/../repo"
     path = f"{main_tree}/.tdd/wt/7"
@@ -181,7 +181,7 @@ def test_main_remove_refuses_a_dirty_worktree_and_removes_a_clean_one_without_fo
     assert (code, capsys.readouterr().out, calls) == (2, "", [list(listing), list(status), list(remove)])
 
 
-def test_main_remove_returns_a_dying_gits_status_inside_0_to_3_as_it_is_and_maps_only_one_outside_to_2(fake_processes, 
+def test_main_remove_returns_a_dying_gits_status_inside_0_to_3_as_it_is_and_maps_only_one_outside_to_2(fake_processes,
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
     path = f"{main_tree}/.tdd/wt/7"
@@ -202,7 +202,7 @@ def test_main_remove_returns_a_dying_gits_status_inside_0_to_3_as_it_is_and_maps
             remove_code, want, "", [list(listing), list(status), list(remove)])
 
 
-def test_main_remove_leaves_the_snapshot_directory_outside_the_worktree_in_place_when_git_worktree_remove_fails_issue_2627(fake_processes, 
+def test_main_remove_leaves_the_snapshot_directory_outside_the_worktree_in_place_when_git_worktree_remove_fails_issue_2627(fake_processes,
         tmp_path, monkeypatch, capsys, issue_worktree):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/7"
@@ -253,7 +253,7 @@ def remove_run_recording(tmp_path, fake_processes, capsys, issue_worktree, recor
     return code, capsys.readouterr().err
 
 
-def test_main_remove_deletes_the_snapshot_veri_made_for_the_worktree_once_the_worktree_is_removed(fake_processes, 
+def test_main_remove_deletes_the_snapshot_veri_made_for_the_worktree_once_the_worktree_is_removed(fake_processes,
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", run_worktree_of(tmp_path))
 
@@ -292,7 +292,7 @@ def refusal_of(tmp_path, snapshot):
         snapshot, run_worktree_of(tmp_path))
 
 
-def test_main_remove_leaves_a_snapshot_whose_marker_names_another_worktree_in_place_and_says_so(fake_processes, 
+def test_main_remove_leaves_a_snapshot_whose_marker_names_another_worktree_in_place_and_says_so(fake_processes,
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", str(tmp_path / "repo" / ".tdd" / "wt" / "8"))
 
@@ -301,7 +301,7 @@ def test_main_remove_leaves_a_snapshot_whose_marker_names_another_worktree_in_pl
     assert (code, err, (snapshot / "status.sh").exists()) == (0, refusal_of(tmp_path, snapshot), True)
 
 
-def test_main_remove_leaves_a_relative_recorded_path_in_place_even_when_it_names_a_conforming_directory_from_the_cwd(fake_processes, 
+def test_main_remove_leaves_a_relative_recorded_path_in_place_even_when_it_names_a_conforming_directory_from_the_cwd(fake_processes,
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", run_worktree_of(tmp_path))
 
@@ -310,7 +310,7 @@ def test_main_remove_leaves_a_relative_recorded_path_in_place_even_when_it_names
     assert (code, err, (snapshot / "status.sh").exists()) == (0, refusal_of(tmp_path, "veri-snapshot-abc123"), True)
 
 
-def test_main_remove_leaves_a_symlink_to_a_conforming_snapshot_in_place_and_says_so(fake_processes, 
+def test_main_remove_leaves_a_symlink_to_a_conforming_snapshot_in_place_and_says_so(fake_processes,
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = made_snapshot(tmp_path / "veri-snapshot-abc123", run_worktree_of(tmp_path))
     link = tmp_path / "veri-snapshot-link"
@@ -322,7 +322,7 @@ def test_main_remove_leaves_a_symlink_to_a_conforming_snapshot_in_place_and_says
         0, refusal_of(tmp_path, link), True, True)
 
 
-def test_main_remove_leaves_two_recorded_lines_in_place_even_when_each_names_a_conforming_snapshot(fake_processes, 
+def test_main_remove_leaves_two_recorded_lines_in_place_even_when_each_names_a_conforming_snapshot(fake_processes,
         tmp_path, monkeypatch, capsys, issue_worktree):
     first = made_snapshot(tmp_path / "veri-snapshot-first", run_worktree_of(tmp_path))
     second = made_snapshot(tmp_path / "veri-snapshot-second", run_worktree_of(tmp_path))
@@ -334,7 +334,7 @@ def test_main_remove_leaves_two_recorded_lines_in_place_even_when_each_names_a_c
         0, refusal_of(tmp_path, recorded), True, True)
 
 
-def test_main_remove_of_an_empty_snapshot_record_deletes_nothing_in_the_cwd_and_prints_nothing(fake_processes, 
+def test_main_remove_of_an_empty_snapshot_record_deletes_nothing_in_the_cwd_and_prints_nothing(fake_processes,
         tmp_path, monkeypatch, capsys, issue_worktree):
     stray = made_snapshot(tmp_path / "veri-snapshot-stray", run_worktree_of(tmp_path))
     (tmp_path / ".veri-snapshot").write_text(run_worktree_of(tmp_path) + "\n")
@@ -344,7 +344,7 @@ def test_main_remove_of_an_empty_snapshot_record_deletes_nothing_in_the_cwd_and_
     assert (code, err, (stray / "status.sh").exists(), (tmp_path / ".veri-snapshot").exists()) == (0, "", True, True)
 
 
-def test_main_remove_leaves_a_marked_directory_whose_name_lacks_the_veri_snapshot_prefix_in_place_and_says_so(fake_processes, 
+def test_main_remove_leaves_a_marked_directory_whose_name_lacks_the_veri_snapshot_prefix_in_place_and_says_so(fake_processes,
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = made_snapshot(tmp_path / "work-dir", run_worktree_of(tmp_path))
 
@@ -353,7 +353,7 @@ def test_main_remove_leaves_a_marked_directory_whose_name_lacks_the_veri_snapsho
     assert (code, err, (snapshot / "status.sh").exists()) == (0, refusal_of(tmp_path, snapshot), True)
 
 
-def test_main_remove_of_a_recorded_snapshot_already_gone_prints_nothing(fake_processes, 
+def test_main_remove_of_a_recorded_snapshot_already_gone_prints_nothing(fake_processes,
         tmp_path, monkeypatch, capsys, issue_worktree):
     gone = tmp_path / "veri-snapshot-gone"
 
@@ -362,7 +362,7 @@ def test_main_remove_of_a_recorded_snapshot_already_gone_prints_nothing(fake_pro
     assert (code, err) == (0, "")
 
 
-def test_main_remove_leaves_a_recorded_directory_holding_no_marker_in_place_and_says_so_with_the_removals_own_exit_code(fake_processes, 
+def test_main_remove_leaves_a_recorded_directory_holding_no_marker_in_place_and_says_so_with_the_removals_own_exit_code(fake_processes,
         tmp_path, monkeypatch, capsys, issue_worktree):
     snapshot = tmp_path / "tmpa1b2c3"
     snapshot.mkdir()
@@ -373,7 +373,7 @@ def test_main_remove_leaves_a_recorded_directory_holding_no_marker_in_place_and_
     assert (code, err, (snapshot / "precious.txt").exists()) == (0, refusal_of(tmp_path, snapshot), True)
 
 
-def test_main_hands_back_a_registered_worktree_whose_pid_file_holds_0_or_00_issue_819(fake_processes, 
+def test_main_hands_back_a_registered_worktree_whose_pid_file_holds_0_or_00_issue_819(fake_processes,
         capsys, tmp_path, issue_worktree, monkeypatch):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/7"
@@ -390,7 +390,7 @@ def test_main_hands_back_a_registered_worktree_whose_pid_file_holds_0_or_00_issu
         assert (content, code, capsys.readouterr()[:], calls) == (content, 0, (path + "\n", ""), [list(listing)])
 
 
-def test_main_hands_back_a_registered_worktree_whose_pid_file_open_cannot_read_issue_965(fake_processes, 
+def test_main_hands_back_a_registered_worktree_whose_pid_file_open_cannot_read_issue_965(fake_processes,
         capsys, tmp_path, issue_worktree, monkeypatch):
     import builtins
 
@@ -416,7 +416,7 @@ def test_main_hands_back_a_registered_worktree_whose_pid_file_open_cannot_read_i
     assert (code, capsys.readouterr()[:], calls) == (0, (path + "\n", ""), [list(listing)])
 
 
-def test_main_refuses_a_branch_any_registry_entry_has_checked_out_the_main_working_tree_included_before_any_cut(fake_processes, 
+def test_main_refuses_a_branch_any_registry_entry_has_checked_out_the_main_working_tree_included_before_any_cut(fake_processes,
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
     elsewhere = "/srv/elsewhere"
@@ -436,7 +436,7 @@ def test_main_refuses_a_branch_any_registry_entry_has_checked_out_the_main_worki
         assert (holder, code, capsys.readouterr()[:], calls) == (holder, 2, ("", owned % holder), [list(listing)])
 
 
-def test_main_checks_out_a_local_branch_and_maps_a_dying_add_to_2(fake_processes, 
+def test_main_checks_out_a_local_branch_and_maps_a_dying_add_to_2(fake_processes,
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
     path = f"{main_tree}/.tdd/wt/7"
@@ -453,7 +453,7 @@ def test_main_checks_out_a_local_branch_and_maps_a_dying_add_to_2(fake_processes
             add_code, want, (out, "Preparing worktree\n"), [list(listing), list(local), list(checkout)])
 
 
-def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_adds_no_worktree_issue_1734(fake_processes, 
+def test_main_refuses_a_fresh_run_whose_fetched_branch_origin_still_holds_and_adds_no_worktree_issue_1734(fake_processes,
         monkeypatch, capsys, issue_worktree):
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     main_tree = "/srv/repo"
@@ -576,7 +576,7 @@ def test_main_cuts_a_fresh_branch_from_the_default_when_only_a_stale_remote_trac
         0, (path + "\n", ""), [list(fresh)])
 
 
-def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_symref_and_refuses_when_neither_names_one(fake_processes, 
+def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_symref_and_refuses_when_neither_names_one(fake_processes,
         monkeypatch, capsys, issue_worktree):
     monkeypatch.setattr(importlib.import_module("github"), "gh_issue_view", lambda number, field: "taken:other\n", raising=False)
     main_tree = "/srv/repo"
@@ -633,7 +633,7 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
             label, 2, ("", refusal), ls_remote, sorted([listing, local, remote, symref, get_url, claims, own_refs, origin_refs, ls_remote]))
 
 
-def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remote_and_refuses_when_neither_exists(fake_processes, 
+def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remote_and_refuses_when_neither_exists(fake_processes,
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
     path = f"{main_tree}/.tdd/wt/7"
@@ -728,7 +728,7 @@ def test_main_cuts_from_a_fetched_origin_default_with_no_track_and_refuses_to_cu
         2, "", refusal, [])
 
 
-def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_when_origin_head_is_unset(fake_processes, 
+def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_when_origin_head_is_unset(fake_processes,
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
     path = f"{main_tree}/.tdd/wt/7"
@@ -801,7 +801,7 @@ def test_claiming_pr_3974_names_no_pr_whose_head_is_in_another_repository(issue_
     assert _open_prs(issue_worktree, monkeypatch, prs) == ("", ["prs.json"])
 
 
-def test_main_remove_still_succeeds_when_the_recorded_snapshot_directory_is_already_gone_issue_2627(fake_processes, 
+def test_main_remove_still_succeeds_when_the_recorded_snapshot_directory_is_already_gone_issue_2627(fake_processes,
         tmp_path, monkeypatch, capsys, issue_worktree):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/7"
