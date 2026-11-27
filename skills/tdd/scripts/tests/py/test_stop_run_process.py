@@ -311,7 +311,8 @@ def test_3375_stop_run_cli_mode_now_terms_the_whole_process_group_of_the_detache
     child = int(child_file.read_text())
 
     try:
-        code, out, err = run_cli(stop_run, ["--mode", "now", "5"], cwd=repo)
+        code, out, err = run_cli(stop_run, ["--mode", "now", "5"], cwd=repo,
+                                 env={"VERI_STOP_KILL_GRACE": "0.2"})
 
         assert (code, out, err) == (0, str(run) + "\n", "")
         assert gone(command), "the detached command %d was not signalled" % command.pid
