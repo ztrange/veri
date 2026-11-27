@@ -789,8 +789,6 @@ The issue writes a run queues while GitHub is down, in `.tdd/github-queue` of th
 - `blocked(top)`: whether the queue's first entry is unreadable, so no replay can get past it; `comment.sh` then posts and queues nothing (exit 2).
 - `queue_comment(top, issue, kind, body, k=None)`, `queue_tick(top, issue, criterion)`: append one entry under `.tdd/github-queue.lock` and answer its key; a comment's body gains the hidden `<!-- veri-queued <key> -->` marker.
 - `replay(top, out=None)`: post the entries in file order, each landed one removed; 0 once empty, 3 with no queue, 2 at the first entry with no answer, that entry and the rest kept.
-- `joined_runs(tip, default)`: the offline joins `<tip>..origin/<default>` landed, oldest first, as (issue, PR url, api path, [(short sha, subject)]), a run's commits running up to its `Veri-Joined` commit; ValueError naming a commit whose trailer is not one run's.
-- `close_landed(top, tip)`: fetch origin, queue one `### ✅ Landed` comment per issue whose join's PR reads merged under a key derived from the issue, tip and commits, then replay; 2 when origin, the range or a PR read gets no answer or a trailer is garbled, else the replay's code (3: no `Veri-Joined` commit).
 
 ## pointer_comment
 - `mirror(issue, pushed_at=None)`: post or edit issue `issue`'s one `### 📍 Run state` comment from the current directory's branch, ledger and journal; `pushed_at` is the push just made, else the comment keeps its last one. Never changes its caller's exit code.
