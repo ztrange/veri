@@ -106,3 +106,14 @@ def test_4779_a_pin_test_id_whose_file_is_neither_tracked_nor_in_the_worktree_is
     refusal = build_verify_prompt.pin_ids_refusal(("tests/test_new.py::test_case", "tests/test_ghost.py::test_case"))
 
     assert "tests/test_ghost.py is not" in refusal
+
+
+def test_4779_a_failing_git_ls_files_refuses_the_pin_ids_naming_the_listing(tmp_path, monkeypatch, fake_processes):
+    """A pin whose tracked files cannot be listed cannot check its ids: refused, never judged over an empty listing."""
+    monkeypatch.chdir(tmp_path)
+    fake_processes.answers({"git ls-files": (128, "", "fatal: not a git repository\n")})
+    build_verify_prompt = importlib.import_module("veri.build_verify_prompt")
+
+    refusal = build_verify_prompt.pin_ids_refusal(("tests/test_1.py::test_case",))
+
+    assert refusal.startswith("build-verify-prompt: pin cannot list the tracked files: ")
