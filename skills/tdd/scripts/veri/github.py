@@ -37,6 +37,7 @@ VERI_COMMENT_PREFIXES = (
     PARKED_HEADING, "### ▶️ Resuming", "### ⛔ Bailed", "### ✅ Done", "### ✅ Step done", "### 📍 Run state",
     "### ⏹️ Stopped", "### ⛔ Preflight refused", "### 🔴 Red", "### 🟢 Green", "### 🛠️ Refactor", "### 🔎 ",
     "### 🗺️ ", "### 📊 Metrics", "### ♻️ Revise ", "### 📌 Already satisfied", "### 🪦 Retired",
+    "### ✅ Landed",
     "needs-user: the conductor stopped without a verdict.",
 )
 
