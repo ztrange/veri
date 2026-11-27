@@ -24,10 +24,11 @@ def joined(issue):
     return "Veri-Joined: %s tdd/%s-a-run" % (pull_url(issue), issue)
 
 
-def landed_world(tmp_path, runs=RUNS, trailers=None):
+def landed_world(tmp_path, runs=RUNS, trailers=None, held=()):
     """The clone `work` of a bare origin whose default branch is trunk, its stack holding <runs> ((issue, subjects)
     pairs), each run's last commit carrying the run's Veri-Joined trailer, or the trailer block <trailers> maps its
-    (issue, index) to. A second clone lands the stack on origin's trunk under new shas; `work` never fetches it.
+    (issue, index) to. A second clone first commits each subject of <held> on trunk (a held pull request merged
+    before the landing), then lands the stack on origin's trunk under new shas; `work` never fetches it.
     Returns (work, the stack's tip, [(issue, [(short sha, subject)])] as landed, origin's trunk tip)."""
     origin, work, lander = tmp_path / "origin.git", tmp_path / "work", tmp_path / "lander"
     new_repo(work, "trunk")
@@ -44,10 +45,12 @@ def landed_world(tmp_path, runs=RUNS, trailers=None):
     tip = git(work, "rev-parse", "HEAD")
     subprocess.run(["git", "clone", "-q", str(origin), str(lander)], cwd=tmp_path, check=True)
     git(lander, "fetch", "-q", str(work), "stack:stack")
+    for index, subject in enumerate(held):
+        commit_all(lander, subject, **{"held-%d.txt" % index: "h\n"})
     git(lander, "-c", "user.name=lander", "cherry-pick", "trunk..stack")
     git(lander, "push", "-q", "origin", "trunk")
     shown = [tuple(line.split("\t")) for line in
-             git(lander, "log", "--reverse", "--format=%h%x09%s", "origin/trunk@{1}..trunk").splitlines()]
+             git(lander, "log", "--reverse", "--format=%h%x09%s", "origin/trunk@{1}..trunk").splitlines()][len(held):]
     landed, at = [], 0
     for issue, subjects in runs:
         landed.append((issue, shown[at:at + len(subjects)]))
@@ -132,6 +135,22 @@ def test_4823_close_landed_gives_each_of_several_joined_runs_exactly_its_own_com
 
 
 @pytest.mark.process(PROCESS)
+def test_4823_close_landed_lists_no_commit_trunk_gained_before_the_landing_in_any_runs_comment(
+        tmp_path, monkeypatch, run_cli):
+    held = ["fix: a held pull request merged first", "docs: another held one"]
+    work, tip, landed, trunk = landed_world(tmp_path, held=held)
+    hub = Hub(monkeypatch)
+
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
+
+    assert code == 0, err
+    assert [number for number, _ in hub.posted] == ["11", "12"], err
+    for issue, commits in landed:
+        lists_exactly(hub.bodies(issue)[0], commits, [])
+        assert [subject for subject in held if subject in hub.bodies(issue)[0]] == [], hub.bodies(issue)[0]
+
+
+@pytest.mark.process(PROCESS)
 def test_4823_close_landed_reads_the_landed_range_from_origins_default_branch_when_the_clone_is_behind(
         tmp_path, monkeypatch, run_cli):
     work, tip, landed, trunk = landed_world(tmp_path)
@@ -201,6 +220,33 @@ def test_4823_a_second_close_landed_over_the_same_tip_posts_nothing(tmp_path, mo
     assert code == 0, err
     assert hub.posted == first, err
     assert not (work / ".tdd" / "github-queue").exists()
+
+@pytest.mark.process(PROCESS)
+def test_4823_a_second_close_landed_after_short_shas_lengthen_posts_nothing(tmp_path, monkeypatch, run_cli):
+    work, tip, _, _ = landed_world(tmp_path)
+    hub = Hub(monkeypatch)
+    assert run_cli(hub.queue, ["close-landed", tip], cwd=work)[0] == 0
+    first = list(hub.posted)
+    git(work, "config", "core.abbrev", "12")
+
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
+
+    assert code == 0, err
+    assert hub.posted == first, err
+
+
+@pytest.mark.process(PROCESS)
+def test_4823_close_landed_when_no_runs_pull_request_is_merged_and_nothing_is_queued_exits_3(
+        tmp_path, monkeypatch, run_cli):
+    work, tip, _, _ = landed_world(tmp_path)
+    hub = Hub(monkeypatch, merged={"11": False, "12": False})
+
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
+
+    assert code == 3, err
+    assert hub.posted == [], err
+    assert "#11" in err and "#12" in err, err
+
 
 
 @pytest.mark.process(PROCESS)
