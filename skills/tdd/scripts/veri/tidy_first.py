@@ -16,11 +16,13 @@ from report import report_values
 
 USAGE = "usage: tidy-first.sh < green-report.txt"
 SMELLS = os.path.join(os.path.dirname(paths.scripts_of(__file__)), "SMELLS.md")
-ANSWER_RE = re.compile(r"(?P<refactoring>[^|]+?) *\| *(?P<file>[\w./-]+)::(?P<symbol>[A-Za-z_][\w.]*) *\| *(?P<why>\S[^|]*)")
+ANSWER_RE = re.compile(
+    r"(?P<refactoring>[^|]+?) *\| *(?P<file>[\w./-]+)::(?P<symbol>[A-Za-z_][\w.]*) *\| *(?P<why>\S[^|]*)")
 
 
 def catalogue(path=None):
-    """[(smell, [refactoring, ...])] in SMELLS.md's smell table order: its first and third columns, never the threshold."""
+    """[(smell, [refactoring, ...])] in SMELLS.md's smell table order: its first and third columns, never the
+    threshold."""
     with open(path or SMELLS, encoding="utf-8") as f:
         rows = [line.split("|") for line in f if line.startswith("| ")]
     return [(cells[1].strip(), [name.strip() for name in cells[3].split(",") if name.strip()])

@@ -77,8 +77,8 @@ def _pull(pr):
 
 
 def _leased(sha, branch, lease, kept):
-    """Push <sha> to origin's <branch> under a lease on <lease>, its sha as fetched ("" for none): None once pushed, else
-    the exit code, said on stderr with <kept>: 1 for a refused lease, 2 for any other failure."""
+    """Push <sha> to origin's <branch> under a lease on <lease>, its sha as fetched ("" for none): None once pushed,
+    else the exit code, said on stderr with <kept>: 1 for a refused lease, 2 for any other failure."""
     push = git.network("push", "--force-with-lease=%s:%s" % (branch, lease), "origin",
                        "%s:refs/heads/%s" % (sha, branch), cwd=".")
     said = " ".join((push.stderr or "").split())
@@ -104,8 +104,8 @@ def _held(stack, window):
               " push" % (stack, stack), file=sys.stderr)
         return 3
     if fetched is None:
-        print("stack-recover: origin/%s is gone after the fetch, while the local %s is at %s: the stack moved on GitHub,"
-              " so what to push is the human's call; nothing pushed" % (stack, stack, local), file=sys.stderr)
+        print("stack-recover: origin/%s is gone after the fetch, while the local %s is at %s: the stack moved on"
+              " GitHub, so what to push is the human's call; nothing pushed" % (stack, stack, local), file=sys.stderr)
         return 1
     if not _ancestor(fetched, local):
         print("stack-recover: origin/%s at %s is not an ancestor of the local %s at %s: the stack moved on GitHub, and"
@@ -117,7 +117,8 @@ def _held(stack, window):
         print("stack-recover: %s; nothing pushed" % garbled, file=sys.stderr)
         return 1
     except git.GitFailed as failed:
-        return _refuse("reading origin/%s..%s failed: %s; nothing pushed" % (stack, stack, " ".join(str(failed).split())))
+        return _refuse("reading origin/%s..%s failed: %s; nothing pushed"
+                       % (stack, stack, " ".join(str(failed).split())))
     # Each lease is origin's branch as fetched, read before anything is pushed.
     leases = [_rev("refs/remotes/origin/" + branch) or "" for _, _, branch in joins]
     for (sha, _, branch), lease in zip(joins, leases, strict=True):
@@ -139,10 +140,10 @@ def _held(stack, window):
 
 
 def _cleaned(tip, joins):
-    """After the pushes, the merge lock freed: delete each joined run's remote branch, leased on the commit pushed to it,
-    and its records ref (a branch naming no run has none), then run stack-pr.sh and print the stack's pushed <tip> and
-    its tracking pull request. A ref origin no longer has counts as deleted; a delete that failed is named, stack-pr.sh
-    still runs, and the exit is 2."""
+    """After the pushes, the merge lock freed: delete each joined run's remote branch, leased on the commit pushed to
+    it, and its records ref (a branch naming no run has none), then run stack-pr.sh and print the stack's pushed <tip>
+    and its tracking pull request. A ref origin no longer has counts as deleted; a delete that failed is named,
+    stack-pr.sh still runs, and the exit is 2."""
     failed = []
     for sha, _, branch in joins:
         run_issue = run_dir.branch_issue(branch)

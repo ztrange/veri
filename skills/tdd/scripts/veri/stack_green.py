@@ -43,7 +43,8 @@ def issue_ends(subjects):
 def tested(runs):
     """Whether a commit whose check runs are <runs> [(status, conclusion)] is tested: all completed, each concluding
     success, neutral or skipped, at least one success."""
-    return (all(status == "completed" and conclusion in ("success", "neutral", "skipped") for status, conclusion in runs)
+    return (all(status == "completed" and conclusion in ("success", "neutral", "skipped")
+                for status, conclusion in runs)
             and ("completed", "success") in runs)
 
 

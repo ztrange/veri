@@ -163,7 +163,8 @@ def kill_tree(leaf, kill_poll):
 
 def cpu_seconds(field):
     days, _, clock = field.rpartition("-")
-    return int(days or "0", 10) * 86400 + sum(float(part) * 60 ** i for i, part in enumerate(reversed(clock.split(":"))))
+    return int(days or "0", 10) * 86400 + sum(float(part) * 60 ** i
+                                              for i, part in enumerate(reversed(clock.split(":"))))
 
 
 def tree_cpu_seconds(pid):
@@ -209,7 +210,8 @@ def command_head(command):
 
 
 def in_flight_tool(text):
-    """The last `tool_use` in a stream log with no `tool_result` after it, as `<name>: <command_head> (<secs>s)`, else None."""
+    """The last `tool_use` in a stream log with no `tool_result` after it, as `<name>: <command_head> (<secs>s)`, else
+    None."""
     call, answered, secs = None, set(), {}
     for line in text.splitlines():
         try:
@@ -407,9 +409,10 @@ def lock_waiting(marker):
     """Whether the lock-wait marker at <marker> says a pytest leg is waiting for the full-run lock (#3989).
 
     An empty marker (an older leg's) does; one naming a pid of at least 1 does only while that pid answers `kill 0`
-    under the start time on its line 2, as `pid_file.same_start` compares it, both lines taken from the one read, so a marker
-    removed after it is judged by what was read and never raises (#4415). A missing, unreadable or malformed one,
-    pid 0, or one whose waiter's start time was not recorded or cannot be read now, does not, so a leaf's timers run."""
+    under the start time on its line 2, as `pid_file.same_start` compares it, both lines taken from the one read, so a
+    marker removed after it is judged by what was read and never raises (#4415). A missing, unreadable or malformed
+    one, pid 0, or one whose waiter's start time was not recorded or cannot be read now, does not, so a leaf's timers
+    run."""
     try:
         with open(marker, "rb") as f:
             text = f.read()
@@ -442,7 +445,8 @@ def attempt_once(holder, name, cmd, log, rcfile, leaf_env, preexec, watch):
     prev_t, prev_a = int(t0), a0
     holder.launching, holder.held = True, None
     try:
-        leaf = subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc.tmp" && mv "$rc.tmp" "$rc"',
+        leaf = subprocess.Popen(["/bin/sh", "-c",
+                                 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc.tmp" && mv "$rc.tmp" "$rc"',
                                  "sh", log, rcfile, *cmd], process_group=0, env=leaf_env,
                                 restore_signals=False, preexec_fn=preexec)
     except BaseException:
@@ -614,33 +618,40 @@ def launch_plan(argv):
     The gates, in the order they are tried (an input tripping two reports the first). Every refusal exits 2;
     "journal" is one `launch-refused` event (name=, reason=), written after `.exit` and before stderr:
 
-    | # | gate                                                     | stderr (after `supervise: `)              | `.exit` | journal |
-    |---|----------------------------------------------------------|-------------------------------------------|---------|---------|
-    | 1 | no argument, or an empty name                            | the usage line alone (no prefix)          | no      | no      |
-    | 2 | a name and no command                                    | `missing <cmd>`, then the usage line      | no      | no      |
-    | 3 | VERI_TIMEOUT set, not a whole number                     | `VERI_TIMEOUT is not a number: '<v>'`     | no      | no      |
-    | 4 | no VERI_TIMEOUT, VERI_ISSUE set: the run's timeout pin   | `<pin> is not a number: '<v>'`            | no      | no      |
-    |   | (`git rev-parse --show-toplevel` finds it) not a number  |                                           |         |         |
-    | 5 | that pin empty or below 1                                | `<pin> must hold a whole number of …`     | no      | no      |
-    | 6 | VERI_KILL_POLL invalid                                   | `VERI_KILL_POLL must be <rule>: <v>`      | no      | no      |
-    | 7 | VERI_HEARTBEAT, 8 VERI_TOOL_IDLE, 9 VERI_STUCK_RETRIES   | `<VAR> is not a number: '<v>'`            | no      | no      |
-    |   | not a whole number (each in that order)                  |                                           |         |         |
-    |   | -- then: chdir to the work tree, create .tdd, read the leaf's role and model, `git -C <skill> rev-parse HEAD` |
-    | 10| VERI_STEP set but empty                                  | `refusing to launch <n>: VERI_STEP is …`  | yes     | yes     |
-    | 11| `--step` with an empty value                             | `refusing to launch <n>: --step is empty` | yes     | yes     |
-    | 12| run-leaf.sh with no prompt argument                      | `… run-leaf.sh was given no prompt …`     | yes     | yes     |
-    | 13| run-leaf.sh, prompt file missing                         | `… the prompt file <f> does not exist`    | yes     | yes     |
-    | 14| run-leaf.sh, prompt file empty                           | `… the prompt file <f> is empty`          | yes     | yes     |
-    | 15| `.tdd/stop` holds at-leaf or now                         | `… a stop (<mode>) is pending`            | yes     | yes     |
-    | 16| develop-green, the step's latest red has no verify-red   | `… step <s> has no verify-red PASS …`     | yes     | no      |
-    |   | PASS, and the step is no `⟦ci-repair⟧` step              |                                           |         |         |
-    | 17| verify-red/verify-green, work-tree hash not computable   | `… the work-tree hash could not be …`     | yes     | no      |
-    | 18| verify-red/verify-green, no current check-earlier marker | `… step <s> has no current check-earlier …` | yes   | no      |
-    | 19| `.tdd/leaf.owner` names a live other leaf                | `… leaf <o> (pid <p>) is still alive …`   | yes     | no      |
-    |   | … names a live leaf of this same name                    | the same                                  | no      | no      |
-    | 20| run from a `veri-snapshot-*` directory whose entry (the  | `… the skill snapshot <file> changed …`   | yes     | yes     |
-    |   | marker included) differs from the run's recorded digest, | `… the skill snapshot <s> has no …`       | yes     | yes     |
-    |   | no digest recorded, or unreadable (`snapshot_change`)    | `… the skill snapshot <s> could not …`    | yes     | yes     |
+    | # | gate                                        | stderr (after `supervise: `)              | `.exit` | journal |
+    |---|---------------------------------------------|-------------------------------------------|---------|---------|
+    | 1 | no argument, or an empty name               | the usage line alone (no prefix)          | no      | no      |
+    | 2 | a name and no command                       | `missing <cmd>`, then the usage line      | no      | no      |
+    | 3 | VERI_TIMEOUT set, not a whole number        | `VERI_TIMEOUT is not a number: '<v>'`     | no      | no      |
+    | 4 | no VERI_TIMEOUT, VERI_ISSUE set: the run's  | `<pin> is not a number: '<v>'`            | no      | no      |
+    |   | timeout pin (`git rev-parse                 |                                           |         |         |
+    |   | --show-toplevel` finds it) not a number     |                                           |         |         |
+    | 5 | that pin empty or below 1                   | `<pin> must hold a whole number of …`     | no      | no      |
+    | 6 | VERI_KILL_POLL invalid                      | `VERI_KILL_POLL must be <rule>: <v>`      | no      | no      |
+    | 7 | VERI_HEARTBEAT, 8 VERI_TOOL_IDLE, 9         | `<VAR> is not a number: '<v>'`            | no      | no      |
+    |   | VERI_STUCK_RETRIES not a whole number (each |                                           |         |         |
+    |   | in that order)                              |                                           |         |         |
+    |   | -- then: chdir to the work tree, create .tdd, read the leaf's role and model, `git -C <skill> rev-parse     |
+    |   | HEAD`                                                                                                       |
+    | 10| VERI_STEP set but empty                     | `refusing to launch <n>: VERI_STEP is …`  | yes     | yes     |
+    | 11| `--step` with an empty value                | `refusing to launch <n>: --step is empty` | yes     | yes     |
+    | 12| run-leaf.sh with no prompt argument         | `… run-leaf.sh was given no prompt …`     | yes     | yes     |
+    | 13| run-leaf.sh, prompt file missing            | `… the prompt file <f> does not exist`    | yes     | yes     |
+    | 14| run-leaf.sh, prompt file empty              | `… the prompt file <f> is empty`          | yes     | yes     |
+    | 15| `.tdd/stop` holds at-leaf or now            | `… a stop (<mode>) is pending`            | yes     | yes     |
+    | 16| develop-green, the step's latest red has no | `… step <s> has no verify-red PASS …`     | yes     | no      |
+    |   | verify-red PASS, and the step is no         |                                           |         |         |
+    |   | `⟦ci-repair⟧` step                          |                                           |         |         |
+    | 17| verify-red/verify-green, work-tree hash not | `… the work-tree hash could not be …`     | yes     | no      |
+    |   | computable                                  |                                           |         |         |
+    | 18| verify-red/verify-green, no current         | `… step <s> has no current check-earlier …` | yes   | no      |
+    |   | check-earlier marker                        |                                           |         |         |
+    | 19| `.tdd/leaf.owner` names a live other leaf   | `… leaf <o> (pid <p>) is still alive …`   | yes     | no      |
+    |   | … names a live leaf of this same name       | the same                                  | no      | no      |
+    | 20| run from a `veri-snapshot-*` directory      | `… the skill snapshot <file> changed …`   | yes     | yes     |
+    |   | whose entry (the marker included) differs   | `… the skill snapshot <s> has no …`       | yes     | yes     |
+    |   | from the run's recorded digest, no digest   | `… the skill snapshot <s> could not …`    | yes     | yes     |
+    |   | recorded, or unreadable (`snapshot_change`) |                                           |         |         |
 
     Gates 1-9 change nothing on disk; from gate 10 on the working directory is the work tree.
     """
@@ -770,7 +781,8 @@ def main(argv):
         harvest_usage.harvest(name, leaf_env)
     print(f"supervise[{name}]: {status}" + (f" — {reason}" if reason else ""), file=sys.stderr)
     sys.stderr.flush()
-    mark(role, leaf_env, "exit", f"status={ec}", *([f"cause={reason}"] if reason else []), f"secs={secs}", f"name={name}")
+    mark(role, leaf_env, "exit", f"status={ec}", *([f"cause={reason}"] if reason else []), f"secs={secs}",
+         f"name={name}")
     data = read_log(name, log) or b""
     try:
         sys.stdout.buffer.write(data)

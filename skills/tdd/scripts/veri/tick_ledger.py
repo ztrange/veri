@@ -12,7 +12,8 @@ import ledger
 import paths
 import tests_frozen
 
-USAGE = "usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --surround-short | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher>"
+USAGE = ("usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase> | --surround-short"
+         " | --unpinnable <reason-file> | --already-holds <reason-file>] [--case <id>] <ledger-file> <matcher>")
 
 
 def complain(message):
@@ -51,7 +52,8 @@ MAKE_EXEC_FAILED = re.compile(r"make: (?!\*\*\* ).+: (No such file or directory|
 def make_answer(stderr):
     """A failed make run's answer: 1 (the case ran and fails) only when make's last non-empty stderr line is a
     top-level `make: *** [<target>] Error 1` (make prints it after the recipe is dead), no other `make: *** [<target>]`
-    text anywhere in a line (glued to recipe output, or a signal's `Killed: 9`) ends in anything but `Error 1`, and the line just before it is not make's own could-not-execute line; 2 (no answer) otherwise.
+    text anywhere in a line (glued to recipe output, or a signal's `Killed: 9`) ends in anything but `Error 1`, and the
+    line just before it is not make's own could-not-execute line; 2 (no answer) otherwise.
     A nested make's failure therefore reads as 2: a repository that needs one declares its one-test-file command."""
     lines = [line.rstrip() for line in stderr.splitlines() if line.strip()]
     final = MAKE_ERROR.fullmatch(lines[-1]) if lines else None
@@ -235,8 +237,10 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
     the matching `unpinnable-step` / `already-holds-step`
     event; it needs a `case`. `pending` and `phase` do not combine.
     Returns 0 ticked; 1 clean negative (the case fails; the reason does not qualify for `retire`; retire with no
-    case); 2 no answer (case never ran, bad combination, unreadable ledger, a ⟦go-red⟧ step with no `.tdd/go-red-probed` beside the ledger holding its probe clause and a
-    commit's sha, a ledger left behind, an empty ledger_path -> usage line); 3 nothing to tick. Writes the ledger (and its added-steps record) and, for a retirement, events.jsonl; stderr as the script prints it.
+    case); 2 no answer (case never ran, bad combination, unreadable ledger, a ⟦go-red⟧ step with no
+    `.tdd/go-red-probed` beside the ledger holding its probe clause and a commit's sha, a ledger left behind, an empty
+    ledger_path -> usage line); 3 nothing to tick. Writes the ledger (and its added-steps record) and, for a
+    retirement, events.jsonl; stderr as the script prints it.
     """
     retired_mark, event_name = ledger.retire_mark("unpinnable"), "unpinnable-step"
     if retire == "already-holds":
@@ -248,8 +252,8 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
     if reason_file:
         with open(reason_file, encoding="utf-8") as handle:
             reason_text = handle.read()
-        if event_name == "unpinnable-step" and "stays green" not in reason_text and not ledger.BEFORE_STATE_GREEN.search(
-                reason_text):
+        if (event_name == "unpinnable-step" and "stays green" not in reason_text
+                and not ledger.BEFORE_STATE_GREEN.search(reason_text)):
             return 1
         if event_name == "already-holds-step" and not any(
             line.startswith("REASON:") and line[7:].strip() for line in reason_text.splitlines()
@@ -257,7 +261,8 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
             return 1
     ran, ran_command, ran_code = run_case(case) if case else (0, "", 0)
     if ran == 2:
-        complain(f"{matcher}: case {case} never run ({how_ended(ran_code)}): no such file path, no tests ran, or the command could not run: {ran_command}")
+        complain(f"{matcher}: case {case} never run ({how_ended(ran_code)}): no such file path, no tests ran, or the"
+                 f" command could not run: {ran_command}")
         return 2
     if ran:
         complain(f"{matcher}: case {case} fails")
@@ -309,7 +314,8 @@ def tick(ledger_path, matcher, *, case=None, pending=False, phase=None, owed=Fal
     left = ledger.rewrite_ledger(ledger_path, new)
     if left is None:
         tick_added(ledger_path, step_line)
-    if left is None and reason_file and event_name == "unpinnable-step" and not ledger.BEFORE_STATE_GREEN.search(reason_text):
+    if (left is None and reason_file and event_name == "unpinnable-step"
+            and not ledger.BEFORE_STATE_GREEN.search(reason_text)):
         return_tests_to_head()
     if left is None and reason_file:
         step = step_line

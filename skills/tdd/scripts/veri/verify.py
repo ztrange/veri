@@ -40,8 +40,8 @@ WRITE_BAN = {"PreToolUse": [{"matcher": "Write|Edit|MultiEdit|NotebookEdit", "ho
      "command": write_ban_command(sys.executable, os.path.join(SCRIPTS, "veri", "verifier_write_ban.py"))}]}]}
 LEAF_ARGS = ["--permission-mode", "bypassPermissions", "--settings", json.dumps({"hooks": WRITE_BAN})]
 USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>']"
-         " [--supersede-base <sha>|--frozen-edit <sha>] [--step-green <sha>] --branch-base <sha> <phase> <issue-spec-file>"
-         " <test-path> [<target-test-id>]"
+         " [--supersede-base <sha>|--frozen-edit <sha>] [--step-green <sha>] --branch-base <sha> <phase>"
+         " <issue-spec-file> <test-path> [<target-test-id>]"
          "\n       verify.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>")
 
 
@@ -235,7 +235,8 @@ def diff_gate(words, options):
 
 
 def rebase_gate(words, options):
-    """2 when tracked files hold uncommitted changes or git status fails, 1 when the rebase committed conflict markers, else None."""
+    """2 when tracked files hold uncommitted changes or git status fails, 1 when the rebase committed conflict markers,
+    else None."""
     if leaf_tree_guard.git("rev-parse", "--git-dir").returncode:
         return None
     status = leaf_tree_guard.git("status", "--porcelain", "--untracked-files=no")
@@ -283,7 +284,8 @@ def main(argv):
         words = words[2:]
     if words[:1] == ["branch"] and len(words) == 2:
         # The branch phase judges the whole branch, so it names no test (build-verify-prompt.sh's own branch form);
-        # verify-branch.sh launches it as `branch <issue-spec-file>`, and an empty <test-path> is what the builder takes.
+        # verify-branch.sh launches it as `branch <issue-spec-file>`, and an empty <test-path> is what the builder
+        # takes.
         words = [*words, ""]
     elif len(words) < 3:
         return entry.refuse(usage=USAGE)

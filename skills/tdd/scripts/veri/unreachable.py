@@ -8,7 +8,8 @@ import sys
 BUILT = re.compile(rb"[A-Za-z0-9_.-]*(?:\$\{?[A-Za-z0-9_]+\}?[A-Za-z0-9_.-]*)+\.(?:sh|md)")
 PIECE = re.compile(rb"(\$\{?[A-Za-z0-9_]+\}?)")
 KNOB = re.compile(rb"VERI_[A-Z0-9_]+")
-TUNABLES_READ = re.compile(rb"tunables\.(?:get|get_bytes|resolve|read|read_bytes|pop|default)\(\s*[\"'](VERI_[A-Z0-9_]+)[\"']")
+TUNABLES_READ = re.compile(
+    rb"tunables\.(?:get|get_bytes|resolve|read|read_bytes|pop|default)\(\s*[\"'](VERI_[A-Z0-9_]+)[\"']")
 PROMISED = re.compile(rb"(?:^|[^A-Za-z0-9_.${}-])([A-Za-z0-9_-]+\.sh)")
 
 
@@ -85,7 +86,8 @@ def listing(root):
         else:
             out.append(name)
 
-    promises = [read(d) for d in (root + b"/skills/tdd/SKILL.md", root + b"/skills/tdd/SCRIPTS.md", root + b"/CLAUDE.md") if os.path.isfile(d)]
+    promises = [read(d) for d in (root + b"/skills/tdd/SKILL.md", root + b"/skills/tdd/SCRIPTS.md",
+                                  root + b"/CLAUDE.md") if os.path.isfile(d)]
     readers = [read(scripts + b"/" + n) for n in names + libs]
     tuned = {k for f in sorted(glob.glob(glob.escape(scripts) + b"/veri/*.py")) for k in TUNABLES_READ.findall(read(f))}
     for knob in sorted({k for text in promises for k in KNOB.findall(text)}):

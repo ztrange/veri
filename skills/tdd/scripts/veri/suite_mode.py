@@ -1,4 +1,5 @@
-"""The shape rebased-tip-suite.sh and branch-suite.sh share: print `ci` or `local`, an explicit knob first, else whether CI runs on pull requests."""
+"""The shape rebased-tip-suite.sh and branch-suite.sh share: print `ci` or `local`, an explicit knob first, else whether
+CI runs on pull requests."""
 import sys
 
 import ci_on_pr

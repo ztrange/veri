@@ -16,7 +16,8 @@ def budgets():
     run = tunables.get_bytes("VERI_RUN_BUDGET")
     for name, value in ((b"VERI_STEP_BUDGET", step), (b"VERI_RUN_BUDGET", run)):
         if not NUMBER.fullmatch(value):
-            write(sys.stderr, b"step-budget: " + name + b" must be a non-negative decimal number: " + value, before=False)
+            write(sys.stderr, b"step-budget: " + name + b" must be a non-negative decimal number: " + value,
+                  before=False)
             return 2, step, run
     return 0, step, run
 
