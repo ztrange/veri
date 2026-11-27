@@ -71,8 +71,6 @@ def run(n, report):
         return 1
     own = fused_step.red_test_id(red["test_path"], red["target_test"])
     resumed = pending(wt, n, step)
-    if resumed is None and report == REASON % "green" and fused_step.verify_switched_off(wt, n, "green"):
-        raise fused.Stop("route", report + " with green switched off", 1)
     if resumed is None:
         at, values = launch(step_at, settled, report, own, red)
     else:
@@ -212,6 +210,8 @@ def pending(wt, n, step):
 def launch(step_at, settled, report, own, red):
     """The route, then the rerouted red: the `reroute` event, its prompt and its leaf launched (RRT2). (at, values)."""
     wt, n, step = step_at
+    if report == REASON % "green" and fused_step.verify_switched_off(wt, n, "green"):
+        raise fused.Stop("route", report + " with green switched off", 1)
     shown = fused.label("wrong-test-route.sh", "--spec", SPEC % n, report, own)
     code, said, _ = fused.call(fused.script("wrong-test-route.sh"), "--spec", SPEC % n, report, own, cwd=wt,
                                env=fused.step_env(n, step))
