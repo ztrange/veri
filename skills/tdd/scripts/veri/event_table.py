@@ -111,7 +111,6 @@ EVENTS = {
     "tidy-first": "anchor:text refactoring:text",
     "tests-frozen-refused": "exit:(1|2) reason:text,empty",
     "tests-frozen-rerecord-approved": "case:text file:text approval:text",
-    "unpinnable-missing": "step:text",
     "unpinnable-step": "step:text reason:text,empty",
     "usage": "duration_ms:whole duration_api_ms:whole num_turns:whole total_cost_usd:decimal input_tokens:whole"
              " output_tokens:whole cache_read_input_tokens:whole cache_creation_input_tokens:whole model:text,empty"
