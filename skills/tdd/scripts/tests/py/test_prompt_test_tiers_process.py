@@ -233,9 +233,10 @@ def test_verify_red_green_refactor_and_pin_run_their_test_commands_through_timed
     verify_green = build(problems, VERIFY, "--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")
     verify_refactor = build(problems, VERIFY, "--fast-cmd", "make unit", "--step-green", "abc1234", "refactor", spec, "tests/zorblat.test.sh", "abc1234")
     own = new_repo(tmp_path / "own")  # the pin's --branch-base read needs a real commit of a tree laid out as veri's (#4263)
-    base = commit_all(own, "base", **{"skills__tdd__scripts__tests__py__conftest.py": ""})
+    base = commit_all(own, "base", **{"skills__tdd__scripts__tests__py__conftest.py": "", "tests__zorblat.test.sh": ""})
     monkeypatch.chdir(own)
-    verify_pin = build(problems, VERIFY, "--branch-base", base, "pin", spec, "tests/zorblat.test.sh", "zorblat case")
+    verify_pin = build(problems, VERIFY, "--branch-base", base, "pin", spec, "tests/zorblat.test.sh",
+                       "tests/zorblat.test.sh::zorblat_case")
     timed_through(problems, "verify-red", verify_red, "changed")
     timed_through(problems, "verify-green", verify_green, "fast", "changed")
     timed_through(problems, "verify-refactor", verify_refactor, "fast", "changed")

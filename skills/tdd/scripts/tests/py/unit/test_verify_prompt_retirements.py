@@ -13,7 +13,7 @@ def build_verify_prompt():
 
 def test_each_verify_phase_renders_with_exit_0_its_issue_spec_text_and_no_unfilled_slot(
         tmp_path, run_cli, build_verify_prompt, fake_processes):
-    fake_processes.answers({"git ls-files": (0, "", "")})
+    fake_processes.answers({"git ls-files": (0, "tests/test_x.py\0", "")})
     spec = tmp_path / "spec.md"
     spec.write_text(SPEC_TEXT)
     ledger = tmp_path / "ledger.md"
@@ -23,7 +23,7 @@ def test_each_verify_phase_renders_with_exit_0_its_issue_spec_text_and_no_unfill
         "red": [*step, "red", str(spec), "tests/test_x.py", "test_x"],
         "green": [*step, "green", str(spec), "tests/test_x.py", "test_x"],
         "refactor": [*step, "--step-green", "0123abc", "refactor", str(spec), "tests/test_x.py", "0123abc"],
-        "pin": [*step, "--branch-base", "0123abc", "pin", str(spec), "tests/test_x.py", "test_x"],
+        "pin": [*step, "--branch-base", "0123abc", "pin", str(spec), "tests/test_x.py", "tests/test_x.py::test_x"],
         "plan": ["plan", str(spec), str(ledger)],
         "rebase": ["rebase", str(spec), "0123abc", "0123abd"],
         "transform": [*step, "transform", str(spec), "rec", "0123abc"],

@@ -38,7 +38,7 @@ VERIFIER_LAUNCHES = r"\$S/detach-leaf\.sh .*\$S/run-verdict\.sh .*\.tdd/issue-<n
 
 PLACEHOLDERS = (
     ("<test-cmd>", SENTINEL), ("<phase>", "red"), ("<k>", "1"), ("<n>", SENTINEL_ISSUE),
-    ("<test-path>", "probe.test.sh"), ("<target-test-id>", "probe-target"), ("<green-sha>", "0123abc"),
+    ("<test-path>", "probe.test.sh"), ("<target-test-id>", "probe.test.sh::probe-target"), ("<green-sha>", "0123abc"),
     ("<fast-cmd>", "make probe-fast"), ("<onto-sha>", "0123abc"), ("<pre-rebase-sha>", "4567def"),
     ("<base-sha>", "89abcde"), ("<conflicting-files>", "probe.txt"), ("[target]", "probe-target"),
     ("<base>", "$(git log -1 --format=%H)"),  # the scratch tree's one commit: a recorded base (#4375)
@@ -130,14 +130,17 @@ def write_check_earlier_pass(directory, step):
         os.chdir(here)
 
 
-def plant_origin_head(directory):
+def plant_origin_head(directory, *tracked):
     """A run's working tree is a git repository whose origin/HEAD it branched from: the plan verifier lists the test
     files git tracks (#3919), a pin verifier needs the before-state, and outside veri's own tree every verifier reads its
     run lines at that merge base (#4263). Every file is ignored, as a run's .tdd/ is, so the verifier's own files read as
-    no change to the repository."""
+    no change to the repository. Each of <tracked> is committed despite that, as a pin verifier's test ids name files git
+    tracks."""
     identity = ["-c", "user.name=probe", "-c", "user.email=probe@example.com"]
     subprocess.run(["git", "init", "-q"], cwd=directory, check=True)
     (directory / ".git" / "info" / "exclude").write_text("*\n")
+    if tracked:
+        subprocess.run(["git", "add", "-f", "--", *tracked], cwd=directory, check=True)
     subprocess.run(["git", *identity, "commit", "-q", "--allow-empty", "-m", "probe"], cwd=directory, check=True)
     subprocess.run(["git", "update-ref", "refs/remotes/origin/main", "HEAD"], cwd=directory, check=True)
     subprocess.run(["git", "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"], cwd=directory, check=True)
@@ -159,7 +162,7 @@ def launched_test_cmd(probe, lineno, line, leaf, launch, *files, scripts=SCRIPTS
     if leaf in ("verify-red", "verify-green"):
         write_check_earlier_pass(directory, SENTINEL_STEP)
     if leaf in ("verify-pin", "verify-plan", "verify-refactor"):
-        plant_origin_head(directory)
+        plant_origin_head(directory, *(name for name in files[1:] if name and leaf == "verify-pin"))
     env = {name: value for name, value in os.environ.items() if name not in ("VERI_TEST_CMD", "VERI_ISSUE", "VERI_STEP")}
     env.update(S=str(scripts), CLAUDE_BIN=str(probe.stub / "claude"), VERI_TEST_SEEN=str(directory / "seen"),
                VERI_STUCK_RETRIES="0", VERI_NO_VERDICT_RETRIES="0", VERI_HEARTBEAT="30", VERI_TIMEOUT="60", VERI_POLL="0.2")

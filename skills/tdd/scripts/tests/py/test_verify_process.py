@@ -342,7 +342,15 @@ def test_verify_sh_red_whose_test_command_is_a_single_runner_with_no_lint_gate_l
 
 
 def run_verify_writing(tmp_path, phase, writes, then="", cwd=None, recorded=None):
-    head = with_origin_head(tmp_path)
+    committed_head(tmp_path)
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_x.py").write_text("def test_x():\n    pass\n")
+    identity = ["-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+    subprocess.run(["git", "-C", str(tmp_path), "add", "tests/test_x.py"], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), *identity, "commit", "-q", "-m", "the pin's tracked test file"], check=True)
+    origin_head_at(tmp_path)
+    head = subprocess.run(["git", "-C", str(tmp_path), "rev-parse", "HEAD"], check=True, capture_output=True,
+                          text=True).stdout.strip()
     (tmp_path / "spec.md").write_text("the behavior spec\n")
     (tmp_path / ".gitignore").write_text(".tdd/*\n!.tdd/issue-*.md\n")
     record = tmp_path / ".tdd" / "issue-2741-mutations.md"
@@ -494,11 +502,17 @@ SPEC = "slugify must lowercase the title and join words with hyphens."
 
 
 def answering_leaf(monkeypatch, fake_processes, *leaf_outs, supervised=None):
+    """Fake the verifier's processes: supervise.sh answers <leaf_outs> in turn, git merge-base FAKE_BASE, git ls-files
+    every file under the cwd (a pin's test ids name tracked files), any other git 128."""
     launches = []
 
-    def fake(args, *_, **__):
+    def fake(args, *_, **kwargs):
         words = [str(a) for a in args]
         name = os.path.basename(words[0])
+        if name == "git" and "ls-files" in words:
+            root = kwargs.get("cwd") or os.getcwd()
+            names = sorted(os.path.relpath(os.path.join(top, file), root) for top, _, files in os.walk(root) for file in files)
+            return subprocess.CompletedProcess(args, 0, "".join(n + "\0" for n in names).encode(), None)
         if name == "supervise.sh":
             launches.append((words[1], pathlib.Path(words[3]).read_text()))
             if supervised is not None:
@@ -932,7 +946,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_rewrote_
         run_cli, tmp_path, monkeypatch):
     monkeypatch.setenv("VERI_ISSUE", "2764")
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n!.tdd/issue-2764-mutations.md\n",
-                                  {".tdd/issue-2764-mutations.md": "mutation one\n"})
+                                  {".tdd/issue-2764-mutations.md": "mutation one\n", "tests/test_slugify.py": "def test_lowercases():\n    pass\n"})
     mutation = 'printf "rewritten\\n" > .tdd/issue-2764-mutations.md; chmod 000 .tdd/issue-2764-mutations.md'
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
            "VERI_TEST_FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
@@ -940,7 +954,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_rewrote_
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
-                                    "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+                                    "tests/test_slugify.py", "tests/test_slugify.py::test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (2, False)
 
@@ -950,7 +964,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_left_a_r
         run_cli, tmp_path, monkeypatch):
     monkeypatch.setenv("VERI_ISSUE", "2764")
     repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n!.tdd/issue-2764-mutations.md\n",
-                                  {".tdd/issue-2764-mutations.md": "mutation one\n"})
+                                  {".tdd/issue-2764-mutations.md": "mutation one\n", "tests/test_slugify.py": "def test_lowercases():\n    pass\n"})
     subprocess.run(["chmod", "000", str(repo / ".tdd" / "issue-2764-mutations.md")], check=True)
     mutation = 'rm -f .tdd/issue-2764-mutations.md; printf "mutation one\\n" > .tdd/issue-2764-mutations.md'
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
@@ -959,7 +973,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_left_a_r
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
-                                    "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+                                    "tests/test_slugify.py", "tests/test_slugify.py::test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (2, False)
 
@@ -968,7 +982,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_left_a_r
 def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced_a_symlinked_mutation_record_with_a_regular_file_2772(
         run_cli, tmp_path, monkeypatch):
     monkeypatch.setenv("VERI_ISSUE", "2772")
-    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n!.tdd/issue-2772-mutations.md\n", {})
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n!.tdd/issue-2772-mutations.md\n", {"tests/test_slugify.py": "def test_lowercases():\n    pass\n"})
     (tmp_path / "elsewhere.md").write_text("mutation one\n")
     (repo / ".tdd").mkdir(exist_ok=True)
     (repo / ".tdd" / "issue-2772-mutations.md").symlink_to(tmp_path / "elsewhere.md")
@@ -979,7 +993,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
-                                    "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+                                    "tests/test_slugify.py", "tests/test_slugify.py::test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (2, False)
 
@@ -987,7 +1001,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced
 @pytest.mark.process("a real git scratch repository holding an unreadable file, and a git wrapper translating Permission denied")
 def test_verify_sh_does_not_accept_a_pass_from_a_verifier_leaf_that_left_an_unreadable_file_when_git_translates_its_messages_2772(
         run_cli, tmp_path, monkeypatch):
-    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {"tests/test_slugify.py": "def test_lowercases():\n    pass\n"})
     wrapper = tmp_path / "translating-bin"
     wrapper.mkdir()
     (wrapper / "git").write_text(
@@ -1004,7 +1018,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_verifier_leaf_that_left_an_unre
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
-                                    "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+                                    "tests/test_slugify.py", "tests/test_slugify.py::test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (2, False)
 
@@ -2533,7 +2547,7 @@ def test_verify_sh_rebase_launches_the_leaf_when_only_an_untracked_file_is_prese
 def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced_a_directory_mutation_record_with_a_regular_file_2772(
         run_cli, tmp_path, monkeypatch):
     monkeypatch.setenv("VERI_ISSUE", "2772")
-    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n!.tdd/issue-2772-mutations.md\n", {})
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/*\n!.tdd/issue-2772-mutations.md\n", {"tests/test_slugify.py": "def test_lowercases():\n    pass\n"})
     (repo / ".tdd" / "issue-2772-mutations.md").mkdir(parents=True)
     mutation = 'rmdir .tdd/issue-2772-mutations.md; printf "mutation one\\n" > .tdd/issue-2772-mutations.md'
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "VERI_TEST_FAKE_MUTATE": mutation,
@@ -2542,7 +2556,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced
     verify = importlib.import_module("veri.verify")
 
     code, out, _ = run_cli(verify, [*based(repo), "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
-                                    "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+                                    "tests/test_slugify.py", "tests/test_slugify.py::test_lowercases"], env=env, cwd=repo)
 
     assert (code, "full suite are green" in out) == (2, False)
 
@@ -2551,6 +2565,8 @@ def test_4375_verify_sh_pin_renders_the_prompt_with_branch_base_filled_by_its_br
         run_cli, tmp_path, monkeypatch, fake_processes):
     base = "3f9a1c0d5e7b"
     (tmp_path / "spec.md").write_text(SPEC)
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_slugify.py").write_text("def test_lowercases():\n    pass\n")
     launched = answering_leaf(monkeypatch, fake_processes, b"VERDICT: PASS\nfine")
     fallback = subprocess.run
 
@@ -2564,7 +2580,7 @@ def test_4375_verify_sh_pin_renders_the_prompt_with_branch_base_filled_by_its_br
     verify = importlib.import_module("veri.verify")
 
     code, _, _ = run_cli(verify, ["--branch-base", base, "--fast-cmd", "make unit", "pin", str(tmp_path / "spec.md"),
-                                  "tests/test_slugify.py", "test_lowercases"],
+                                  "tests/test_slugify.py", "tests/test_slugify.py::test_lowercases"],
                          env={"HOME": str(tmp_path)}, cwd=tmp_path)
 
     prompt = launched[0][1] if launched else ""
