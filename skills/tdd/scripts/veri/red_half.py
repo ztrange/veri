@@ -5,6 +5,7 @@ import os
 import sys
 
 import case_reader
+import covering_tests
 import fused
 import fused_step
 import ledger
@@ -153,12 +154,16 @@ def develop(n, wt, settled, step):
 
 
 def red_report(wt):
-    """Red 1's three report lines, printed (RH5): a missing one stops with exit 2, PASSES or UNTESTABLE with 1."""
-    got = fused.report("1", wt, ".tdd/develop-red.out", "TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED")
+    """Red 1's three report lines, printed (RH5): a missing one stops with exit 2, PASSES or UNTESTABLE with 1, and HOLDS
+    with 1 naming its COVERING_TESTS: ids (PRD 044.2)."""
+    got = fused.report("1", wt, ".tdd/develop-red.out", "TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED",
+                       "COVERING_TESTS")
     for key in ("TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED"):
         if got[key]:
             sys.stdout.write("%s=%s\n" % (key.lower(), got[key]))
     against = got["AGAINST_UNMODIFIED"]
+    if against == "HOLDS":
+        raise fused.Stop("2", "COVERING_TESTS: " + " ".join(covering_tests.ids(got["COVERING_TESTS"] or "")), 1)
     if against in ("PASSES", "UNTESTABLE"):
         raise fused.Stop("2", "AGAINST_UNMODIFIED: " + against, 1)
     for key in ("TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED"):
