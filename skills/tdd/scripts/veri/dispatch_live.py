@@ -7,6 +7,7 @@ import subprocess
 import sys
 from datetime import datetime
 
+import budget_entries
 import event_log
 import full_run_lock
 import github
@@ -15,7 +16,6 @@ import pid_file
 import restart_marker
 import role_state
 import run_dir as layout
-import test_budget
 import tunables
 from dispatch_reads import via
 from role_state import state_path
@@ -54,8 +54,8 @@ def state_file():
 
 def _leg():
     """The pytest leg's module, whose registry rule (registered_legs) the waiter entries share; it lives in tests/leg/,
-    loaded by test_budget.leg."""
-    return test_budget.leg()
+    loaded by budget_entries.leg."""
+    return budget_entries.leg()
 
 
 class World:
@@ -153,11 +153,11 @@ class World:
                 for e in event_log.events(via("run_dir")(issue), "test-stretch", skip_unreadable=True)]
 
     def write_test_budget(self, need):
-        """Replaces this lane's entry under VERI_TEST_BUDGET_DIR (test_budget.write) with <need>; nothing when no main
+        """Replaces this lane's entry under VERI_TEST_BUDGET_DIR (budget_entries.write) with <need>; nothing when no main
         working tree can be named."""
         main = layout.main_tree(missing="")
         if main:
-            test_budget.write(main, via("lane")() or "main", need)
+            budget_entries.write(main, via("lane")() or "main", need)
 
     def notified(self):
         """The lines of the main working tree's .tdd/dispatch-notified, what dispatch.sh keeps across restarts; [] when
