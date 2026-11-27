@@ -15,7 +15,8 @@ a `Veri-Joined: <pr-url> <branch>` trailer, only the landed copies of `<onto>..<
 `Veri-Joined-Onto: <sha>` trailer, so a subject needs no `(#<n>)` suffix and an online join, a repair or a held pull
 request is credited to no run. A run whose join has not landed gets no comment, and a join without one full-sha
 `Veri-Joined-Onto` exits 2. Only a run whose pull request reads as merged gets its comment; the comment's key is
-derived from the issue, the tip and the commits, so a second run over the same tip posts nothing."""
+derived from the issue and the landed commits, not the tip, so a second run over the same landed commits posts
+nothing, whatever tip it is given, and a later landing of more of an issue's commits posts it a second comment."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
 import fcntl
@@ -309,7 +310,7 @@ def close_landed(top, tip):
             landed.setdefault(issue, []).extend(commits)
     for issue, commits in landed.items():
         shas = " ".join(sha for sha, _, _ in commits)
-        k = hashlib.sha256(("%s %s %s" % (issue, tip, shas)).encode()).hexdigest()[:16]
+        k = hashlib.sha256(("%s %s" % (issue, shas)).encode()).hexdigest()[:16]
         body = "### ✅ Landed\n\n%s" % "\n".join("- %s %s" % (short, subject) for _, short, subject in commits)
         queue_comment(top, issue, "landed", body, k)
     code = replay(top)
