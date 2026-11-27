@@ -37,6 +37,8 @@ class Fake:
                 return 0, "".join(line for line in self.report.splitlines(True)
                                   if not line.startswith(("TEST_PATH:", "TARGET_TEST:"))), ""
             return 0, self.report, ""
+        if base == "git" and args[:1] == ("rev-parse",):
+            return 0, "abcdef0123456789abcdef0123456789abcdef01\n", ""
         if base == "stop-requested.sh":
             return 3, "", ""
         if base == "step-cost.sh":
@@ -503,6 +505,17 @@ def test_4779_a_revised_holds_whose_covering_case_fails_spends_the_attempt_and_l
 
     assert (code, fake.launched()) == (3, ["revise-red-1", "revise-red-2"]), (out, err)
     assert "holds-step.sh" in (revise.wt / ".tdd" / "verify-red-2.reason").read_text()
+
+
+def test_4779_a_revised_holds_with_no_launch_head_recorded_stops_with_exit_2_running_no_gate(revise):
+    """CY425: with no HEAD recorded at the revise leaf's launch there is no start to gate against: exit 2, holds-step.sh
+    never run with an empty start and no verdict-pin."""
+    _red(revise)
+    code, out, err, fake = revise(fake=Fake({("git", "ls-files"): (0, HOLDS_TRACKED), ("git", "rev-parse"): (0, "\n")},
+                                            report=HOLDS_REPORT), argv=("12", "red"), missing=("red-half",))
+
+    assert (code, fake.launched()) == (2, ["revise-red-1"]), (out, err)
+    assert "holds-step.sh" not in fake.names()
 
 
 HOLDS_THEN_WRITTEN = "TEST_PATH: tests/test_n.py\nTARGET_TEST: tests/test_n.py::test_new\n" \
