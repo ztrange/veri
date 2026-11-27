@@ -104,3 +104,79 @@ def queue_tick(top, issue, criterion):
     k = key()
     append(top, {"type": "tick", "issue": str(issue), "criterion": int(criterion), "key": k})
     return k
+
+
+def rewrite(top, lines):
+    """Replace the queue with <lines> by renaming a temporary file; no lines removes it."""
+    path = os.path.join(top, FILE)
+    if not lines:
+        os.remove(path)
+        return
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as handle:
+        handle.write("".join(line + "\n" for line in lines))
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, path)
+
+
+def criterion_line(body, k):
+    """The line of acceptance criterion <k> in issue body <body>, as `ledger-steps.sh criterion <k>` prints it; None
+    when the body has no such criterion."""
+    found = issue_body.criteria(body, prefix=True, occurrence="all")
+    records = ledger.ledger_steps("\n".join(line for _, line in found))
+    return records[k - 1].text if 1 <= k <= len(records) else None
+
+
+def land(e):
+    """Make queued entry <e>'s write; NoAnswer when GitHub gives none."""
+    if e["type"] == "comment":
+        marker = MARKER % e["key"]
+        if any(github.trusted_comment(c) and marker in (c.get("body") or "") for c in github.issue_comments(e["issue"])):
+            return
+        github.gh_issue_comment(e["issue"], e["body"])
+        return
+    line = criterion_line(github.gh_issue_view(e["issue"], "body"), int(e["criterion"]))
+    if line is not None and tick_issue_criterion.main([e["issue"], line]) == 2:
+        raise github.NoAnswer("")
+
+
+def replay(top):
+    """Post the queue's entries in file order, removing each that landed (exit 0 once empty, 3 with no queue); stop at
+    the first that gets no answer, naming it, keeping it and every later one (exit 2)."""
+    with locked(top):
+        lines = lines_of(top)
+        if lines is None:
+            return 3
+        lines = [line for line in lines if line.strip()]
+        while lines:
+            try:
+                e = json.loads(lines[0])
+                if e.get("type") not in ("comment", "tick"):
+                    raise ValueError("type %r" % e.get("type"))
+            except (ValueError, AttributeError) as error:
+                return entry.refuse("github-queue.sh: unreadable entry in %s: %s" % (FILE, error))
+            try:
+                land(e)
+            except github.NoAnswer:
+                return entry.refuse("github-queue.sh: no answer replaying %s (%s on #%s); it and the %d after it stay "
+                                    "queued" % (e.get("key"), e["type"], e.get("issue"), len(lines) - 1))
+            lines = lines[1:]
+            rewrite(top, lines)
+            print("replayed %s" % e.get("key"))
+        if os.path.exists(os.path.join(top, FILE)):
+            rewrite(top, [])
+        return 0
+
+
+def main(argv):
+    if argv != ["replay"]:
+        return entry.refuse(usage=USAGE)
+    top = root()
+    if top is None:
+        return entry.refuse("github-queue.sh: no main working tree")
+    return replay(top)
+
+
+if __name__ == "__main__":
+    entry.run(main, sys.argv[1:])
