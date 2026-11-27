@@ -395,3 +395,22 @@ def test_a_resumed_run_that_posts_a_second_done_comment_after_further_work_reads
     activity = json.loads(status.run_activity(str(repo / ".tdd" / "wt" / "4242"), True))
 
     assert (code, out, activity["state"], activity["pr"]) == (0, "", "done", "https://github.com/o/r/pull/7")
+
+
+def test_a_resumed_run_whose_only_comment_after_further_work_is_not_a_done_comment_still_reads_as_not_done_stale_4792(
+        tmp_path, run_cli, fake_processes):
+    repo = make_run(tmp_path, [
+        LAUNCH % 1000, DONE,
+        '{"ts":1002,"event":"comment","kind":"done","url":"https://github.com/o/r/issues/4242#issuecomment-1"}',
+        '{"ts":1100,"event":"conductor-start","pid":4242,"started":""}',
+        '{"ts":1101,"event":"preflight"}',
+        '{"ts":1102,"event":"resume"}',
+        LAUNCH % 1103,
+        '{"ts":1104,"event":"exit","name":"develop-red"}',
+        '{"ts":1105,"event":"comment","kind":"verify-plan","url":"https://github.com/o/r/issues/4242#issuecomment-2"}'])
+
+    code, out, _ = finish(run_cli, fake_processes, repo)
+    status = importlib.import_module("veri.status")
+    activity = json.loads(status.run_activity(str(repo / ".tdd" / "wt" / "4242"), True))
+
+    assert (code, out.startswith("not-done stale"), activity["state"]) == (1, True, "stale")
