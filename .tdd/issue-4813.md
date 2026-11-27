@@ -4,5 +4,5 @@
 - [x] `test_verify_process.py` runs no direct `git init`: its scratch repos come from `repo_builder.new_repo`, and it leaves the ratchet's list ⟦criterion 1⟧
 - [x] `test_skill_edit_step_process.py` runs no direct `git init`, and leaves the ratchet's list ⟦criterion 1⟧
 - [x] `test_role_state_process.py` runs no direct `git init`, and leaves the ratchet's list ⟦criterion 1⟧
-- [ ] `test_merge_lock.py` runs no direct `git init`, and leaves the ratchet's list ⟦criterion 1⟧
+- [x] `test_merge_lock.py` runs no direct `git init`, and leaves the ratchet's list ⟦criterion 1⟧
 - [ ] `test_mutation_probe_process.py` runs no direct `git init`, and leaves the ratchet's list ⟦criterion 1⟧

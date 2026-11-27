@@ -9,6 +9,8 @@ import sys
 
 import pytest
 
+from repo_builder import new_repo
+
 
 @pytest.fixture
 def merge_lock():
@@ -25,7 +27,7 @@ def test_holder_exits_3_with_nothing_on_stdout_when_no_lock_exists_in_the_main_t
         tmp_path, merge_lock, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
-    scratch_git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     scratch_git(repo, "commit", "-q", "--allow-empty", "-m", "initial")
     linked = tmp_path / "linked"
     scratch_git(repo, "worktree", "add", "-q", "-b", "side", str(linked), "main")
@@ -41,7 +43,7 @@ def test_take_from_a_linked_worktree_creates_the_lock_directory_in_the_main_tree
         tmp_path, merge_lock, run_cli):
     repo = tmp_path / "repo"
     repo.mkdir()
-    scratch_git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     scratch_git(repo, "commit", "-q", "--allow-empty", "-m", "initial")
     linked = tmp_path / "linked"
     scratch_git(repo, "worktree", "add", "-q", "-b", "side", str(linked), "main")
@@ -57,7 +59,7 @@ def test_take_from_a_linked_worktree_creates_the_lock_directory_in_the_main_tree
 @pytest.mark.process("git init on a scratch repository, take and holder run from it")
 def test_take_with_pid_records_that_pid_and_holder_prints_it(
         tmp_path, merge_lock, run_cli):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     pid = str(os.getpid())
 
     taken = run_cli(merge_lock, ["take", "--pid", pid], cwd=tmp_path)
@@ -69,7 +71,7 @@ def test_take_with_pid_records_that_pid_and_holder_prints_it(
 @pytest.mark.process("git init on a scratch repository, and a child process started and reaped for a dead pid")
 def test_holder_exits_1_and_prints_the_record_marked_stale_when_the_recorded_pid_is_dead_on_this_host(
         tmp_path, merge_lock, run_cli):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     child = subprocess.Popen([sys.executable, "-c", "pass"])
     child.wait()
     dead = str(child.pid)
@@ -85,7 +87,7 @@ def test_holder_exits_1_and_prints_the_record_marked_stale_when_the_recorded_pid
 @pytest.mark.process("git init on a scratch repository, holder run against a lock directory with no record")
 def test_holder_exits_2_when_the_lock_directory_exists_but_its_record_is_missing(
         tmp_path, merge_lock, run_cli):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     (tmp_path / ".tdd" / "merge.lock").mkdir(parents=True)
 
     held = run_cli(merge_lock, ["holder"], cwd=tmp_path)
@@ -96,7 +98,7 @@ def test_holder_exits_2_when_the_lock_directory_exists_but_its_record_is_missing
 @pytest.mark.process("git init on a scratch repository, take and release run from it")
 def test_release_removes_the_lock_only_for_the_recorded_holder_and_release_force_removes_it_whoever_holds_it(
         tmp_path, merge_lock, run_cli):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     lock = tmp_path / ".tdd" / "merge.lock"
     run_cli(merge_lock, ["take", "--pid", "1"], cwd=tmp_path)
 
@@ -114,7 +116,7 @@ def test_release_removes_the_lock_only_for_the_recorded_holder_and_release_force
 @pytest.mark.process("git init on a scratch repository, release run against a lock with a missing or empty record")
 def test_release_exits_2_and_leaves_the_lock_in_place_when_the_lock_exists_but_its_record_is_missing_or_empty(
         tmp_path, merge_lock, run_cli):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     lock = tmp_path / ".tdd" / "merge.lock"
     lock.mkdir(parents=True)
 
@@ -129,7 +131,7 @@ def test_release_exits_2_and_leaves_the_lock_in_place_when_the_lock_exists_but_i
 
 @pytest.mark.process("git init on a scratch repository, take run without --pid")
 def test_take_without_pid_exits_2_naming_pid_and_creates_no_lock(tmp_path, merge_lock, run_cli):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
 
     bare = run_cli(merge_lock, ["take"], cwd=tmp_path)
 
@@ -138,7 +140,7 @@ def test_take_without_pid_exits_2_naming_pid_and_creates_no_lock(tmp_path, merge
 
 @pytest.mark.process("git init on a scratch repository, take with --pid then release run without --pid or --force")
 def test_release_without_pid_or_force_exits_2_naming_pid_and_removes_no_lock(tmp_path, merge_lock, run_cli):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path)
 
     bare = run_cli(merge_lock, ["release"], cwd=tmp_path)
@@ -149,7 +151,7 @@ def test_release_without_pid_or_force_exits_2_naming_pid_and_removes_no_lock(tmp
 @pytest.mark.process("git init on a scratch repository, take and holder run from it")
 def test_holder_exits_1_and_prints_the_record_marked_stale_when_the_recorded_pid_is_alive_but_its_recorded_start_time_differs(
         tmp_path, merge_lock, run_cli):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     pid = str(os.getpid())
     run_cli(merge_lock, ["take", "--pid", pid], cwd=tmp_path)
     record = tmp_path / ".tdd" / "merge.lock" / "holder"
@@ -167,7 +169,7 @@ def test_holder_exits_1_and_prints_the_record_marked_stale_when_the_recorded_pid
 @pytest.mark.process("git init on a scratch repository, take and holder run from it, ps reading pid 1's start time")
 def test_holder_exits_0_and_prints_the_record_when_the_recorded_live_pid_belongs_to_another_user(
         tmp_path, merge_lock, run_cli):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     taken = run_cli(merge_lock, ["take", "--pid", "1"], cwd=tmp_path)
 
     held = run_cli(merge_lock, ["holder"], cwd=tmp_path)
@@ -178,7 +180,7 @@ def test_holder_exits_0_and_prints_the_record_when_the_recorded_live_pid_belongs
 @pytest.mark.process("git init on a scratch repository, take run from it with directory creation and renames observed")
 def test_take_makes_the_lock_directory_visible_only_with_its_holder_record_complete(
         tmp_path, merge_lock, run_cli, monkeypatch):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     lock = tmp_path / ".tdd" / "merge.lock"
     seen = []
 
@@ -203,7 +205,7 @@ def test_take_makes_the_lock_directory_visible_only_with_its_holder_record_compl
 @pytest.mark.process("git init on a scratch repository, two takes run from it, ps reading pid 1's start time")
 def test_take_waits_on_a_live_holder_owned_by_another_user_instead_of_refusing(
         tmp_path, merge_lock, run_cli, monkeypatch):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     lock = tmp_path / ".tdd" / "merge.lock"
     run_cli(merge_lock, ["take", "--pid", "1"], cwd=tmp_path)
     waits = []
@@ -224,7 +226,7 @@ def test_take_waits_on_a_live_holder_owned_by_another_user_instead_of_refusing(
 @pytest.mark.process("git init on a scratch repository, take run against a lock directory with no record")
 def test_take_exits_0_holding_the_lock_when_release_force_removes_the_lock_directory_while_it_waits_on_a_directory_with_no_record(
         tmp_path, merge_lock, run_cli, monkeypatch):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     lock = tmp_path / ".tdd" / "merge.lock"
     lock.mkdir(parents=True)
     waits = []
@@ -245,7 +247,7 @@ def test_take_exits_0_holding_the_lock_when_release_force_removes_the_lock_direc
 @pytest.mark.process("git init on a scratch repository, take run against a lock directory that keeps no record")
 def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_after_five_polls_when_the_lock_directory_stays_without_a_record_2361(
         tmp_path, merge_lock, run_cli, monkeypatch):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     lock = tmp_path / ".tdd" / "merge.lock"
     lock.mkdir(parents=True)
     waits = []
@@ -265,7 +267,7 @@ def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_after_
 @pytest.mark.process("git init on a scratch repository, take run against a lock whose record cannot be read")
 def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_when_its_record_is_unreadable(
         tmp_path, merge_lock, run_cli, monkeypatch):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     lock = tmp_path / ".tdd" / "merge.lock"
     lock.mkdir(parents=True)
     record = lock / "holder"
@@ -297,7 +299,7 @@ def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_when_i
 @pytest.mark.process("git init on a scratch repository, take run against a lock whose record is malformed")
 def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_when_its_record_is_malformed(
         tmp_path, merge_lock, run_cli, monkeypatch, text):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     lock = tmp_path / ".tdd" / "merge.lock"
     lock.mkdir(parents=True)
     record = lock / "holder"
@@ -318,7 +320,7 @@ def test_take_exits_2_naming_the_record_path_and_leaves_the_lock_in_place_when_i
 @pytest.mark.process("git init on a scratch repository, release run with --pid and with --force against no lock, and a bare run")
 def test_release_with_pid_or_force_and_no_lock_exits_3_and_the_usage_line_names_pid_and_force(
         tmp_path, merge_lock, run_cli):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
 
     by_pid = run_cli(merge_lock, ["release", "--pid", str(os.getpid())], cwd=tmp_path)
     forced = run_cli(merge_lock, ["release", "--force"], cwd=tmp_path)
@@ -332,7 +334,7 @@ def test_release_with_pid_or_force_and_no_lock_exits_3_and_the_usage_line_names_
 @pytest.mark.process("git init on a scratch repository, take run against a lock whose live holder pid has another start time")
 def test_take_exits_2_at_once_naming_release_force_when_the_holder_pid_is_alive_but_its_recorded_start_time_differs_2344(
         tmp_path, merge_lock, run_cli, monkeypatch):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     lock = tmp_path / ".tdd" / "merge.lock"
     lock.mkdir(parents=True)
     text = f"{os.getpid()} {socket.gethostname()} Thu_Jan__1_00:00:00_1970\n"
@@ -356,7 +358,7 @@ def test_take_exits_2_at_once_naming_release_force_when_the_holder_pid_is_alive_
 @pytest.mark.process("git init on a scratch repository, take run against a lock directory with a malformed record")
 def test_take_leaves_no_staging_directory_behind_when_it_exits_2_on_a_malformed_record_2344(
         tmp_path, merge_lock, run_cli, monkeypatch):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     lock = tmp_path / ".tdd" / "merge.lock"
     lock.mkdir(parents=True)
     (lock / "holder").write_text("not-a-pid\n")
@@ -369,7 +371,7 @@ def test_take_leaves_no_staging_directory_behind_when_it_exits_2_on_a_malformed_
 @pytest.mark.process("git init on a scratch repository, take run against a held lock with an invalid poll interval")
 def test_take_leaves_no_staging_directory_behind_when_an_invalid_poll_interval_raises_after_staging_2344(
         tmp_path, merge_lock, run_cli, monkeypatch):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     lock = tmp_path / ".tdd" / "merge.lock"
     lock.mkdir(parents=True)
     (lock / "holder").write_text(f"{os.getpid()} {socket.gethostname()} {merge_lock._start_time(str(os.getpid()))}\n")
@@ -384,7 +386,7 @@ def test_take_leaves_no_staging_directory_behind_when_an_invalid_poll_interval_r
 @pytest.mark.process("git init on a scratch repository, take run with bad VERI_MERGE_LOCK_WAIT values")
 def test_3995_take_with_a_veri_merge_lock_wait_that_is_not_a_non_negative_whole_number_exits_2_naming_it_creating_nothing(
         tmp_path, merge_lock, run_cli):
-    scratch_git(tmp_path, "init", "-q", "-b", "main")
+    new_repo(tmp_path)
     answers = {}
     for value in ("abc", "-1", "1.5", ""):
         code, out, err = run_cli(merge_lock, ["take", "--pid", str(os.getpid())], cwd=tmp_path,
