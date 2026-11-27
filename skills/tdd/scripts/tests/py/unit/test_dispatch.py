@@ -4142,6 +4142,26 @@ def test_4806_a_lowering_keeps_an_already_expired_timed_n_line(dispatch):
     assert (code, world.role_state_written[-1][:3]) == (None, ["n=3", gone, "n=2"])
 
 
+def test_4806_a_lowering_keeps_a_timed_n_line_whose_expiry_is_exactly_now(dispatch):
+    edge = "timed-n 1 2026-11-27T10:00:00 6 until 2026-11-27T12:00:00"
+    world = FakeWorld({"lowering": FLOOR_LOWERING, "live": ["7"], "alive": ["7"],
+                       "clock": datetime(2026, 11, 27, 12).timestamp()}, role_state=["n=3", edge])
+
+    state, code = dispatch.step(dispatch.State(0, follows_role_state=True), world)
+
+    assert (code, world.role_state_written[-1][:3]) == (None, ["n=3", edge, "n=2"])
+
+
+def test_4806_under_n_auto_with_an_unexpired_timed_n_of_3_a_lowering_from_t_2_keeps_the_lanes_auto(dispatch):
+    timed = "timed-n 1 2026-11-27T10:00:00 3 until 2099-01-01T00:00:00"
+    world = FakeWorld({"lowering": FLOOR_LOWERING, "live": ["7"], "alive": ["7"]}, role_state=["n=auto", timed])
+
+    state, code = dispatch.step(dispatch.State(0, follows_role_state=True), world)
+
+    assert (code, world.role_state_written, [line for line in world.said if line.startswith("n-lowered")]) == (
+        None, [], [])
+
+
 def test_4806_a_role_state_gone_malformed_at_lowering_time_records_and_prints_nothing(dispatch):
     world = FakeWorld({"lowering": FLOOR_LOWERING, "live": ["7"], "alive": ["7"]}, role_state=["n=3"])
     reads = []
@@ -4192,6 +4212,9 @@ def test_4806_under_target_a_lowering_from_t_2_changes_no_role_state(dispatch):
 def test_4806_the_real_world_writes_the_lanes_role_state_file_whole(dispatch, monkeypatch, tmp_path):
     monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
     monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
+
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "role-dev-mu.state").write_text("n=9\n")
 
     dispatch.World().write_role_state(["n=3", "n=2"])
 

@@ -1,5 +1,6 @@
 """Which of veri's own files outside its tests name the load file a load timeout lowers T through (PRD 036.7 LO10):
-no conductor script may read VERI_TEST_LOAD_FILE, so none acts on a lowered T beyond the leg's own budget."""
+no conductor script may read VERI_TEST_LOAD_FILE, so none acts on a lowered T beyond the leg's own budget, save
+dispatch lowering N when T is at its floor (PRD 036.8)."""
 import os
 
 import pytest
@@ -7,7 +8,7 @@ import pytest
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # The leg and its plugin, which write and read it; veri/ceiling.py, whose exit 0 removes it; veri/dispatch_live.py,
-# which reads it for the t-lowered notice only; and the tunable's own declaration and its README row.
+# which reads it for the t-lowered notice and, from T's floor, dispatch's N lowering; and the tunable's own declaration and its README row.
 NAMERS = {"tests/leg/load_timeouts.py", "tests/leg/pytest_leg.py", "veri/ceiling.py", "veri/dispatch_live.py",
           "veri/tunables.py", "veri/README.md", "veri/leg_budget.py"}
 
