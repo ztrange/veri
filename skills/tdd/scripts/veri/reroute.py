@@ -64,6 +64,7 @@ def run(n, report):
         return 2
     settled, wt = given
     step = fused_step.first_step(wt, n, handed_out)
+    step_at = (wt, n, step)
     red = fused_step.record(NAME, wt, n, step)
     if red is None:
         return 1
@@ -72,39 +73,41 @@ def run(n, report):
     if resumed is None and report == REASON % "green" and fused_step.verify_switched_off(wt, n, "green"):
         raise fused.Stop("route", report + " with green switched off", 1)
     if resumed is None:
-        at, values = launch(n, wt, settled, step, report, own, red)
+        at, values = launch(step_at, settled, report, own, red)
     else:
         at, values = resumed
     if at == values["leaf"]:
         waited(wt, n, "leaf", at)
         fused_step.cost_check(wt, step)
         values.update(edited(wt, values))
-        at = verify(n, wt, settled, step, values)
+        at = verify(step_at, settled, values)
     while at == "verdict-red":
         code = fused.wait(wt, n, NAME, at)
         if code == 1:
-            revise_red(wt, n, step, red, values)
+            revise_red(step_at, red, values)
         if code != 0:
             raise fused.Stop("verify", "wait-leaf.sh %s exit %d" % (at, code), code)
         values["verify"] = values["verify"][1:]
-        at = verify(n, wt, settled, step, values) if values["verify"] else None
-    return finish(wt, n, step, values, red)
+        at = verify(step_at, settled, values) if values["verify"] else None
+    return finish(step_at, values, red)
 
 
-def revise_green(wt, n, step, report, red):
+def revise_green(step_at, report, red):
     """wrong-test-route.sh's `revise` (exit 3): the attempt's outcome is a verify-green REJECT (SKILL.md *Green*), so
     revise.sh <n> green gets its reason, the green report when that is what was routed, and green-half's rejected
     record naming the step, which sends a sliced revise back to revise.sh; one already naming the step is kept."""
+    wt = step_at[0]
     reason = os.path.join(wt, ".tdd", "verify-green.reason")
     if os.path.normpath(os.path.join(wt, report)) != reason:
         shutil.copyfile(os.path.join(wt, report), reason)
-    reject(wt, n, step, "green-half", "verdict-green", red)
+    reject(step_at, "green-half", "verdict-green", red)
     raise Revise("green")
 
 
-def reject(wt, n, step, stage, at, red, **more):
+def reject(step_at, stage, at, red, **more):
     """<stage>'s rejected record (fused.wait's on a verifier REJECT, PRD 038.9) naming <step>, written with red-half's
     values and <more> unless one already names the step."""
+    wt, n, step = step_at
     if fused_step.rejected(wt, n, stage, step) is not None:
         return
     with open(fused.wait_record(wt, n, stage + "-rejected"), "w") as f:
@@ -147,10 +150,11 @@ def edited(wt, values):
     return {"verify": cases, "paths": list(dict.fromkeys(paths))}
 
 
-def verify(n, wt, settled, step, values):
+def verify(step_at, settled, values):
     """verdict-red over the edited case, launched by red-half's own launch, so it takes exactly the red phase's
     run-verdict.sh arguments (RRT10). The leaf launched; None with `red` switched off, the skip marked as Red's
     *Switched off* marks it (RRT7, ADR-0033)."""
+    wt, n, step = step_at
     fused.checked("verify", fused.script("tests-frozen.sh"), "check-earlier", LEDGER % n, "--step", step,
                   *[arg for case in values["cases"] for arg in ("--except", case)], cwd=wt)
     if fused_step.verify_switched_off(wt, n, "red"):
@@ -164,13 +168,14 @@ def verify(n, wt, settled, step, values):
     return "verdict-red"
 
 
-def finish(wt, n, step, values, red):
+def finish(step_at, values, red):
     """The step's frozen tests re-recorded over every test path, the step's own Red case checked (RRT2); exit 1, a
     deleted case named in `.tdd/verify-red.reason`, is a verify-red REJECT (RRT5)."""
+    wt, n, step = step_at
     code = fused.call(fused.script("tests-frozen.sh"), "record", "--step", step, "--red-case", values["own"],
                       *values["paths"], cwd=wt, out=".tdd/verify-red.reason")[0]
     if code == 1:
-        revise_red(wt, n, step, red, values)
+        revise_red(step_at, red, values)
     if code != 0:
         raise fused.Stop("record", fused.label("tests-frozen.sh", "record", "--step", step) + " exit %d" % code, code)
     answered(wt, n)
@@ -184,12 +189,12 @@ def answered(wt, n):
             os.remove(path)
 
 
-def revise_red(wt, n, step, red, values):
+def revise_red(step_at, red, values):
     """A verify-red REJECT of the rerouted red (RRT5): its reason left in `.tdd/verify-red.reason`, red-half's rejected
     record naming the step, so run-step.sh sends it to revise.sh <n> red as it does red-half's own REJECT. The record
     carries `rerouted`, every test path the reroute's re-record covers, so the revised PASS keeps the step's own Red
     case and records the frozen tests over every path, as a reroute PASS does."""
-    reject(wt, n, step, "red-half", "verdict-red", red, rerouted=values["paths"])
+    reject(step_at, "red-half", "verdict-red", red, rerouted=values["paths"])
     raise Revise("red")
 
 
@@ -203,14 +208,15 @@ def pending(wt, n, step):
     return resumed
 
 
-def launch(n, wt, settled, step, report, own, red):
+def launch(step_at, settled, report, own, red):
     """The route, then the rerouted red: the `reroute` event, its prompt and its leaf launched (RRT2). (at, values)."""
+    wt, n, step = step_at
     shown = fused.label("wrong-test-route.sh", "--spec", SPEC % n, report, own)
     code, said, _ = fused.call(fused.script("wrong-test-route.sh"), "--spec", SPEC % n, report, own, cwd=wt,
                                env=fused.step_env(n, step))
     kind, _, rest = said.strip().partition(" ")
     if code == 3:
-        revise_green(wt, n, step, report, red)
+        revise_green(step_at, report, red)
     if code in (0, 1) and kind in STOPS:
         raise fused.Stop("route", said.strip(), 1)
     if code != 0 or kind not in RUNS:
