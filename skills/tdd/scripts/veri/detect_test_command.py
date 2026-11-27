@@ -4,9 +4,6 @@ import glob
 import os
 import re
 import sys
-import tempfile
-
-import git
 
 SPACE = b" \t\n\v\f\r"
 
@@ -157,6 +154,10 @@ def at_commit(tier, issue, root, commit):
     """resolved(), its every repo file read from the tree <commit> holds in <root>'s repository, never from <root>'s
     working tree (#4263): the files decide() reads are copied out of <commit> into a scratch directory, which stands in
     for <root>. Raises Unresolved when git resolves no such commit there."""
+    import tempfile  # git pulls subprocess, tempfile random and shutil: only this path needs either
+
+    import git
+
     if not git.ok("rev-parse", "--verify", "--quiet", commit + "^{commit}", cwd=root):
         raise Unresolved(commit)
     with tempfile.TemporaryDirectory() as snapshot:

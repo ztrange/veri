@@ -16,6 +16,10 @@ RARE_PATH_IMPORTS = {
     "status": {"statistics": "only eta_range() needs it, and only once three runs have finished"},
     "pytest_leg": {"concurrent.futures": "only the cache sweep's thread pool needs it"},
     "event": {"github": "pulls run_records (about 20 ms): only state_labels() needs it, with VERI_STATE_LABEL_ISSUE set"},
+    "detect_test_command": {
+        "git": "pulls subprocess: only at_commit(), the --at <commit> path, reads a commit's tree",
+        "tempfile": "pulls random and shutil: only at_commit(), the --at <commit> path, needs a scratch directory",
+    },
 }
 
 
