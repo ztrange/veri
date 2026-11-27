@@ -16,6 +16,8 @@ from ledger import handed_out
 NAME = "red-half"
 USAGE = "usage: red-half.sh <n>"
 SPEC = ".tdd/issue-%s-spec.md"
+# The step's start: the HEAD its Red leaf launched on, holds-step.sh's <step-start-sha> on a HOLDS (PRD 044 D9).
+STEP_START = ".tdd/issue-%s-step-start"
 LEDGER = run_dir.ledger("", "%s")
 # The step kinds whose Red is not this one (RH1): they run from their own files or need a route's --except.
 REFUSED = ("⟦diff-checked⟧", ledger.GO_RED_MARK, "⟦phases:", "⟦skill-edit⟧", "⟦fixture-repair⟧")
@@ -138,12 +140,17 @@ def waited(wt, n, where, name, step):
 
 
 def develop(n, wt, settled, step):
-    """Red 1: refresh the spec (0, 2 and 3 go on), build the red prompt, and launch develop-red (RH2, RH3)."""
+    """Red 1: refresh the spec (0, 2 and 3 go on), build the red prompt, record the step's start (the HEAD the leaf
+    launches on, STEP_START) and launch develop-red (RH2, RH3)."""
     refreshed = fused.call(fused.script("refresh-spec.sh"), n, SPEC % n, cwd=wt)[0]
     if refreshed == 1:
         raise fused.Stop("1", fused.label("refresh-spec.sh", n, SPEC % n) + " exit 1", 1)
     fused.checked("1", fused.script("build-develop-prompt.sh"), "red", SPEC % n, step, settled["fast_cmd"], cwd=wt,
                   out=".tdd/develop-red.prompt")
+    with fused.quiet():
+        head = fused.checked("1", "git", "rev-parse", "HEAD", cwd=wt).strip()
+    with open(os.path.join(wt, STEP_START % n), "w") as f:
+        f.write("step=%s\nsha=%s\n" % (step, head))
     fused.launch("1", wt, "develop-red", "run-leaf.sh", ".tdd/develop-red.prompt", "--permission-mode",
                  "bypassPermissions", env=fused.step_env(n, step, VERI_TEST_CMD=settled["fast_cmd"]),
                  out=".tdd/develop-red.out", err=".tdd/develop-red.err",
@@ -151,6 +158,17 @@ def develop(n, wt, settled, step):
     values = {"refresh": refreshed}
     fused.save_wait(wt, n, NAME, "develop-red", values)
     return values
+
+
+def step_start(wt, n, step):
+    """The sha STEP_START records for <step>, the HEAD its Red leaf launched on; "" when the file is missing or
+    records another step, so a revise never gates a step against an earlier step's start."""
+    try:
+        with open(os.path.join(wt, STEP_START % n)) as f:
+            record = dict(line.split("=", 1) for line in f.read().splitlines() if "=" in line)
+    except FileNotFoundError:
+        return ""
+    return record.get("sha", "") if record.get("step") == step else ""
 
 
 def red_report(wt):

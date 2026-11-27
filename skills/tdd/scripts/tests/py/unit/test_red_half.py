@@ -123,13 +123,14 @@ def test_4026_it_refreshes_the_spec_builds_the_red_prompt_checks_for_a_stop_and_
         (red.wt / ".tdd" / name).write_text("old\n")
     code, out, err, fake = red(answers=DEVELOP_ONLY)
 
-    assert [c[0] for c in fake.calls[:5]] == ["refresh-spec.sh", "build-develop-prompt.sh", "stop-requested.sh",
+    assert [c[0] for c in fake.calls[:6]] == ["refresh-spec.sh", "build-develop-prompt.sh", "git", "stop-requested.sh",
                                               "detach-leaf.sh", "wait-leaf.sh"]
     assert fake.calls[0][1] == ("12", ".tdd/issue-12-spec.md")
     assert fake.calls[1][1] == ("red", ".tdd/issue-12-spec.md", STEP, "make unit")
     assert fake.calls[1][4]["out"] == ".tdd/develop-red.prompt"
-    assert fake.calls[4][1] == ("develop-red",)
-    launch = fake.calls[3]
+    assert fake.calls[2][1] == ("rev-parse", "HEAD")
+    assert fake.calls[5][1] == ("develop-red",)
+    launch = fake.calls[4]
     assert tuple(os.path.basename(a) if a.endswith(".sh") else a for a in launch[1]) == (
         "supervise.sh", "develop-red", "run-leaf.sh", ".tdd/develop-red.prompt", "--permission-mode",
         "bypassPermissions")
@@ -366,11 +367,25 @@ def test_4026_a_refreshed_spec_is_named_in_the_note(red):
     assert "refreshed" in (red.wt / ".tdd" / "issue-12-red-half").parent.joinpath("red-half-note.md").read_text()
 
 
+HEAD_SHA = "5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed"
+
+
+def test_4779_before_launching_develop_red_it_records_the_head_it_launches_on_as_the_steps_start(red):
+    """PRD 044 D9: the step's start, holds-step.sh's <step-start-sha> on a revised HOLDS, is the HEAD the Red leaf
+    launched on, recorded with the step's text so a revise gates against it however far later attempts moved HEAD."""
+    code, out, err, fake = red(answers={**DEVELOP_ONLY, ("git", "rev-parse"): (0, HEAD_SHA + "\n")})
+
+    assert (red.wt / ".tdd" / "issue-12-step-start").read_text() == "step=%s\nsha=%s\n" % (STEP, HEAD_SHA)
+    red_half = importlib.import_module("veri.red_half")
+    assert (red_half.step_start(str(red.wt), "12", STEP), red_half.step_start(str(red.wt), "12", "two")) == (
+        HEAD_SHA, "")
+
+
 def test_4026_it_commits_and_ticks_nothing(red):
     code, out, err, fake = red()
 
     assert code == 0
-    assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] != ("status",)]
+    assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] not in (("status",), ("rev-parse",))]
     assert not {"tick-ledger.sh", "push-branch.sh"} & set(fake.names())
     assert "- [ ] " + STEP in (red.wt / ".tdd" / "issue-12.md").read_text()
 
@@ -477,7 +492,7 @@ def test_4026_every_inner_call_prints_its_name_and_exit_then_its_stdout_and_its_
 
     lines = out.splitlines()
     for i, c in enumerate(fake.calls, 1):
-        if c[0] in READ:
+        if c[0] in READ or c[1][:1] == ("rev-parse",):  # the step start, read quietly into its record
             continue
         assert "OUT<%d>" % i in lines and "ERR<%d>" % i in err
         named = lines[lines.index("OUT<%d>" % i) - 1]
