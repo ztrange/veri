@@ -137,6 +137,11 @@ class TestFile:
                 for d in _definition(self.text, node, lines)))
         return self._walk
 
+    @functools.cached_property
+    def nodes(self):
+        """Every node of the file, class bodies and module-level statements included, walked once and kept."""
+        return tuple(ast.walk(self.tree))
+
 
 
 def tests_py_index_of(root):
