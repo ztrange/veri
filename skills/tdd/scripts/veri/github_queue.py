@@ -10,10 +10,12 @@ a counting incident; a read that gets no answer is not an outage. Every append a
 lock on `.tdd/github-queue.lock`, a file never removed; the queue is rewritten by renaming a temporary file.
 
 `close-landed <tip-sha>` queues, then replays, one `### ✅ Landed` comment per issue an offline join landed: it fetches
-origin, reads `<tip-sha>..origin/<default>`, the commits the stack landed as, and takes each run's commits as the range
-after the previous commit carrying a `Veri-Joined: <pr-url> <branch>` trailer up to its own, so a subject needs no
-`(#<n>)` suffix. Only a run whose pull request reads as merged gets its comment; the comment's key is derived from the
-issue, the tip and the commits, so a second run over the same tip posts nothing."""
+origin, reads `<tip-sha>..origin/<default>`, the commits the stack landed as, and credits each run, the commit carrying
+a `Veri-Joined: <pr-url> <branch>` trailer, only the landed copies of `<onto>..<join>`, `<onto>` being its
+`Veri-Joined-Onto: <sha>` trailer, so a subject needs no `(#<n>)` suffix and an online join, a repair or a held pull
+request is credited to no run. A run whose join has not landed gets no comment, and a join without one full-sha
+`Veri-Joined-Onto` exits 2. Only a run whose pull request reads as merged gets its comment; the comment's key is
+derived from the issue, the tip and the commits, so a second run over the same tip posts nothing."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
 import fcntl
