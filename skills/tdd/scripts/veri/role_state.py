@@ -119,6 +119,13 @@ class State:
         return found
 
 
+def item_line(lines, kind, text, stamp):
+    """The `<kind> <id> <stamp> <text>` item line the next item of <lines> takes: its id one above every item's."""
+    ids = [int(line.split()[1]) for line in lines
+           if line.partition(" ")[0] in LISTS and len(line.split()) > 1 and line.split()[1].isdigit()]
+    return "%s %d %s %s" % (kind, max(ids + [0]) + 1, stamp, text)
+
+
 def append(path, text):
     replace(path, (read(path) or "") + text)
 

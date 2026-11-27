@@ -133,6 +133,10 @@ class World:
     def role_state_file(self):
         return via("state_file")()
 
+    def write_role_state(self, lines):
+        """Replaces the role state file whole with <lines> (dispatch lowers N through it, PRD 036.8)."""
+        role_state.replace(via("state_file")(), "".join(line + "\n" for line in lines))
+
     # the test queue
     def waiting(self):
         """The live waiter entries under VERI_PYTEST_WAITERS: legs waiting for T, alive under their recorded start time."""
