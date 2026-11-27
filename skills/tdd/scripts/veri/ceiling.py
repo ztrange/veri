@@ -9,11 +9,10 @@ import tempfile
 import time
 
 import git
+import leg_registry
 import tunables
 from full_run_lock import legs_dir
 
-# The leg's registry (registered_legs, registration, unregister) lives in the pytest leg, tests/leg/, beside its plugins;
-# main puts that directory on sys.path, so importing this module never changes it.
 LEG = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "tests", "leg")
 
 USAGE = "usage: test-ceiling.sh [--max <n>]\n"
@@ -128,18 +127,17 @@ def write_record(lines):
 def register(workers):
     """Registers <workers> under this process's pid in the legs registry, as a leg would, once no other live leg is
     registered, waiting meanwhile with one stderr line naming them; returns the entry's path."""
-    import pytest_leg
     legs = legs_dir()
     os.makedirs(legs, exist_ok=True)
     said = False
     while True:
         with open(legs.rstrip("/") + ".lock", "w") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
-            others = pytest_leg.registered_legs(legs)
+            others = leg_registry.registered_legs(legs)
             if not others:
                 entry = os.path.join(legs, str(os.getpid()))
                 with open(entry, "w") as f:
-                    f.write(pytest_leg.registration(workers))
+                    f.write(leg_registry.registration(workers))
                 return entry
             if not said:
                 sys.stderr.write("waiting to measure %d workers until no other leg is registered: %s\n" % (
@@ -179,7 +177,6 @@ def ramp(top, scratch, odd_top=False):
     """Steps w = 2, 4, … up to <top>, <top> itself last when it is odd and <odd_top> is set (a cap is), stopping at the
     first with a load timeout; returns the ceiling (None when that was the first step), one
     `<workers> <seconds> <timeouts>` line per step run, and the ceiling step's seconds, the full suite's idle duration."""
-    import pytest_leg
     ceiling, steps, idle = None, [], None
     for workers in list(range(2, top + 1, 2)) + ([top] if odd_top and top % 2 else []):
         entry = register(workers)
@@ -187,7 +184,7 @@ def ramp(top, scratch, odd_top=False):
         try:
             timeouts = step(workers, scratch)
         finally:
-            pytest_leg.unregister(entry)
+            leg_registry.unregister(entry)
         seconds = round(clock() - began)
         steps.append("%d %d %d" % (workers, seconds, timeouts))
         if timeouts:
@@ -200,14 +197,13 @@ def idle_fast(ceiling):
     """The fast tier's idle duration: one `make unit` at the workers it would take on an idle machine, min(4, the
     ceiling), registered as a step is; returns its seconds. Raises NoAnswer when it is red: a red fast tier measures
     nothing about idle time."""
-    import pytest_leg
     workers = min(4, ceiling)
     entry = register(workers)
     began = clock()
     try:
         code = run_unit(workers)
     finally:
-        pytest_leg.unregister(entry)
+        leg_registry.unregister(entry)
     if code:
         raise NoAnswer("make unit exited %d at %d workers after the ramp: a red fast tier measures no idle time"
                        % (code, workers))
