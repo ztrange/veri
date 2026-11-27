@@ -32,7 +32,8 @@ What it records: `said` (stdout text), `complained` (stderr text), `launched` (i
 `launched_at_wait` (the launches made so far, one list per wait, taken as the wait is called),
 `reads` ((tick key, tick index) of every answer asked for, in order), `notified_lines` (.tdd/dispatch-notified's
 lines as last recorded; the constructor's `notified` until then), `budget_written` (the lane need of every
-test-budget write, in order), `logged` (dispatch.log's launched issues: the constructor's `logged`, then each
+test-budget write, in order), `role_state_written` (the role state's lines at every whole-file write, in order; each
+write also becomes the lines a later tick without a `role_state` key reads), `logged` (dispatch.log's launched issues: the constructor's `logged`, then each
 launch appended).
 """
 
@@ -54,6 +55,7 @@ class FakeWorld:
         self.notified_lines = list(notified)
         self.logged = list(logged)
         self.budget_written = []
+        self.role_state_written = []
 
     def _tick(self):
         return self.ticks[min(self.index, len(self.ticks) - 1)]
@@ -123,6 +125,10 @@ class FakeWorld:
 
     def role_state_file(self):
         return self.role_state_path
+
+    def write_role_state(self, lines):
+        self.role_state_lines = list(lines)
+        self.role_state_written.append(list(lines))
 
     # the test queue
     def waiting(self):

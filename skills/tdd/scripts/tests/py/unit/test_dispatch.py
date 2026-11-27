@@ -4061,3 +4061,19 @@ def test_4805_the_real_worlds_w_other_is_leg_registry_other_workers_over_the_leg
         f.write("10\n2026-11-19\n")
 
     assert (dispatch.World().other_workers(), dispatch.World().capacity()) == (7, 10)
+
+
+FLOOR_LOWERING = (1700000600, 2, 2, "tests/a.py::test_x,tests/b.py::test_y")
+
+
+def test_4806_a_lowering_from_t_2_lowers_a_numeric_n_of_3_to_2_records_a_veri_load_message_and_prints_n_lowered(dispatch):
+    world = FakeWorld({"lowering": FLOOR_LOWERING, "live": ["7"], "alive": ["7"]}, role_state=["n=3"])
+
+    code = dispatch.main([], world=world)
+
+    written = world.role_state_written[-1] if world.role_state_written else []
+    message = [line for line in written if line.startswith("message ")]
+    assert (code, "".join(world.said), written[:2], len(message)) == (
+        None, "t-lowered 2 2 tests/a.py::test_x,tests/b.py::test_y\n"
+              "n-lowered 3 2 tests/a.py::test_x,tests/b.py::test_y\n", ["n=3", "n=2"], 1)
+    assert all(word in message[0] for word in ("veri (load)", " 3 ", " 2 ", "tests/a.py::test_x,tests/b.py::test_y"))
