@@ -300,3 +300,16 @@ def test_a_live_claude_child_of_run_conductor_recorded_in_conductor_pid_with_no_
         answers[name] = (ended, not mark)
 
     assert answers == {"conductor": (False, True), "unrelated": (True, True)}
+
+
+def test_a_resumed_run_with_a_live_conductor_whose_done_comment_was_reposted_has_not_ended_4792(tmp_path, monkeypatch):
+    from conftest import live_conductor
+    run_end = importlib.import_module("veri.run_end")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(json.dumps(e) + "\n" for e in (
+        {"ts": 100, "issue": "7", "event": "done", "pr": "https://github.com/o/r/pull/9"},
+        {"ts": 101, "issue": "7", "event": "resume"},
+        {"ts": 102, "issue": "7", "event": "comment", "kind": "done", "url": "https://github.com/o/r/issues/7#c-2"})))
+    live_conductor(monkeypatch, tmp_path / ".tdd", 7)
+
+    assert run_end.run_end(tmp_path) == (False, None, {})
