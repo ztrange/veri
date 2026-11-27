@@ -495,8 +495,8 @@ def test_4823_close_landed_when_origins_default_branch_cannot_be_told_queues_not
 
 
 @pytest.mark.process(PROCESS)
-@pytest.mark.parametrize("tip", ["--all", "stack", "HEAD~1", "deadbee~1", "a" * 41, "abcdef"],
-                         ids=["an-option", "a-branch", "a-revision", "a-sha-then-more", "41-hex", "6-hex"])
+@pytest.mark.parametrize("tip", ["--all", "stack", "HEAD~1", "deadbee~1", "a" * 41, "abcdef", "DEADBEEG"],
+                         ids=["an-option", "a-branch", "a-revision", "a-sha-then-more", "41-hex", "6-hex", "not-hex"])
 def test_4823_close_landed_given_a_tip_that_is_not_a_hex_commit_name_exits_2_with_the_usage(
         tmp_path, monkeypatch, run_cli, tip):
     work, _, _, _ = landed_world(tmp_path)
