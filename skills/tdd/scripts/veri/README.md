@@ -876,6 +876,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `dispatch_live`: dispatch.sh's real `World` and the helpers only it uses, which look up each name a test patches on dispatch through `dispatch_reads.via`.
 - `dispatch_reads`: dispatch.sh's GitHub, queued-merge and overlap reads, its argument parsing, output and queue order, which look up each name a test patches on dispatch in the namespace dispatch.py hands them (`bind`, `via`).
 - `github-outage.sh`: the dev session's local mode during a GitHub outage: the outage file of held PRs, the merging list and the one detached status wait per main working tree, each verb under one lock; the status read runs in-process through `github_status`.
+- `github-queue.sh`: the issue writes queued while GitHub is down, `.tdd/github-queue` in the main working tree under one lock: `comment.sh` appends comments and step-close ticks, `replay` lands them in file order and stops at the first with no answer.
 - `install-links.sh`: link veri's skills into a project.
 - `cloud-install.sh`: add the `SessionStart` hook that runs `cloud-setup.sh` in a Claude Code cloud session to a project's `.claude/settings.json`.
 - `cloud-setup.sh`: in a Claude Code cloud session, build veri's venv once per lock and put it on the session's PATH.

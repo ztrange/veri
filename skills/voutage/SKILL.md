@@ -109,8 +109,15 @@ it takes the next, so the order holds per session; two sessions on one tree inte
 1. Run `$S/github-outage.sh take --pid <driver>`, the claim: no other session gets that PR.
    - A url: go to step 2.
    - `ended`: nothing is left held or merging and the file is removed; tell the human in one line
-     that local mode has ended. Where `$S/stack-branch.sh` exits 0, land the outage's joins
-     (*Landing the offline joins*, below); otherwise stop.
+     that local mode has ended. Then run `$S/github-queue.sh replay`, which lands the issue
+     writes runs queued while GitHub was down:
+     - Exit 0: the queue drained; say nothing more.
+     - Exit 3: there was no queue; say nothing more.
+     - Exit 2: an entry got no answer and it and every later one stay queued; tell the human in
+       one line, with the entry the replay names on stderr.
+
+     Where `$S/stack-branch.sh` exits 0, land the outage's joins (*Landing the offline joins*,
+     below); otherwise stop.
    - Exit 3, nothing printed: another session holds the rest, or the mode ended elsewhere; say
      nothing. Stop.
    - Exit 2: report it once. Stop.
