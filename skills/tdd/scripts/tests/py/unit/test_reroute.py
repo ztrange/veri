@@ -460,7 +460,7 @@ def test_a_wait_record_naming_another_step_is_dropped_and_the_route_runs_again_4
     path.write_text(json.dumps(record))
     code, out, err, fake = reroute(answers={("wrong-test-route.sh", None): (0, "later two\n")})
 
-    assert (code, len(fake.all("wrong-test-route.sh")), fake.all("wait-leaf.sh")) == (1, 1, [])
+    assert (code, len(fake.all("wrong-test-route.sh")), fake.all("wait-leaf.sh"), path.exists()) == (1, 1, [], False)
 
 
 def test_a_red_half_record_whose_step_differs_only_by_marks_is_refreshed_with_a_reroute_record_refreshed_event_4434(
