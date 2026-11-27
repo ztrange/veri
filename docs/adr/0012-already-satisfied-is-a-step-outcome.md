@@ -29,3 +29,5 @@ bail, and the suite keeps the pin the revert would have thrown away. The cost is
 verification phase (`build-verify-prompt.sh pin`, `verify.sh pin`, a prompt template) and
 a conductor branch taken on the Red leaf's own report — a routing hint, not a trust
 boundary: a mis-routed test is rejected by whichever verifier receives it.
+
+Superseded in part by [ADR-0040](0040-an-already-holding-step-writes-no-test.md): a pin no longer owes a test that fails at the branch base under a mutation, and an already-holding step names the existing tests that cover it instead of writing one.
