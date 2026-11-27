@@ -71,7 +71,7 @@ def test_4031_a_branch_behind_main_is_rebased_and_pushed_under_the_lease_pinned_
 
     monkeypatch.setattr(fused, "run_script", answer)
     code, out, err = run_cli(pr_prepare, ["12"], cwd=str(tmp_path),
-                             env={**IDENTITY, "VERI_ISSUE": "12", "VERI_POLL": "1"})
+                             env={**IDENTITY, "VERI_ISSUE": "12", "VERI_POLL": "0.05"})
 
     assert code == status, out + err
     if status:
