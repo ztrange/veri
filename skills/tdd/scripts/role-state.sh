@@ -5,7 +5,9 @@
 #                       | add <decision|message|override|timed-n> <text>
 #                       | drop <decision|message|override|timed-n> <id> | show | recovered
 #          set n also writes the lane's test budget entry (VERI_TEST_BUDGET_DIR, need max(N, live conductors) x
-#          VERI_CONDUCTOR_TEST_WORKERS, VERI_TEST_BUDGET_TTL) and prints N, the needs, C and the T it leaves
+#          VERI_CONDUCTOR_TEST_WORKERS, VERI_TEST_BUDGET_TTL) and prints N, the needs, C and the T it leaves;
+#          set n auto writes C as the need and prints the target floor((T - W_other)/d) and its queue cap instead.
+#          n takes a whole number or auto (unrelated to the auto field, on/off); timed-n refuses auto
 # Exit:    0 written or shown; 2 bad arguments (a role other than dev included)
 . "$(dirname "$0")/lib/shim-python.sh"
 exec "$py" "$(dirname "$0")/veri/role_state_cli.py" "$@"

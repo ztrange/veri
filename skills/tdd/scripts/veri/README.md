@@ -915,7 +915,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `reset-cost.sh`: what each recorded restart of a run's conductor cost, and the growth knob it calls for.
 - `restart-conductor.sh`: stop and watch a conductor restart.
 - `role-state.sh`: the dev session's recorded state.
-- `role_state_cli`: role-state.sh's entry point: role_state's verbs, a written `set n` also writing the lane's test budget entry and printing the T it leaves; apart from role_state so that status never imports watch_runs.
+- `role_state_cli`: role-state.sh's entry point: role_state's verbs, a written `set n` also writing the lane's test budget entry and printing the T it leaves (`set n auto`: C as the need, and the target dispatch's `auto_target` takes now); apart from role_state so that status never imports watch_runs.
 - `run-conductor.sh`: launch one conductor on an issue.
 - `run-finished.sh`: whether an issue's run finished.
 - `script-help.sh`: look up a script's help.
