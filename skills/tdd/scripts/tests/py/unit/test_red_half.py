@@ -222,6 +222,32 @@ def test_4026_passes_or_untestable_stops_it_with_exit_1(red, against):
     assert out.splitlines()[-1] == "stopped at 2 AGAINST_UNMODIFIED: " + against
 
 
+HOLDS_TRACKED = "tests/test_b.py\ntests/test_c.py\nveri/thing.py\n"
+
+
+def test_4770_holds_stops_it_with_exit_1_naming_the_covering_ids_git_tracks_and_no_verdict(red):
+    """PRD 044.2: a Red report saying HOLDS stops red-half with exit 1 naming its COVERING_TESTS: ids, checked against
+    `git ls-files`, and launches no verdict-red: the conductor's holds-step.sh gate goes next."""
+    report = "AGAINST_UNMODIFIED: HOLDS\nCOVERING_TESTS: tests/test_b.py::test_two tests/test_c.py::test_three\n"
+    code, out, err, fake = red(fake=Fake({("git", "ls-files"): (0, HOLDS_TRACKED)}, report=report))
+
+    assert code == 1, (out, err)
+    assert out.splitlines()[-1] == "stopped at 2 COVERING_TESTS: tests/test_b.py::test_two tests/test_c.py::test_three"
+    assert "verdict-red" not in fake.launched()
+
+
+@pytest.mark.parametrize("covering", ["", "tests/test_z.py::test_nine", " ".join("tests/test_b.py::t%d" % i
+                                                                                 for i in range(6))])
+def test_4770_holds_whose_covering_ids_covering_tests_refuses_stops_it_with_exit_2(red, covering):
+    """PRD 044.2: no id, an id whose path git does not track, or more than five, is no answer: exit 2, no verdict."""
+    report = "AGAINST_UNMODIFIED: HOLDS\nCOVERING_TESTS: %s\n" % covering
+    code, out, err, fake = red(fake=Fake({("git", "ls-files"): (0, HOLDS_TRACKED)}, report=report))
+
+    assert code == 2, (out, err)
+    assert out.splitlines()[-1].startswith("stopped at 2 ")
+    assert "verdict-red" not in fake.launched()
+
+
 @pytest.mark.parametrize("line", ["TEST_PATH:", "TARGET_TEST:", "AGAINST_UNMODIFIED:"])
 def test_4026_a_missing_report_line_stops_it_with_exit_2(red, line):
     report = "".join(part + "\n" for part in REPORT.splitlines() if not part.startswith(line))
