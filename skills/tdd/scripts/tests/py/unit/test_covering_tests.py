@@ -37,3 +37,10 @@ def test_red_half_on_a_holds_report_naming_one_tracked_id_stops_at_red_2_with_ex
 
     assert (code, out.splitlines()[-1]) == (1, "stopped at 2 COVERING_TESTS: tests/test_b.py::test_two")
     assert "verdict-red" not in fake.launched()
+
+
+def test_red_half_on_a_holds_report_whose_covering_tests_line_holds_no_id_exits_2(red):
+    code, out, err, fake = red(HOLDS.replace(" tests/test_b.py::test_two", ""))
+
+    assert (code, out.splitlines()[-1]) == (2, "stopped at 2 COVERING_TESTS: holds no id")
+    assert "verdict-red" not in fake.launched()
