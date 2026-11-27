@@ -235,6 +235,18 @@ def test_cli_with_veri_issue_954_records_its_settled_1200_in_the_worktrees_tdd_a
     assert (first, second) == ("1200\n", "1200\n")
 
 
+def test_cli_with_a_skipped_baseline_sizes_and_pins_1800_from_the_ceiling_records_idle_full_tier_of_300_issue_4835(
+        tmp_path, monkeypatch, run_cli, leaf_timeout):
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    work = _worktree(tmp_path / "work")
+    ceiling = tmp_path / "ceiling-record"
+    ceiling.write_text("4\nidle all 300\nidle fast 100\n")
+    code, out, _ = run_cli(leaf_timeout, ["0", "--full", "124"],
+                           env={"VERI_ISSUE": "4835", "VERI_TEST_CEILING_FILE": str(ceiling)}, cwd=work)
+    pin = work / ".tdd" / "issue-4835-timeout"
+    assert (code, out, pin.read_text() if pin.exists() else "<no record>") == (0, "1800\n", "1800\n")
+
+
 def test_cli_with_veri_issue_unset_prints_1200_and_records_no_settled_timeout_under_tdd_issue_954(
         tmp_path, monkeypatch, run_cli, leaf_timeout):
     monkeypatch.delenv("VERI_TIMEOUT", raising=False)
