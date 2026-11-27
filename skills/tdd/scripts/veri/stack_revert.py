@@ -47,7 +47,8 @@ def _add_worktree(path, commit):
 
 def _checkout(path, commit):
     """Whether <path>, this script's own worktree, now has <commit> checked out, detached, its tree clean."""
-    return git.git("-C", path, "checkout", "--detach", "--force", commit, capture_output=True, text=True).returncode == 0
+    return git.git("-C", path, "checkout", "--detach", "--force", commit,
+                   capture_output=True, text=True).returncode == 0
 
 
 def _remove_worktree(path):
@@ -98,7 +99,8 @@ def _reverted(n, path, worktree):
         owned = stack_culprit.owners([subject for _, subject in commits])
         mine = [(commit, subject) for (commit, subject), issues in zip(commits, owned, strict=True) if n in issues]
         if not mine:
-            raise Nothing("no commit of origin/%s..origin/%s belongs to issue %s; nothing reverted" % (default, stack, n))
+            raise Nothing("no commit of origin/%s..origin/%s belongs to issue %s; nothing reverted"
+                          % (default, stack, n))
         done = [at for at, (_, subject) in enumerate(mine) if subject == SUBJECT % (n, n)]
         if done and done[-1] == len(mine) - 1:
             raise AlreadyReverted(stack, mine[-1][0], "issue %s's newest commit on origin/%s is its revert %s; nothing"
@@ -117,10 +119,11 @@ def _reverted(n, path, worktree):
         newest_first = [commit for commit, _ in reversed(mine)]
         said = _revert(path, newest_first)
         if said == "conflict":
-            raise stack_fix.Refused("reverting issue %s's commits conflicts on origin/%s at %s: a later commit depends on"
-                                    " them, a human's call; nothing pushed" % (n, stack, onto))
+            raise stack_fix.Refused("reverting issue %s's commits conflicts on origin/%s at %s: a later commit depends"
+                                    " on them, a human's call; nothing pushed" % (n, stack, onto))
         if said != "ok":
-            raise stack_fix.NoAnswer("git revert of issue %s's commits was refused without a conflict; nothing pushed" % n)
+            raise stack_fix.NoAnswer("git revert of issue %s's commits was refused without a conflict; nothing pushed"
+                                     % n)
         sha = _commit(path, SUBJECT % (n, n), "Reverts, newest first:\n%s" % "".join(
             "%s %s\n" % found for found in reversed(mine)))
         if not sha:
@@ -183,7 +186,8 @@ def _lift_claims(stack, n, sha):
     whose body could not be edited, or saying the merged pull requests could not be read; the revert stays pushed."""
     closes = re.compile(r"\bCloses #%s(?![0-9])" % n)
     try:
-        pulls = [pr for pr in github.merged_pulls(stack) if not pr.cross_repository and n in github.closed_issues(pr.body)]
+        pulls = [pr for pr in github.merged_pulls(stack)
+                 if not pr.cross_repository and n in github.closed_issues(pr.body)]
     except (github.NoAnswer, ValueError) as no:
         _say("the pull requests merged into %s could not be read (%s); the revert %s stays pushed, but issue %s may"
              " still read as joined" % (stack, " ".join(str(getattr(no, "detail", "") or no).split())[:200], sha, n))

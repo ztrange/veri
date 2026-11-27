@@ -92,8 +92,9 @@ def dropped(dirty):
     as left (`git reset --hard HEAD` is the only reach for the tree a stop has)."""
     tracked = [line[3:] for line in dirty if not line.startswith("??")]
     untracked = [line[3:] for line in dirty if line.startswith("??")]
-    return (["Dropped by `git reset --hard HEAD`, the half-done step: " + ", ".join(tracked) + "."] if tracked else []) \
-        + (["Left untracked: " + ", ".join(untracked) + "."] if untracked else [])
+    return ((["Dropped by `git reset --hard HEAD`, the half-done step: " + ", ".join(tracked) + "."]
+             if tracked else [])
+            + (["Left untracked: " + ", ".join(untracked) + "."] if untracked else []))
 
 
 def remote_sha(said):

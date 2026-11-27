@@ -23,7 +23,10 @@ from case_reader import (
 from entry import write
 from report import report_values
 
-USAGE = "usage: wrong-test-route.sh --spec <spec-file> <green-report> <red-test-id> (prints red <case>, missing <behaviour>, later <step>, fixture <path> <name>, repair <case> <superseded>…, supersede <cases>, supersede-diff <cases>, prep <cases> or revise; repair-exhausted <case> on exit 1; a WRONG_TEST naming no case gets one extra repair after the free reroute, then repair-exhausted and exit 1)"
+USAGE = ("usage: wrong-test-route.sh --spec <spec-file> <green-report> <red-test-id> (prints red <case>, missing"
+         " <behaviour>, later <step>, fixture <path> <name>, repair <case> <superseded>…, supersede <cases>,"
+         " supersede-diff <cases>, prep <cases> or revise; repair-exhausted <case> on exit 1; a WRONG_TEST naming no"
+         " case gets one extra repair after the free reroute, then repair-exhausted and exit 1)")
 
 
 SKIPPED = (".git", ".tdd", ".venv", "node_modules")
@@ -274,7 +277,8 @@ def _unresolved_superseded(report, step, own_id):
     own = _recorded_cases(step)
     for claim in _claims(report, "SUPERSEDED"):
         case = _superseded_claim_case(claim)
-        if case and case not in own and not _is_own(case, own_id) and not os.path.isfile(case) and (_exists(case) is None or len(_defining_files(case)) > 1):
+        if (case and case not in own and not _is_own(case, own_id) and not os.path.isfile(case)
+                and (_exists(case) is None or len(_defining_files(case)) > 1)):
             return True
     return False
 
@@ -285,7 +289,8 @@ def _reroutes(step):
     except OSError:
         return []
     latest_resume = max((i for i, e in enumerate(events) if e.get("event") == "resume"), default=-1)
-    return [e for i, e in enumerate(events) if i > latest_resume and e.get("event") == "reroute" and e.get("step") == step]
+    return [e for i, e in enumerate(events)
+            if i > latest_resume and e.get("event") == "reroute" and e.get("step") == step]
 
 
 def _rerouted(step):
@@ -293,7 +298,8 @@ def _rerouted(step):
 
 
 def missing_reroutes(step):
-    """The `reroute` events of kind `missing` naming <step> since the last `resume`, in `.tdd/events.jsonl` of the cwd."""
+    """The `reroute` events of kind `missing` naming <step> since the last `resume`, in `.tdd/events.jsonl` of the
+    cwd."""
     return sum(1 for e in _reroutes(step) if e.get("kind") == "missing")
 
 
@@ -315,7 +321,8 @@ def _open_after():
         steps = ledger_file.ledger_steps(ledger.read())
     current = tunables.read("VERI_STEP")
     names = [step[6].strip() for step in steps]
-    return [step[6].strip() for step in steps[names.index(current) + 1:] if step[1] == "open"] if current in names else []
+    return ([step[6].strip() for step in steps[names.index(current) + 1:] if step[1] == "open"]
+            if current in names else [])
 
 
 def _criterion(spec, name):
@@ -409,7 +416,8 @@ def main(argv):
         if superseded != _superseded(argv[0], step, argv[1]):
             write(sys.stdout, "revise")
             return 3
-        write(sys.stdout, " ".join(["repair", repair] + [c for c in superseded if c != repair and c not in _recorded_cases(step)]))
+        write(sys.stdout, " ".join(
+            ["repair", repair] + [c for c in superseded if c != repair and c not in _recorded_cases(step)]))
         return 0
     recorded = _recorded_cases(step)
     older = [] if rerouted else [c for c in _superseded(argv[0], step, argv[1]) if c not in recorded]
@@ -447,7 +455,9 @@ def main(argv):
         return 2
     if case is None and _unresolved_superseded(argv[0], step, argv[1]):
         return 2
-    if case is None and (_unparseable_claim(argv[0], argv[1]) or not rerouted and (_existing_other(_named_cases(argv[0]), argv[1]) or any(_is_own(c, argv[1]) for c in _contradicted(argv[0])))):
+    if case is None and (_unparseable_claim(argv[0], argv[1]) or not rerouted and (
+            _existing_other(_named_cases(argv[0]), argv[1])
+            or any(_is_own(c, argv[1]) for c in _contradicted(argv[0])))):
         file, sep, _ = argv[1].partition("::")
         write(sys.stdout, "repair " + (file + sep if sep else "") + _case_name(argv[1]))
         return 0

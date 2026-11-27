@@ -24,7 +24,8 @@ SUMMARY = re.compile(r"^=* ?(.*\d+ (?:passed|failed|errors?)\b.*) in [0-9.]+s\b.
 
 
 def report(tier, code, seconds, output, path):
-    """The bounded report that stands in for the output: one counts line, the first CASES failing cases, the cut, the path."""
+    """The bounded report that stands in for the output: one counts line, the first CASES failing cases, the cut, the
+    path."""
     lines = output.decode(errors="replace").splitlines()
     summaries = [match.group(1) for match in map(SUMMARY.match, lines) if match]
     if summaries:

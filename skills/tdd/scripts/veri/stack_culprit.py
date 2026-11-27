@@ -40,7 +40,8 @@ def _add_worktree(path, commit):
 
 def _checkout(path, commit):
     """Whether <path>, this script's own worktree, now has <commit> checked out, detached."""
-    return git.git("-C", path, "checkout", "--detach", "--force", commit, capture_output=True, text=True).returncode == 0
+    return git.git("-C", path, "checkout", "--detach", "--force", commit,
+                   capture_output=True, text=True).returncode == 0
 
 
 def _remove_worktree(path):
@@ -72,8 +73,8 @@ ABSENT_OUTPUT = re.compile(r"^ERROR: not found: |\bno tests ran\b|^collected 0 i
 def verdict(code, output, case):
     """What an alone run of <case> says: True red (it exited non-zero and its output carries a failure line naming
     <case>, read as ci-flake.sh reads one), False not red (it exited 0), ABSENT not red because the output says the
-    case was not found or not collected, None no answer (any other ending, a kill or a timeout). The exit code alone never decides: a make
-    wrapper exits 2 for a failing case and a missing one alike."""
+    case was not found or not collected, None no answer (any other ending, a kill or a timeout). The exit code alone
+    never decides: a make wrapper exits 2 for a failing case and a missing one alike."""
     if code is None:
         return None
     if code == 0:
@@ -121,8 +122,8 @@ class _NoAnswer(Exception):
 def _search_inputs(red):
     """(stack, default, span, run url, cases): the stack and default branch, origin/<default>..<red> as [(sha,
     subject)] oldest first, the url of the red run on <red> (each workflow's answer on <red> read as stack-red.sh reads
-    one, the newest red one taken) and the cases the failed log of its answering attempt names. _NoAnswer, stack_branch.Refused or
-    github.NoAnswer when any of them cannot be had."""
+    one, the newest red one taken) and the cases the failed log of its answering attempt names. _NoAnswer,
+    stack_branch.Refused or github.NoAnswer when any of them cannot be had."""
     found = stack_branch.ahead(".")
     if found is None:
         raise _NoAnswer("the repository's CLAUDE.md names no stack branch (stack-branch.sh exits 3)")
@@ -164,8 +165,8 @@ def _search(path, command, ends, before, red, cases):
                 code, output = _run_alone(path, command, case)
                 said = verdict(code, output, case)
             if said == ABSENT and commit == red:
-                raise _NoAnswer("%s is absent at %s itself, where CI named it red: the CI id and the local one-test-file"
-                                " command disagree" % (case, red))
+                raise _NoAnswer("%s is absent at %s itself, where CI named it red: the CI id and the local"
+                                " one-test-file command disagree" % (case, red))
             if said is None:
                 raise _NoAnswer("%s run alone at %s gave no answer (%s, and its output names no failure of it and"
                                 " does not say it was not found)" % (
@@ -182,13 +183,15 @@ def _search(path, command, ends, before, red, cases):
 
 def _comment(stack, default, body):
     """Add <body> as a comment on the stack's one open tracking pull request, unless a trusted comment there
-    (github.trusted_comment) already holds exactly <body> as github.published posts it: a stranger's copy never stops it. With none open, or several, nothing is posted and stderr says so. NoAnswer from GitHub passes up."""
+    (github.trusted_comment) already holds exactly <body> as github.published posts it: a stranger's copy never stops
+    it. With none open, or several, nothing is posted and stderr says so. NoAnswer from GitHub passes up."""
     pulls = github.stack_pulls(stack, default)
     if len(pulls) != 1:
         print("stack-culprit: %d open pull requests track %s; no comment posted" % (len(pulls), stack), file=sys.stderr)
         return
     number = pulls[0].number
-    if any(comment.get("body") == github.published(body) and github.trusted_comment(comment) for comment in github.issue_comments(number)):
+    if any(comment.get("body") == github.published(body) and github.trusted_comment(comment)
+           for comment in github.issue_comments(number)):
         return
     github.gh_comment_post(number, github.published(body))
 

@@ -56,9 +56,9 @@ def _live(stack):
 
 
 def _closes(stack, default, cut):
-    """The slice body's `Closes #<n>` lines: one per issue a subject in origin/<default>..<cut> ends with `(#<n>)` for,
-    in the range's order, kept only when a pull request merged into <stack> carries `Closes #<n>`; an issue named only by
-    subjects is said on stderr."""
+    """The slice body's `Closes #<n>` lines: one per issue a subject in origin/<default>..<cut> ends with `(#<n>)`
+    for, in the range's order, kept only when a pull request merged into <stack> carries `Closes #<n>`; an issue named
+    only by subjects is said on stderr."""
     joined = _read("reading the pull requests merged into %s" % stack, github.joined_issues, stack)
     span = "origin/%s..%s" % (default, cut)
     named = re.findall(r"\(#(\d+)\)$", _read("git log of " + span, git.out, "log", "--format=%s", span), re.M)
@@ -301,11 +301,11 @@ def main(argv):
                                     % (ci, head, slice_branch), pr))
         code = merge_common.merge(gate, pr, repo, number, head, driver="rest")
         if re.search(RULES, said[-1]):
-            return _freed("the merge of %s was refused under the repository's rules (exit %d): %s; the merge lock freed,"
-                          " nothing retried" % (pr, code, " ".join(said[-1].split())))
+            return _freed("the merge of %s was refused under the repository's rules (exit %d): %s; the merge lock"
+                          " freed, nothing retried" % (pr, code, " ".join(said[-1].split())))
         if "HTTP 409" in said[-1]:
-            return _refused("the merge of %s was refused: its head is not the sha sent, the head mismatch (exit %d): %s;"
-                            " the merge lock freed, nothing retried" % (pr, code, " ".join(said[-1].split())))
+            return _refused("the merge of %s was refused: its head is not the sha sent, the head mismatch (exit %d):"
+                            " %s; the merge lock freed, nothing retried" % (pr, code, " ".join(said[-1].split())))
         answers = merge_common.settle(lambda: _pull(repo, number), window, wait_first=bool(code))
         if merge_common.merged(answers[-1]):
             closed = re.findall(r"^Closes #(\d+)$", answers[-1].get("body") or "", re.M)
@@ -314,8 +314,8 @@ def main(argv):
             stack_fix.script("merge-lock.sh", "release", "--pid", str(os.getpid()))
             return _after(pr, cut, repo, closed)
         last = answers[-1] or {}
-        return _freed("%s did not read merged by the end of the settle window after the merge call exited %d (last read:"
-                      " state %s, merged %s); the merge lock freed, nothing retried"
+        return _freed("%s did not read merged by the end of the settle window after the merge call exited %d (last"
+                      " read: state %s, merged %s); the merge lock freed, nothing retried"
                       % (pr, code, repr(last.get("state"))[:40], repr(last.get("merged"))[:40]))
     except _Unanswered as unanswered:
         return _freed("%s; the merge lock freed, nothing merged" % unanswered)

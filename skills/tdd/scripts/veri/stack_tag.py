@@ -139,8 +139,8 @@ def _tag(merge, subjects, owed, titles):
                             % (fetched.returncode, " ".join(fetched.stderr.split())), prefix="stack-tag: ")
     landed = git.out("log", "--format=%H %s", "-n", str(len(subjects)), merge, cwd=".").splitlines()[::-1]
     if [line.split(" ", 1)[-1] for line in landed] != subjects:
-        return entry.refuse("the %d commits ending at the merge commit %s are not the pull request's %d subjects in order;"
-                            " nothing tagged" % (len(landed), merge, len(subjects)), prefix="stack-tag: ")
+        return entry.refuse("the %d commits ending at the merge commit %s are not the pull request's %d subjects in"
+                            " order; nothing tagged" % (len(landed), merge, len(subjects)), prefix="stack-tag: ")
     commit = {}
     for line in landed:
         sha, subject = line.split(" ", 1)
@@ -161,8 +161,9 @@ def _tag(merge, subjects, owed, titles):
         pushed = git.network("push", "origin", "refs/tags/" + name, cwd=".")
         if pushed.returncode:
             git.out("tag", "-d", name, cwd=".")
-            return entry.refuse("the push of tag %s for #%s failed (exit %d): %s; that local tag deleted, the tags pushed"
-                                " before it kept" % (name, issue, pushed.returncode, " ".join(pushed.stderr.split())),
+            return entry.refuse("the push of tag %s for #%s failed (exit %d): %s; that local tag deleted, the tags"
+                                " pushed before it kept"
+                                % (name, issue, pushed.returncode, " ".join(pushed.stderr.split())),
                                 prefix="stack-tag: ")
         print("%s #%s %s" % (name, issue, commit[issue]))
     return 0

@@ -90,7 +90,8 @@ def run_object(issue, title, branch, step, activity, states):
 
 
 def step_of_total(text):
-    """"<n> of <m>": the step pending refactor, else the first open step of the ledger's <m>, or <m> when none is open."""
+    """"<n> of <m>": the step pending refactor, else the first open step of the ledger's <m>, or <m> when none is
+    open."""
     records = ledger_steps(text)
     total = records[-1].number if records else "0"
     step = next((r.number for r in records if r.pending == "1"), None) \
@@ -116,7 +117,8 @@ def solvable_count(name):
     return "?"
 
 
-USAGE = "usage: status.sh [--json] [--scope <name>] [--watch [seconds]] | status.sh --report | status.sh --recover dev [--lane <lane>]"
+USAGE = ("usage: status.sh [--json] [--scope <name>] [--watch [seconds]] | status.sh --report"
+         " | status.sh --recover dev [--lane <lane>]")
 
 
 def parse_args(argv):
@@ -333,7 +335,8 @@ def git_tags(root, fmt):
 
 
 def tags_created_since(root, since):
-    return {line.split()[1] for line in git_tags(root, "%(creatordate:unix) %(refname:short)") if int(line.split()[0]) >= since}
+    return {line.split()[1] for line in git_tags(root, "%(creatordate:unix) %(refname:short)")
+            if int(line.split()[0]) >= since}
 
 
 def sum_since(events, since, value=lambda e: 1):
@@ -473,7 +476,8 @@ def stack_figures(root, span):
         figures["tracking_pr"] = unread_figure("tracking", no)
     code, said = stack_script(root, "stack-red.sh")
     red = said.split()
-    figures["frozen"] = {"sha": red[0], "run_url": red[1]} if code == 0 and len(red) > 1 else False if code == 3 else None
+    figures["frozen"] = ({"sha": red[0], "run_url": red[1]} if code == 0 and len(red) > 1
+                         else False if code == 3 else None)
     return figures
 
 
@@ -619,8 +623,8 @@ def zone_line():
     return window + "%s (UTC%s%s)" % (now.tm_zone, "−" if now.tm_gmtoff < 0 else "+", offset)
 
 
-RECOVER_HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages", "Questions",
-                    "Unasked questions", "Answered questions"]
+RECOVER_HEADINGS = ["Runs", "Bailed", "PRs", "Merge lock", "State", "Pending decisions", "Pending messages",
+                    "Questions", "Unasked questions", "Answered questions"]
 
 
 def recover_runs():
@@ -688,8 +692,8 @@ def recover_state(role, lane=None):
     if lines is None:
         return ["no state file"]
     state = role_state.State(lines)
-    return ["%s %s" % (key, state.field(key)) for key in ("n", "lane", "auto") if state.field(key) is not None] + state.items(
-        "timed-n", "override")
+    return ["%s %s" % (key, state.field(key))
+            for key in ("n", "lane", "auto") if state.field(key) is not None] + state.items("timed-n", "override")
 
 
 ASKED_LINE = re.compile(r"## Asked \S+")
@@ -773,8 +777,11 @@ def main(argv):
             return 2
         if unread:
             print("status.sh: " + unread, file=sys.stderr)
-        stack = "\n\nStack\n" + "\n".join(stack_lines(stack_figures(run_dir.main_tree(missing=""), span))) if span or unread else ""
-        print("%s\nLanded\n%s%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s" % (zone_line(), landed_lines(), stack, running_lines(), snapshot_line(), queue_counts(), waiting) + unjournaled_notes())
+        stack = ("\n\nStack\n" + "\n".join(stack_lines(stack_figures(run_dir.main_tree(missing=""), span)))
+                 if span or unread else "")
+        print("%s\nLanded\n%s%s\n\nRunning\n%s\n\nQueue\n%s%s\n\nWaiting\n%s"
+              % (zone_line(), landed_lines(), stack, running_lines(), snapshot_line(), queue_counts(), waiting)
+              + unjournaled_notes())
         queue = {}
         try:
             label, _issues, opted_in = opted_in_issues()

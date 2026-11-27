@@ -72,10 +72,12 @@ TRAILER = "Stack-fix"
 def log(rev_range):
     """The commits of <rev_range>, oldest first, as [(sha, subject, [each Stack-fix trailer value])]. NoAnswer when git
     refuses the log."""
-    found = git.git("log", "--reverse", "--format=%H%x1f%s%x1f%(trailers:key=" + TRAILER + ",valueonly,separator=%x1f)%x1e",
+    found = git.git("log", "--reverse",
+                    "--format=%H%x1f%s%x1f%(trailers:key=" + TRAILER + ",valueonly,separator=%x1f)%x1e",
                     rev_range, capture_output=True, text=True)
     if found.returncode:
-        raise NoAnswer("git log %s failed (exit %d): %s" % (rev_range, found.returncode, " ".join(found.stderr.split())[:200]))
+        raise NoAnswer("git log %s failed (exit %d): %s"
+                       % (rev_range, found.returncode, " ".join(found.stderr.split())[:200]))
     commits = []
     for record in found.stdout.split("\x1e"):
         fields = record.strip("\n").split("\x1f")
@@ -198,7 +200,8 @@ def _bounds(n, red, stack, onto, head):
         if not subject.endswith("(#%s)" % n) or red not in trailers:
             raise Refused("the fix commit %s (%s) %s; every fix commit ends its subject (#%s) and carries %s: %s;"
                           " nothing pushed" % (commit, subject, "lacks the trailer %s: %s" % (TRAILER, red)
-                                               if subject.endswith("(#%s)" % n) else "does not end its subject (#%s)" % n,
+                                               if subject.endswith("(#%s)" % n)
+                                               else "does not end its subject (#%s)" % n,
                                                n, TRAILER, red))
 
 
@@ -352,7 +355,8 @@ def main(argv):
         if released:
             _say("releasing the merge lock failed (exit %d)" % released)
     sys.stdout.write(head + "\n")
-    body = "stack-fix: the hand fix for issue %s is pushed on %s at %s, on top of the red commit %s.\n\nCases fixed:\n%s" % (
+    body = ("stack-fix: the hand fix for issue %s is pushed on %s at %s, on top of the red commit %s."
+            "\n\nCases fixed:\n%s") % (
         n, stack, head, red, "".join("- %s\n" % case for case in cases))
     comment(stack, default, n, body, "stack-fix")
     return 0
@@ -370,7 +374,8 @@ def comment(stack, default, issue, body, name):
             name, " ".join(str(no.detail or no.answer).split())[:200]), file=sys.stderr)
     targets = []
     if pulls is not None and len(pulls) != 1:
-        print("%s: %d open pull requests track %s; no comment posted there" % (name, len(pulls), stack), file=sys.stderr)
+        print("%s: %d open pull requests track %s; no comment posted there" % (name, len(pulls), stack),
+              file=sys.stderr)
     elif pulls:
         targets.append(pulls[0].number)
     for number in targets + [int(issue)]:

@@ -44,9 +44,9 @@ def stated_lines(path):
 
 
 def default_names(root, remote=True):
-    """The default branch as origin states it (`git ls-remote --symref origin HEAD`, bounded by VERI_GIT_NETWORK_TIMEOUT,
-    asked only when <remote>) and as refs/remotes/origin/HEAD records it: the set of names either gives, empty when
-    neither does."""
+    """The default branch as origin states it (`git ls-remote --symref origin HEAD`, bounded by
+    VERI_GIT_NETWORK_TIMEOUT, asked only when <remote>) and as refs/remotes/origin/HEAD records it: the set of names
+    either gives, empty when neither does."""
     asked = git.network("ls-remote", "--symref", "origin", "HEAD", cwd=root) if remote else None
     remote = git.symref_default(asked.stdout) if asked and asked.returncode == 0 else None
     return {name for name in (remote, git.default_branch(cwd=root, remote=False)) if name}
@@ -68,13 +68,15 @@ def named(root, remote=True):
     if "<" in name or ">" in name:
         raise Refused("%s: the line '%s' holds a placeholder, not a branch name" % (path, line))
     if name.startswith(("refs/", "origin/")):
-        raise Refused("%s: the line '%s' names a ref or a remote-tracking spelling; name the branch alone" % (path, line))
+        raise Refused("%s: the line '%s' names a ref or a remote-tracking spelling; name the branch alone"
+                      % (path, line))
     if git.git("check-ref-format", "--branch", name, cwd=root, capture_output=True, text=True).returncode != 0:
         raise Refused("%s: the line '%s' names a branch git check-ref-format --branch refuses" % (path, line))
     told = default_names(root, remote)
     if not told:
-        raise Refused("%s: the line '%s' names a stack, but the default branch cannot be told (no refs/remotes/origin/HEAD,"
-                      " and origin gave no answer) — refusing, since the stack may be the default branch" % (path, line))
+        raise Refused("%s: the line '%s' names a stack, but the default branch cannot be told (no"
+                      " refs/remotes/origin/HEAD, and origin gave no answer) — refusing, since the stack may be the"
+                      " default branch" % (path, line))
     if name.casefold() in {default.casefold() for default in told}:
         raise Refused("%s: the line '%s' names the default branch, and a stack there would be a direct push to it"
                       % (path, line))
@@ -91,7 +93,8 @@ def ahead(root="."):
         return None
     fetch = git.network("-C", root, "fetch", "origin")
     if fetch.returncode:
-        raise Refused("git fetch origin got no answer (exit %d): %s" % (fetch.returncode, " ".join(fetch.stderr.split())[:200]))
+        raise Refused("git fetch origin got no answer (exit %d): %s"
+                      % (fetch.returncode, " ".join(fetch.stderr.split())[:200]))
     told = default_names(root)
     if len(told) != 1:
         raise Refused("the default branch cannot be told: origin and refs/remotes/origin/HEAD name %s"
@@ -111,12 +114,13 @@ def ahead(root="."):
     if log.returncode:
         raise Refused("git log origin/%s..origin/%s failed (exit %d): %s" % (
             default, stack, log.returncode, " ".join(log.stderr.split())[:200]))
-    return stack, default, [tuple(line.split(" ", 1)) if " " in line else (line, "") for line in log.stdout.splitlines()]
+    return stack, default, [tuple(line.split(" ", 1)) if " " in line else (line, "")
+                            for line in log.stdout.splitlines()]
 
 
 def recorded_base(root):
-    """(path, text) of the one `.tdd/issue-<n>-base` file under <root>, the base issue-worktree.sh recorded when it cut a
-    stacked run there; None when there is none. Refused when there are several."""
+    """(path, text) of the one `.tdd/issue-<n>-base` file under <root>, the base issue-worktree.sh recorded when it cut
+    a stacked run there; None when there is none. Refused when there are several."""
     # issue-<n>-base only: issue-<n>-branch-base, the branch base preflight records, matches the glob too (#4374).
     found = sorted(path for path in glob.glob(os.path.join(glob.escape(root), ".tdd", "issue-*-base"))
                    if re.fullmatch(r"issue-\d+-base", os.path.basename(path)))

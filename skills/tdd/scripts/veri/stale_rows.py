@@ -30,7 +30,8 @@ def marked_units(body):
 def default_branch_text(file):
     name = git.default_branch(remote=False)
     if name is None:
-        raise git.GitFailed(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], None, "no refs/remotes/origin/HEAD")
+        raise git.GitFailed(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], None,
+                            "no refs/remotes/origin/HEAD")
     head = "origin/" + name
     return subprocess.run(["git", "show", "%s:%s" % (head, file)],
                           capture_output=True, text=True, check=True).stdout

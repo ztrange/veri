@@ -1,4 +1,5 @@
-"""stack-carry.sh's logic, run in-process: carries the stack onto the new default branch after a slice landed (PRD 034.4b)."""
+"""stack-carry.sh's logic, run in-process: carries the stack onto the new default branch after a slice landed
+(PRD 034.4b)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
 import shutil
@@ -114,7 +115,8 @@ def _refused(stack, tip, new, push):
         raise _Stop(1, "the leased push of %s to %s was refused: origin's %s moved since the fetch, to %s (%s); nothing"
                     " pushed or lost" % (new, stack, stack, now[0] if now else "no branch", said))
     raise _Stop(2, "the leased push of %s to %s failed (exit %d): %s%s; nothing pushed"
-                % (new, stack, push.returncode, said, "" if now is not None else "; reading origin's %s got no answer: %s"
+                % (new, stack, push.returncode, said, ""
+                   if now is not None else "; reading origin's %s got no answer: %s"
                    % (stack, " ".join((listed.stderr or "").split())[:200])))
 
 
@@ -141,7 +143,8 @@ def _carry(stack, name):
     tip = _rev("refs/remotes/origin/" + stack, "origin/" + stack)
     cut = _rev(name, name)
     if not _ancestor(cut, tip):
-        raise _Stop(2, "the old cut %s is not an ancestor of origin/%s at %s; nothing rebased or pushed" % (cut, stack, tip))
+        raise _Stop(2, "the old cut %s is not an ancestor of origin/%s at %s; nothing rebased or pushed"
+                    % (cut, stack, tip))
     default = git.default_branch(cwd=".")
     if not default:
         raise _Stop(2, "origin's default branch cannot be told; nothing rebased or pushed")

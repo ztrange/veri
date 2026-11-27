@@ -306,7 +306,8 @@ def _check_earlier(ledger, step, exempt=(), sanctioned=()):
         tree = work_tree_hash()
         if not tree:
             remove_pass_marker(step)
-            write(sys.stderr, "tests-frozen.sh: the work-tree hash could not be computed: git add -A or git write-tree failed")
+            write(sys.stderr,
+                  "tests-frozen.sh: the work-tree hash could not be computed: git add -A or git write-tree failed")
             return 2
         write_pass_marker(step, tree)
     return 1 if changed else 0
@@ -407,7 +408,8 @@ def _rerecord_committed(step):
             if case not in at_head and fresh:
                 new = next((c for c in fresh if body_digest(at_head[c].replace(c, case)) == parsed[2]), None)
                 if new is None and len(fresh) > 1:
-                    write(sys.stderr, "tests-frozen.sh: %s: cannot pair %s with one of %d new cases" % (path, case, len(fresh)))
+                    write(sys.stderr, "tests-frozen.sh: %s: cannot pair %s with one of %d new cases"
+                          % (path, case, len(fresh)))
                     return 2
                 new = new or fresh[0]
                 fresh.remove(new)
@@ -515,7 +517,8 @@ def rerecord_refactored(ledger, green):
         called = set(re.findall(r"^(?:func|def)\s+(\w+)", helpers, re.M))
         head_lines = [line for line in case_identity.checked_lines(head) if line.split("(")[0] not in called]
         verified_lines = case_identity.checked_lines(verified)
-        verified_count = collections.Counter(verified_lines + case_identity.checked_lines(case_identity.called_helpers(green, name, verified + "\n" + head)))
+        verified_count = collections.Counter(verified_lines + case_identity.checked_lines(
+            case_identity.called_helpers(green, name, verified + "\n" + head)))
         carried = collections.Counter(head_lines + case_identity.checked_lines(helpers))
         if head_lines != verified_lines and carried != verified_count:
             return skip(name, case, record, "assertion lines of case plus helpers differ from green's")
@@ -526,7 +529,8 @@ def rerecord_refactored(ledger, green):
             return skip(name, case, record, "case has no assertion lines and its body changed")
         head_text = case_history.text_at("HEAD", at, quiet=True)
         return body_line(at, case, head) + "\n" + frozen_record.helpers_line(
-            at, case, case_identity.helper_digest_beside(at, head_text, "\n".join(case_identity.bodies_of(head_text, case))))
+            at, case,
+            case_identity.helper_digest_beside(at, head_text, "\n".join(case_identity.bodies_of(head_text, case))))
     snapshot = _snapshot(lines)
     if not rewrite_records(_earlier_records(lines, ""), rewrite):
         return 2
@@ -655,7 +659,8 @@ def _no_answer(error):
 
 
 def _log_refusal(code):
-    """Journal a refused `record` (exit 1 or 2) as a tests-frozen-refused event: the exit code and the last thing said."""
+    """Journal a refused `record` (exit 1 or 2) as a tests-frozen-refused event: the exit code and the last thing
+    said."""
     reason = " ".join(_said[-1].split()) if _said else ""
     event.mark(".", event.context(os.environ), "tests-frozen-refused", ["exit=%d" % code, "reason=" + reason])
 
@@ -731,7 +736,8 @@ def record(record_file, files, step=None):
                     added = _added_cases(name)
                     if name in _guard_subjects(step):
                         added = [c for c in added if c[0] not in _head_and_new_cases(name)[0]]
-                    kept = [c for c in _kept_cases(record_file, name, step, [a[0] for a in added]) if c[0] not in {a[0] for a in added}]
+                    kept = [c for c in _kept_cases(record_file, name, step, [a[0] for a in added])
+                            if c[0] not in {a[0] for a in added}]
                 except UnclosedCase as error:
                     raise LookupError("%s: %s" % (name, error)) from error
                 if _recorded_digests(record_file, name) and not kept and not added:
@@ -794,7 +800,8 @@ def _changed(record_file, step=None):
                 changed.append((name, expected))
             continue
         try:
-            if _digest(name) != expected and not (name == loose and _recorded_cases_intact(record_file, loose)) and name not in subjects:
+            if (_digest(name) != expected and not (name == loose and _recorded_cases_intact(record_file, loose))
+                    and name not in subjects):
                 changed.append((name, expected))
         except OSError:
             changed.append((name, expected))
@@ -927,7 +934,8 @@ def _main(argv):
     if argv[:1] == ["rerecord-rebased"] and len(argv) == 3:
         return rerecord_rebased(argv[1], argv[2])
     if (argv[:1] == ["check-earlier"] and len(argv) >= 4 and argv[2] == "--step" and argv[3]
-            and len(rest) % 2 == 0 and all(flag == "--except" and name for flag, name in zip(rest[::2], rest[1::2], strict=True))):
+            and len(rest) % 2 == 0
+            and all(flag == "--except" and name for flag, name in zip(rest[::2], rest[1::2], strict=True))):
         return _check_earlier(argv[1], argv[3], rest[1::2])
     mode = argv[0] if argv else ""
     if mode == "check-earlier":
