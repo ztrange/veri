@@ -11,7 +11,6 @@ import time
 
 import entry
 import event_table
-import github
 import run_dir
 import tunables
 
@@ -309,6 +308,7 @@ def state_labels(event, issue):
     """Mirror a bail, a stop, a resume or a launch (start) onto issue <issue>'s labels; no issue, no call; a refusal is named, never fatal."""
     if not issue:
         return
+    import github  # pulls run_records (about 20 ms), and only a labelled run state needs it
     try:
         if event == b"bail":
             add_state_label(issue, "bailed")
@@ -332,6 +332,7 @@ def state_labels(event, issue):
 def add_state_label(issue, label):
     """Label <issue> <label> only when the repository has that label: REST's add-labels call would create a missing
     one, and veri creates no state label (ready-check.sh reports it). A missing label is one stderr line, never fatal."""
+    import github
     if not github.gh_label_exists(label):
         sys.stderr.write("event: the repository has no `%s` label, so #%s is not labelled %s (ready-check.sh reports it)\n"
                          % (label, issue, label))

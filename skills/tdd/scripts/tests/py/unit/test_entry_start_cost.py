@@ -15,6 +15,7 @@ RARE_PATH_IMPORTS = {
     "wait_ci": {"traceback": "only the unexpected-error paths of the poll loop print one; ready_check imports this module"},
     "status": {"statistics": "only eta_range() needs it, and only once three runs have finished"},
     "pytest_leg": {"concurrent.futures": "only the cache sweep's thread pool needs it"},
+    "event": {"github": "pulls run_records (about 20 ms): only state_labels() needs it, with VERI_STATE_LABEL_ISSUE set"},
 }
 
 

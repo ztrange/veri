@@ -455,9 +455,9 @@ def test_event_main_with_an_empty_veri_issue_writes_the_bail_to_veri_state_label
     monkeypatch.chdir(clone)
     monkeypatch.setenv("VERI_ISSUE", "")
     monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "28")
-    monkeypatch.setattr(event.github, "gh_label_exists", lambda label: True)
-    monkeypatch.setattr(event.github, "gh_issue_add_label", lambda issue, label: None)
-    monkeypatch.setattr(event.github, "gh_issue_remove_label", lambda issue, label: None)
+    monkeypatch.setattr(importlib.import_module("github"), "gh_label_exists", lambda label: True)
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_add_label", lambda issue, label: None)
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_remove_label", lambda issue, label: None)
 
     code = event.main([b"bail", b"cause=needs-user", b"classification=process"])
 
@@ -476,9 +476,9 @@ def test_event_main_with_both_issues_set_writes_to_veri_issues_journal_not_veri_
     monkeypatch.chdir(clone)
     monkeypatch.setenv("VERI_ISSUE", "27")
     monkeypatch.setenv("VERI_STATE_LABEL_ISSUE", "28")
-    monkeypatch.setattr(event.github, "gh_label_exists", lambda label: True)
-    monkeypatch.setattr(event.github, "gh_issue_add_label", lambda issue, label: None)
-    monkeypatch.setattr(event.github, "gh_issue_remove_label", lambda issue, label: None)
+    monkeypatch.setattr(importlib.import_module("github"), "gh_label_exists", lambda label: True)
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_add_label", lambda issue, label: None)
+    monkeypatch.setattr(importlib.import_module("github"), "gh_issue_remove_label", lambda issue, label: None)
 
     code = event.main([b"bail", b"cause=needs-user", b"classification=process"])
 
