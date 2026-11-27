@@ -9,7 +9,7 @@ import pytest
 
 from dispatch_world import FakeWorld
 
-_USAGE_LINE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n"
+_USAGE_LINE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line (a whole number, or auto: floor((T - W_other)/d), at least 1, at most live + the launchable queue), overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n"
 
 _OVERLAP = ("skills/tdd/scripts/veri/dispatch.py", "https://github.com/o/r/pull/90")
 
@@ -1363,14 +1363,14 @@ def test_main_with_help_prints_the_usage_on_stdout_and_exits_0_launching_nothing
 
     code, out, err = run_cli(dispatch, ["--help"])
 
-    assert (code, out, err, launches, reads) == (0, "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", "", [], [])
+    assert (code, out, err, launches, reads) == (0, "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line (a whole number, or auto: floor((T - W_other)/d), at least 1, at most live + the launchable queue), overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", "", [], [])
 
 
 def test_main_with_help_writes_exactly_one_usage_line_to_the_stdout_descriptor_and_nothing_to_stderr(
         run_cli, dispatch):
     code, out, err = run_cli(dispatch, ["--help"])
 
-    assert (code, out, err) == (0, "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", "")
+    assert (code, out, err) == (0, "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line (a whole number, or auto: floor((T - W_other)/d), at least 1, at most live + the launchable queue), overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)\n", "")
 
 
 def test_last_comment_returns_the_body_of_the_issues_last_comment_read_through_the_github_port_without_starting_a_gh_process(
@@ -3988,3 +3988,60 @@ def test_a_stray_file_in_the_worktrees_directory_holds_no_slot_issue_4658(dispat
     dispatch.step(dispatch.State(1), world)
 
     assert world.launched == ["12"]
+
+
+def _auto_poll(dispatch, tick, role_state=("n=auto",)):
+    """One poll of dispatch following a role state; (exit code, the target it left, the world)."""
+    world = FakeWorld(tick, role_state=role_state)
+    state, code = dispatch.step(dispatch.State(0, follows_role_state=True), world)
+    return code, state.target, world
+
+
+@pytest.mark.parametrize("budget, w_other, live, queue, target", [
+    ((4, 3), 3, [], ["12", "13"], 1),
+    ((8, 2), 2, [], ["12", "13", "14", "15"], 3),
+    ((8, 2), 2, ["5"], ["12"], 2),
+], ids=["t-minus-w-other-below-d-gives-1", "room-for-3-gives-3", "a-queue-of-1-caps-at-live-plus-1"])
+def test_4805_under_n_auto_dispatch_sets_the_target_floor_t_minus_w_other_over_d_at_least_1_at_most_live_plus_the_queue(
+        dispatch, budget, w_other, live, queue, target):
+    code, found, world = _auto_poll(dispatch, {"live": live, "alive": live, "queue": queue, "budget": budget,
+                                               "w_other": w_other})
+
+    assert (code, found, world.complained) == (None, target, [])
+
+
+def test_4805_under_n_auto_dispatch_launches_up_to_the_target_t_leaves_and_no_further(dispatch):
+    queue = ["12", "13", "14", "15"]
+    ticks = [{"live": queue[:k], "alive": queue[:k], "queue": queue[k:], "budget": (8, 2), "w_other": 2} for k in range(5)]
+    world = FakeWorld(*ticks, role_state=["n=auto"])
+
+    code = dispatch.main([], world=world)
+
+    assert (code, world.launched) == (None, ["12", "13", "14"])
+
+
+def test_4805_an_unexpired_timed_n_wins_over_n_auto(dispatch):
+    lines = ["n=auto", "timed-n 1 2026-11-07T10:00:00 5 until 2026-11-07T11:00:00"]
+    tick = {"queue": ["12"], "budget": (4, 3), "w_other": 3, "clock": datetime(2026, 11, 7, 10, 30).timestamp()}
+
+    code, target, world = _auto_poll(dispatch, tick, role_state=lines)
+
+    assert (code, target, world.budget_written) == (None, 5, [10])
+
+
+@pytest.mark.parametrize("n, need", [("auto", 10), ("3", 6)], ids=["auto-writes-c", "numeric-writes-max-n-live-times-d"])
+def test_4805_with_n_auto_dispatch_writes_the_lanes_need_as_c_and_with_a_numeric_n_as_max_n_live_times_d(dispatch, n, need):
+    _, _, world = _auto_poll(dispatch, {"live": ["5"], "alive": ["5"], "capacity": 10, "budget": (10, 0)},
+                             role_state=["n=" + n])
+
+    assert world.budget_written == [need]
+
+
+def test_4805_the_real_worlds_w_other_is_leg_registry_other_workers_over_the_legs_directory_and_its_c_the_capacity(dispatch, monkeypatch, tmp_path):
+    import leg_registry
+    monkeypatch.setenv("VERI_PYTEST_LEGS", str(tmp_path / "legs"))
+    monkeypatch.setattr(leg_registry, "other_workers", lambda legs: {str(tmp_path / "legs"): 7}[legs])
+    with open(os.environ["VERI_TEST_CEILING_FILE"], "w") as f:
+        f.write("10\n2026-11-19\n")
+
+    assert (dispatch.World().other_workers(), dispatch.World().capacity()) == (7, 10)

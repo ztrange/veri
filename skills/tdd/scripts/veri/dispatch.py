@@ -44,7 +44,7 @@ from dispatch_reads import (
     transient,
 )
 
-USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line, overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)"
+USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line (a whole number, or auto: floor((T - W_other)/d), at least 1, at most live + the launchable queue), overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)"
 
 
 solvable_issues = watch_runs.solvable_issues
@@ -76,6 +76,7 @@ class State:
     def __init__(self, target, follows_role_state=False):
         self.target = target
         self.follows_role_state = follows_role_state  # re-read the target from the role state file each poll
+        self.auto = False  # the role state's N is `auto`: the target follows what T has left (PRD 036.6)
         self.previous = None  # the last issue launched
         self.logged = None  # the runs dispatch.log names after the mark, folded into seen at the first poll
         self.seen = []  # the runs under watch: live, absent or pending
@@ -172,7 +173,8 @@ def _exits(state, world, live):
 
 
 def _role_state_target(state, world):
-    """The target from the role state file: its last n= line, unless an unexpired timed-n line overrides it."""
+    """The target from the role state file: its last n= line, unless an unexpired timed-n line overrides it; an n=auto
+    line leaves state.auto set, the target then set by step from T (auto_target)."""
     lines = role_state.State(world.role_state())
     try:
         target = lines.last_n()
@@ -183,8 +185,17 @@ def _role_state_target(state, world):
         said = {"n-missing": "no n= line", "n": f"malformed n line: {why.line}"}.get(why.kind, f"malformed {why.kind} line: {why.line}")
         world.complain(f"dispatch.sh: {said} in {world.role_state_file()}\n")
         return 2
-    state.target = target
+    state.auto = target == role_state.AUTO_N
+    if not state.auto:
+        state.target = target
     return None
+
+
+def auto_target(t, w_other, d, cap=None):
+    """An `auto` lane's target (PRD 036.6 D20): floor((T - W_other) / d), at most <cap> (live + the launchable queue)
+    when one is given, and at least 1 either way, since a target of 0 would hold dispatch."""
+    target = (t - w_other) // d
+    return max(1, target if cap is None else min(target, cap))
 
 
 def _stalled(state, world):
@@ -252,6 +263,8 @@ def _launch_into_a_free_slot(state, world, live):
             world.say("queue-empty\n")
             return 3
         return None
+    if state.auto:
+        state.target = max(1, min(state.target, len(live) + len(free)))
     state.held_at = world.clock() if not free and (queue or live) else None
     if queue and not free and not live:
         line = BLOCKED_LINE + " ".join(sorted({world.overlap(issue, changed)[1] for issue in queue}))
@@ -260,7 +273,7 @@ def _launch_into_a_free_slot(state, world, live):
             world.record_notified([kept for kept in lines if not kept.startswith(BLOCKED_LINE)] + [line])
             world.say(line + "\n")
             return 0
-    if free:
+    if free and held < state.target:
         state.previous = free[0]
         world.launch(state.previous)
     return None
@@ -348,7 +361,11 @@ def step(state, world):
     if code is None and state.follows_role_state:
         code = _role_state_target(state, world)
     if code is None:
-        world.write_test_budget(max(state.target, len(live)) * int(tunables.get("VERI_CONDUCTOR_TEST_WORKERS")))
+        d = int(tunables.get("VERI_CONDUCTOR_TEST_WORKERS"))
+        # an auto lane's need is C: a need of N x d would make T = N x d, and N, read back from T, would never grow
+        world.write_test_budget(world.capacity() if state.auto else max(state.target, len(live)) * d)
+        if state.auto:
+            state.target = auto_target(world.test_budget()[0], world.other_workers(), d)
     if code is None:
         code = _stalled(state, world)
     if code is not None:

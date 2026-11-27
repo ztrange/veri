@@ -142,6 +142,14 @@ class World:
         """(T, the workers live registered legs hold)."""
         return leg_budget.budget()[0], leg_registry.registered_workers(full_run_lock.legs_dir())
 
+    def other_workers(self):
+        """W_other (PRD 036.6): the workers live registered legs no conductor's leaf started (leg_registry.other_workers)."""
+        return leg_registry.other_workers(full_run_lock.legs_dir())
+
+    def capacity(self):
+        """C, the leg's capacity before any lane entry narrows it (leg_budget.capacity)."""
+        return leg_budget.capacity(say=False)[0]
+
     def stretches(self, issue):
         """(tier, seconds, idle) of each `test-stretch` event in <issue>'s run journal, in journal order; [] with none."""
         return [(e.get("tier", ""), e.get("seconds", ""), e.get("idle", ""))

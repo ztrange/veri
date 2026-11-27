@@ -23,6 +23,8 @@ Keys a tick may carry, each with the default an empty world would answer:
     reset         the rate-limit reset epoch                         0
     waiters       live waiter entries under VERI_PYTEST_WAITERS      0
     budget        (T, the workers live registered legs hold)         (8, 0)
+    w_other       W_other: workers of live legs no leaf started      0
+    capacity      C, the capacity before lane narrowing              8
     stretches     {issue: [(tier, seconds, idle) of each test-stretch]} {}
     lowering      (time, old T, new T, cases) of the load file       None
 
@@ -128,6 +130,12 @@ class FakeWorld:
 
     def test_budget(self):
         return self._answer("budget", (8, 0))
+
+    def other_workers(self):
+        return self._answer("w_other", 0)
+
+    def capacity(self):
+        return self._answer("capacity", 8)
 
     def stretches(self, issue):
         return list(self._answer("stretches", {}).get(issue, []))
