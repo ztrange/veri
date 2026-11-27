@@ -964,6 +964,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 ## red_half
 - `refused(step)`: the step kinds of `REFUSED` a step is, whose Red is not red-half's (RH1), ⟦go-red⟧ by `ledger.is_go_red`, each stopping `run-step.sh` before any stage on `seam=none`.
 - `launch_verdict(where, n, wt, settled, step, values)`: verdict-red's launch, the one set of `run-verdict.sh` arguments red-half.sh, `revise.sh`'s re-verify and `reroute.sh`'s verify-red share (PRD 038.9 RVS13, PRD 038.10 RRT10).
+- `STEP_START`: `.tdd/issue-%s-step-start`, the step and the HEAD develop-red launched on, written before each launch. `step_start(wt, n, step)`: its sha when it names `step`, else empty: `revise.sh`'s holds-step.sh `<step-start-sha>` (PRD 044 D9).
 
 ## seam_contract
 - `CONTRACTS`: per record-writing stage (`red-half`, `green-half`, `refactor-half`), the keys of its record the next stage reads that no committed fact holds (PRD 038.1 SC5). `READS`: per reading stage (`green-half`, `revise`, `reroute`, `refactor-half`, `step-close`), the stages whose records it reads, in order (`refactor-half`: `green-half`, then `red-half` for a Green `green-half.sh` did not finish).
