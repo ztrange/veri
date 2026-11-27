@@ -3,6 +3,7 @@ like the fused halves of a step (PRD 038.9)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
 import os
+import re
 import shutil
 import sys
 
@@ -129,6 +130,9 @@ def judged(wt, report):
     return {"test_path": got["TEST_PATH"], "target_test": got["TARGET_TEST"]}
 
 
+SHA = re.compile(r"^[0-9a-f]{7,40}$")
+
+
 def spent(wt, step, phase):
     """The attempts already spent on <phase> in the open step: the conductor's `revise` marks naming both."""
     marks = 0
@@ -168,6 +172,9 @@ def attempt(n, wt, settled, step, values):
         rerouted = rerouted_red(wt, n, step)  # a rerouted case's revise keeps every path the reroute edited
         kept = list(dict.fromkeys((rerouted or {}).get("rerouted", []) + [values["test_path"]]))
         fused.checked("3", fused.script("restore-production.sh"), *kept, cwd=wt)
+    if phase == "red":
+        with fused.quiet():  # the HEAD the revise leaf launches on: a revised HOLDS's holds-step.sh start (CY425)
+            values["launch_head"] = fused.checked("3", "git", "rev-parse", "HEAD", cwd=wt).strip()
     fused.launch("3", wt, leaf, "run-leaf.sh", ".tdd/%s.prompt" % leaf, "--permission-mode", "bypassPermissions",
                  env=fused.step_env(n, step, VERI_TEST_CMD=fast), out=".tdd/%s.out" % leaf, err=".tdd/%s.err" % leaf,
                  clear=(".tdd/red-prediction.md", ".tdd/red-run-output.txt"))
@@ -187,7 +194,10 @@ def checks(n, wt, settled, step, values):
         if passes_unmodified(got["AGAINST_UNMODIFIED"]):
             return verify(n, wt, settled, step, values, "pin")
         if got["AGAINST_UNMODIFIED"] == "HOLDS":
-            return verify(n, wt, settled, step, values, "pin", covering(wt, got["COVERING_TESTS"]))
+            ids = covering(wt, got["COVERING_TESTS"])
+            if not holds(n, wt, values, ids):
+                return None
+            return verify(n, wt, settled, step, values, "pin", ids)
         return red_checks(n, wt, settled, step, values)
     if values["phase"] == "refactor":
         return verify(n, wt, settled, step, values)
@@ -231,6 +241,23 @@ def covering(wt, line):
         return covering_tests.ids(line or "", tracked)
     except ValueError as error:
         raise fused.Stop("4", str(error), 2) from error
+
+
+def holds(n, wt, values, ids):
+    """A revised HOLDS's empty-diff gate, the first-try HOLDS's own (CY425, PRD 044 D9): holds-step.sh over the HEAD
+    the revise leaf launched on and <ids>. True on exit 0; on exit 1 (a named case fails) the attempt is spent, the
+    reason written to `.tdd/verify-red.reason` (False); any other exit, or no recorded HEAD, stops with exit 2."""
+    start = values.get("launch_head") or ""
+    if not SHA.match(start):
+        raise fused.Stop("4", "no HEAD recorded at the revise leaf's launch for holds-step.sh: %r" % start, 2)
+    code, said, _ = fused.call(fused.script("holds-step.sh"), n, start, *ids, cwd=wt)
+    if code == 1:
+        with open(os.path.join(wt, ".tdd", "verify-red.reason"), "w") as f:
+            f.write("REASON: holds-step.sh: a named covering case fails: %s\n" % " ".join(ids))
+        return False
+    if code != 0:
+        raise fused.Stop("4", fused.label("holds-step.sh", n, start, *ids) + " exit %d" % code, 2)
+    return True
 
 
 def check_earlier(n, wt, step, excepted):
