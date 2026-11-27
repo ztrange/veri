@@ -81,7 +81,7 @@ A **notice** — the MCP
 launch line of *Starting*, a missing `delegate` skill, `github-outage.sh hold`'s exit 2, a red
 stack that stays frozen after its failed jobs' re-run, `record-answer.sh`'s exit 2 (*Answers*), a
 question session's failed start (*When to stop and ask*, step 3), a failed join or a landing
-reported under *Routing an exit*, `dispatch.sh`'s `queueing`, `stretched` and `t-lowered` lines (each one the ended watch printed, sent as its own notice when a closing line ends the watch), its `queue-blocked` line, each line `voutage` tells the human — is
+reported under *Routing an exit*, `dispatch.sh`'s `queueing`, `stretched`, `t-lowered` and `n-lowered` lines (each one the ended watch printed, sent as its own notice when a closing line ends the watch), its `queue-blocked` line, each line `voutage` tells the human — is
 sent once: as one `PushNotification`
 where the session has that tool, else as one line in its transcript.
 
@@ -121,7 +121,9 @@ conductor exit:
    the human gives you is written to the role state file with
    `$S/role-state.sh dev [--lane <lane>]` at once, an override with the human as who asked (P9),
    and applied at this slot decision. Never change N on your own: no judgment of your own and no
-   `vjudge` ruling changes N.
+   `vjudge` ruling changes N. The one exception is `dispatch.sh`'s own: when a load timeout lowers T while T is
+   already at its floor of 2, it lowers a numeric N by 1, never below 1, writing `n=` and a `veri (load)` message to
+   the role state file. Neither veri nor the session ever raises that N back; only the human raises N.
    A numeric N also narrows the machine's test-worker budget T to the lanes' needs, never above the ceiling:
    `role-state.sh dev set n` writes this lane's need, max(N, live conductors) × `VERI_CONDUCTOR_TEST_WORKERS`
    (default 2), and prints the T it leaves, beside the other lanes' needs and the ceiling, so you weigh N's test cost
@@ -199,7 +201,7 @@ and prints one line per event:
   blocking draft PR named; dispatch prints it once per set of blocking PRs. Send it as a notice
   (*Speaking*) and re-arm the watch: a re-armed dispatch prints it again only for a different set
 
-Those are the closing lines: each ends the watch. Three more lines are advice, printed while
+Those are the closing lines: each ends the watch. Four more lines are advice, printed while
 `dispatch.sh` keeps watching, never the end of the watch; they change nothing:
 
 - `queueing <k> waiting for T=<t>, <w> workers in use: a lower N would shorten the wait`: test
@@ -208,8 +210,10 @@ Those are the closing lines: each ends the watch. Three more lines are advice, p
   twice its idle duration, once per run and tier
 - `t-lowered <old> <new> <cases>`: a load timeout lowered T from `<old>` to `<new>`, the timed-out
   `<cases>` named; dispatch reports it once
+- `n-lowered <old> <new> <cases>`: a load timeout came with T already at its floor of 2, so dispatch lowered this
+  lane's N from `<old>` to `<new>`; the human raises N again with `$S/role-state.sh dev set n <k>`
 
-When a closing line ends the watch, send each `queueing`, `stretched` and `t-lowered` line that
+When a closing line ends the watch, send each `queueing`, `stretched`, `t-lowered` and `n-lowered` line that
 watch printed as a notice (*Speaking*), then route the closing line.
 
 You arm no other wait for conductors, ledgers or merges: no `watch-runs.sh`, no
