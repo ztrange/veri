@@ -146,7 +146,9 @@ For attempt `k = 1 … REVISE_BUDGET`:
      budget's exhaustion bailing as a **process** failure. On `PASSES` that re-verify names the step's
      `TARGET_TEST` from `.tdd/develop-red.out`, the case the revise leaf rewrote, and the revise report's
      `TEST_PATH:` and `TARGET_TEST:` lines only when that file names none (a `HOLDS` step's Red wrote no
-     test), a missing line there a bail; on `HOLDS` it names the revise report's `COVERING_TESTS:` ids.
+     test), a missing line there a bail; on `HOLDS` it names the revise report's `COVERING_TESTS:` ids, and runs only
+     after `$S/holds-step.sh <n> <launch-head> <id>…` over them, `<launch-head>` the `HEAD` the revise leaf launched
+     on: the same empty-diff gate as a first-try `HOLDS`, its exit 1 a REJECT spending the attempt and any other exit a bail.
    - **Malformed / killed-stuck (exit 2):** **bail** (system failure).
 
 **The `diff` phase.** A REJECT on a `⟦diff-checked⟧` step runs the same loop with `<phase>`
