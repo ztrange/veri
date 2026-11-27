@@ -591,7 +591,7 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 - `ceiling`: test-ceiling.sh's ramp: the highest test-worker count `make test` runs at with no case timeout, recorded in `~/.veri-test-ceiling`; `record_path()` names that file, and the pytest leg reads its line 1 as T, its worker budget. `cap_path()` names `~/.veri-test-cap` (`VERI_TEST_CAP_FILE`) and `read_cap()` returns its line 1 as `(cap, complaint)`: the cap the human set, which lowers T and the ramp's top, or no cap and a one-line complaint for a file it cannot use (PRD 036.11).
 - `profile.sh`: per-case timing of suites.
 - `pycache_prefix`: sets where this run reads and writes bytecode; a veri module's first line runs it before any veri import.
-- `test_budget`: the lane budget's entries under `~/.veri-test-budget` (PRD 036.5), each lane's need and expiry, which every leg reads to narrow T.
+- `budget_entries`: the lane budget's entries under `~/.veri-test-budget` (PRD 036.5), each lane's need and expiry, which every leg reads to narrow T.
 
 ## full_run_lock
 - `acquire()`: take the lock (waiting for a holder, saying who holds it and marking the wait at `PYTEST_LEG_LOCK_WAIT_MARKER` with a file naming the waiter, its pid and start time in `pid_file.record`'s form; a supervisor ignores a marker whose waiter is no longer alive under that start time, while an empty one, an older leg's, still freezes its timers), record this pid and tree in the lock file and mark this process the holder in `PYTEST_LEG_FULL_LOCK_HOLDER`; returns a `Lock` whose `release()` empties the file and restores the variable.
@@ -606,7 +606,7 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 - `cap_path()`: the cap file, `~/.veri-test-cap` (`VERI_TEST_CAP_FILE`). `read_cap()`: `(cap, complaint)`, the cap the human set on its line 1, or no cap and a one-line complaint for a file it cannot use; the pytest leg lowers T to it.
 - `read_idle(tier)`: the seconds of the record's `idle <tier> <seconds>` line, the tier's idle duration, or None when there is no such line or the record cannot be read; `timed-test-run.sh` journals a `test-stretch` event past twice it (PRD 036.10).
 
-## test_budget
+## budget_entries
 - `write(main_tree, lane, need)`: replaces the lane's entry for that main working tree whole (a temporary file renamed into place): `need` on line 1, now plus `VERI_TEST_BUDGET_TTL` seconds on line 2. `entry_name(main_tree, lane)`: `<lane>@<16 hex of the sha256 of the tree's real path>`.
 - `unexpired_entries()`: `[(entry name, need)]` of the entries whose expiry is ahead; an unreadable or malformed one adds nothing, an expired one is removed. `unexpired()`: the same as `[(lane, need)]`, which the pytest leg sums into T.
 - `leg()`: the pytest leg's module, loaded from `tests/leg/`, whose capacity and budget dispatch and role_state_cli read.

@@ -1,19 +1,19 @@
 """dispatch.sh's computations, run in-process."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
-# os, subprocess, event_log, github, paths, layout and test_budget are test seams: tests reach them through dispatch
+# os, subprocess, event_log, github, paths, layout and budget_entries are test seams: tests reach them through dispatch
 # (dispatch.layout, dispatch.github, ...) though the code reading them lives in dispatch_reads and dispatch_live.
 import os
 import subprocess
 import sys
 import time
 
+import budget_entries
 import dispatch_reads
 import event_log
 import github
 import paths
 import role_state
 import run_dir as layout
-import test_budget
 import tunables
 import watch_runs
 from dispatch_live import World, lane, launch, now, restart_pending, run_dir, state_file

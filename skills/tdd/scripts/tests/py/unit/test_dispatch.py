@@ -3852,7 +3852,7 @@ def test_4453_the_real_worlds_test_budget_write_is_its_lanes_entry_named_for_the
     import hashlib
     monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
     monkeypatch.setattr(dispatch.layout, "main_tree", lambda missing=None: str(tmp_path))
-    monkeypatch.setattr(dispatch.test_budget.time, "time", lambda: 1000.0)
+    monkeypatch.setattr(dispatch.budget_entries.time, "time", lambda: 1000.0)
 
     dispatch.World().write_test_budget(6)
 

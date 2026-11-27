@@ -52,13 +52,13 @@ if __name__ == "__main__":
 #            (idle_watch.py, #4254), whatever its cases' outcomes
 #          128 + the signal's number on TERM or HUP: the leg ends its workers, entry and lock the same way, without
 #            waiting on xdist's worker teardown, and prints `pytest leg ended by signal <n>; workers <pid>… ended`
+import budget_entries
 import entry
 import event
 import full_run_lock
 import launch_floor
 import leg_tmpdir
 import pid_file
-import test_budget
 import tunables
 from ceiling import cap_path, read_cap, record_path
 from full_run_lock import legs_dir, waiters_dir
@@ -199,11 +199,11 @@ def budget(say=True):
     to the cap the human set (ceiling.read_cap) when that is below it, the source then naming the cap file beside C0 and
     C0's source (PRD 036.11), and lowered again to a load timeout's T in the load file (load_timeouts.held) when that
     is below what remains, never below 2 (PRD 036.7); that C narrowed to max(2, min(C, S)), S the needs summed over the
-    unexpired lane entries (test_budget.unexpired, PRD 036.5), while there is one, the source then naming each entry's lane and need
+    unexpired lane entries (budget_entries.unexpired, PRD 036.5), while there is one, the source then naming each entry's lane and need
     beside C and its source when that narrows it. C0 from the core fallback is one stderr line naming the record and `make ceiling`; a cap
     file it cannot use is one more; with <say> false, neither is written (a wait re-reading T has said them once)."""
     total, source = capacity(say)
-    needs = test_budget.unexpired()
+    needs = budget_entries.unexpired()
     narrowed = max(2, min(total, sum(need for _, need in needs)))
     if needs and narrowed < total:
         return narrowed, "the lane entries %s, below C=%d from %s" % (
