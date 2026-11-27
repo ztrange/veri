@@ -16,7 +16,7 @@ needed, and name none from memory.
 
 ## Invocation
 
-`/vgroom [<issue>...|<range>...|--refactor-owed]`
+`/vgroom [<issue>...|<range>...]`
 
 With no argument the groom is the sweep over every open issue; each argument form narrows it.
 
@@ -32,7 +32,6 @@ With no argument the groom is the sweep over every open issue; each argument for
   or commas (`4261 4262`, `4261,4262`), and inclusive ranges written `4260-4270` or
   `4260..4270`. A number in a range that is closed or does not exist is skipped, and all such
   numbers are reported together in one line.
-- `--refactor-owed` — narrow the groom to the refactor-owed consolidation alone (see below).
 
 `/vgroom` typed with no argument is the human's "go" for the run, and their say-so to add the
 opt-in label to every issue the sweep ends ready, an issue carrying the `draft` label excepted:
@@ -43,11 +42,10 @@ it is only reported (*The sweep*).
 The sweep's scope is every open issue but the `taken:` ones carrying neither `parked` nor
 `bailed` (*Invocation*): issues without the opt-in label (bare or scoped), issues already opted
 in, `parked` and `bailed` issues, a `taken:` one included, which go through `### Parked and
-bailed issues`, the refactor-owed items, which go through
-the `--refactor-owed` consolidation (below) as part of the sweep, and PRD trackers, which go
-through `### Missing PRD parents` and `### PRD trackers`. Every issue in scope gets one report
-line, and every one but a `draft` ends the run with exactly one outcome; none is skipped or left
-unlabelled without its reason.
+bailed issues`, the refactor-owed items, which go through the refactor-owed step,
+`## Refactor-owed items`, and PRD trackers, which go through `### Missing PRD parents` and
+`### PRD trackers`. Every issue in scope gets one report line, and every one but a `draft` ends
+the run with exactly one outcome; none is skipped or left unlabelled without its reason.
 
 The sweep is stateless: it keeps, writes and reads no marker of when an issue was last groomed, and
 re-reads every open issue in its scope on every run. So an issue whose blocker closed, whose park
@@ -227,7 +225,7 @@ In the sweep, nothing in this section opts in, rewrites, splits, closes or other
 - adding or removing a label from the target repo's triage label set;
 - closing an issue with a reason (`gone`, or `duplicate` naming the survivor);
 - adding or removing a `Blocked by` line in an issue's `## Blocked by` section;
-- filing a consolidated refactor issue (`--refactor-owed`, alone or as part of the sweep) and
+- filing a consolidated refactor issue (the refactor-owed step, `## Refactor-owed items`) and
   closing its sources, unless it is **big-impact**: it changes a script's entry-point contract
   (arguments, exit codes, output lines or events), edits graded prose, or touches files in more
   than one module. A big-impact one is shown to the human first and filed only on their yes.
@@ -242,11 +240,14 @@ is proposed, the options in words, what each costs (P4).
   sweep (no argument) is a "go".
 - `needs-human` lines are shown as they are.
 
-## `--refactor-owed`
+## Refactor-owed items
+
+This is the groom's refactor-owed step, run on every refactor-owed item in the groom's scope:
+the sweep's, or the issues its ids and ranges name.
 
 Refactor-owed items are the issues veri's own runs file for refactoring a step left undone or
 declined: the open issues the target repo's CLAUDE.md identifies as refactor-owed (by label or
-title convention). Read that, then list them with `gh`.
+title convention). Read that, then list the ones in the groom's scope with `gh`.
 
 A subagent classifies each item against the default branch (`main` or whatever the repo
 calls it):
