@@ -225,44 +225,48 @@ def _refused(message=None):
     return refuse(message), b""
 
 
-def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base="", ledger="", supersede_base="",
-          root=".", step_green="", frozen_edit=""):
+def _option_refusal(phase, branch_base, supersede_base, step_green, frozen_edit):
+    """The message refusing an option's value, its pairing or the phase's name, or None."""
     if branch_base and not HEX_SHA.fullmatch(branch_base):
-        return _refused(f"build-verify-prompt: --branch-base needs 7-40 lowercase hex characters, got '{branch_base}'")
+        return f"build-verify-prompt: --branch-base needs 7-40 lowercase hex characters, got '{branch_base}'"
     if step_green and not HEX_SHA.fullmatch(step_green):
-        return _refused(f"build-verify-prompt: --step-green needs 7-40 lowercase hex characters, got '{step_green}'")
+        return f"build-verify-prompt: --step-green needs 7-40 lowercase hex characters, got '{step_green}'"
     if frozen_edit and not HEX_SHA.fullmatch(frozen_edit):
-        return _refused(f"build-verify-prompt: --frozen-edit needs 7-40 lowercase hex characters, got '{frozen_edit}'")
+        return f"build-verify-prompt: --frozen-edit needs 7-40 lowercase hex characters, got '{frozen_edit}'"
     if frozen_edit and phase != "diff":
-        return _refused(f"build-verify-prompt: --frozen-edit is the diff phase's alone, not {phase}'s")
+        return f"build-verify-prompt: --frozen-edit is the diff phase's alone, not {phase}'s"
     if frozen_edit and supersede_base:
-        return _refused("build-verify-prompt: --frozen-edit and --supersede-base each pick the diff under judgement;"
-                        " pass one")
+        return ("build-verify-prompt: --frozen-edit and --supersede-base each pick the diff under judgement;"
+                " pass one")
     if step_green and phase != "refactor":
-        return _refused(f"build-verify-prompt: --step-green is the refactor phase's alone, not {phase}'s")
+        return f"build-verify-prompt: --step-green is the refactor phase's alone, not {phase}'s"
     if phase not in PHASES + INTERFACE_PHASES + VERIFY_ONLY_PHASES:
-        return _refused(f"build-verify-prompt: unknown phase '{phase}' (want {WANT_PHASES})")
-    cap = tunables.get("VERI_PLAN_TOUCHING_CASES")
-    if phase == "plan" and not tunables.parses("VERI_PLAN_TOUCHING_CASES", cap):
-        write(sys.stderr, f"build-verify-prompt: VERI_PLAN_TOUCHING_CASES must be a whole number, got '{cap}'",
-              before=False, after=False)
-        return 2, b""
+        return f"build-verify-prompt: unknown phase '{phase}' (want {WANT_PHASES})"
+    return None
+
+
+def _phase_input_refusal(phase, fast_cmd, branch_base, supersede_base, test_path):
+    """The message refusing an input the phase lacks or does not take, or None."""
     if "fast-cmd" in NEEDS.get(phase, ()) and not fast_cmd:
-        return _refused(f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'")
+        return f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'"
     if phase in ("pin", "surround") and not branch_base:
-        return _refused(f"build-verify-prompt: {phase} needs --branch-base '<sha>'")
+        return f"build-verify-prompt: {phase} needs --branch-base '<sha>'"
     if phase == "surround" and (fast_cmd or supersede_base):
-        return _refused("build-verify-prompt: surround takes the pin phase's inputs, and --fast-cmd and "
-                        "--supersede-base are not among them")
+        return ("build-verify-prompt: surround takes the pin phase's inputs, and --fast-cmd and "
+                "--supersede-base are not among them")
     if phase == "branch" and test_path:
-        return _refused(f"build-verify-prompt: branch takes only <spec-file>, not '{test_path}'")
-    fourth = test_id
+        return f"build-verify-prompt: branch takes only <spec-file>, not '{test_path}'"
+    return None
+
+
+def _sha_slots(step_arg, phase, test_path, fourth, branch_base):
+    """(the template's commit slots, None), or (None, the message refusing what the phase takes them from)."""
     if phase == "diff":
         if not step_arg:
-            return _refused("build-verify-prompt: diff needs --step '<STEP>'")
+            return None, "build-verify-prompt: diff needs --step '<STEP>'"
         if fourth:
-            return _refused("build-verify-prompt: diff takes <spec-file> <step-base-sha>, and its branch base from "
-                            f"--branch-base, not a third positional ('{fourth}')")
+            return None, ("build-verify-prompt: diff takes <spec-file> <step-base-sha>, and its branch base from "
+                          f"--branch-base, not a third positional ('{fourth}')")
         shas = (("<step-base-sha>", "STEP_BASE_SHA", test_path), ("--branch-base", "BASE_SHA", branch_base))
     elif phase == "branch":
         shas = (("--branch-base", "BASE_SHA", branch_base),)
@@ -276,8 +280,28 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
     slots = {"BASE_SHA": fourth, "STEP_BASE_SHA": "", "ONTO_SHA": "", "PRE_REBASE_SHA": ""}
     for label, slot, value in shas:
         if not HEX_SHA.fullmatch(value):
-            return _refused(f"build-verify-prompt: {phase} needs {label} as 7-40 lowercase hex characters, got '{value}'")
+            return None, f"build-verify-prompt: {phase} needs {label} as 7-40 lowercase hex characters, got '{value}'"
         slots[slot] = value
+    return slots, None
+
+
+def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base="", ledger="", supersede_base="",
+          root=".", step_green="", frozen_edit=""):
+    refused = _option_refusal(phase, branch_base, supersede_base, step_green, frozen_edit)
+    if refused is not None:
+        return _refused(refused)
+    cap = tunables.get("VERI_PLAN_TOUCHING_CASES")
+    if phase == "plan" and not tunables.parses("VERI_PLAN_TOUCHING_CASES", cap):
+        write(sys.stderr, f"build-verify-prompt: VERI_PLAN_TOUCHING_CASES must be a whole number, got '{cap}'",
+              before=False, after=False)
+        return 2, b""
+    refused = _phase_input_refusal(phase, fast_cmd, branch_base, supersede_base, test_path)
+    if refused is not None:
+        return _refused(refused)
+    fourth = test_id
+    slots, refused = _sha_slots(step_arg, phase, test_path, fourth, branch_base)
+    if refused is not None:
+        return _refused(refused)
     if phase == "refactor" and not step_green:
         return _refused("build-verify-prompt: refactor needs --step-green <sha>, the step's green tick")
     prompts = f"{HERE}/prompts"
