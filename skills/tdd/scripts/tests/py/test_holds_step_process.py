@@ -54,3 +54,14 @@ def test_holds_step_exits_1_when_a_named_case_fails(tmp_path):
     code, _, _ = holds_step(tmp_path, "42", sha, "tests/a.sh::case_a", "tests/b.sh::case_b")
 
     assert code == 1
+
+
+@pytest.mark.process("holds-step.sh run in a real git repository whose tracked file differs from the step start")
+def test_holds_step_exits_2_running_no_case_when_a_tracked_file_differs_from_the_step_start(tmp_path):
+    repo, ran = tmp_path / "repo", tmp_path / "ran"
+    sha = step_start(repo, {"a.sh": f"touch '{ran}'\n"})
+    (repo / "CLAUDE.md").write_text('veri: one test file: sh "$1"\n# edited after the step start\n')
+
+    code, _, _ = holds_step(repo, "42", sha, "tests/a.sh::case_a")
+
+    assert (code, ran.exists()) == (2, False)
