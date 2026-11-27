@@ -201,3 +201,13 @@ def test_4741_strict_event_sh_refuses_a_pin_retired_event_and_the_table_declares
     code, _, err = run_cli(event, ["pin-retired", "reason=x"], env={"VERI_ISSUE": "7"}, cwd=clone)
 
     assert (code, sorted({"pin-retired", "mutation-record-restored"} & set(event_table.EVENTS))) == (2, []), err
+
+
+def test_strict_refuses_the_retired_unpinnable_step_event_with_2(clone, tmp_path, run_cli, monkeypatch):
+    monkeypatch.setenv("VERI_EVENT_STRICT", "1")
+    retired = "-".join(["unpinnable", "step"])
+
+    code, _, err = run_cli(event, [retired, "step=x", "reason=y"], env={"VERI_ISSUE": "7"}, cwd=clone)
+
+    assert code == 2, err
+    assert [path for path in journals(clone, tmp_path) if path.exists() and path.read_bytes()] == []

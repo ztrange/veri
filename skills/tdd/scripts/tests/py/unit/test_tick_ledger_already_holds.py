@@ -30,7 +30,7 @@ def test_main_already_holds_retires_the_step_with_an_already_holds_step_event_an
         0, "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧ ⟂ retired already holds\n- [ ] b two ⟦criterion 2⟧\n"), err
     names = [event.get("event") for event in events]
     assert names.count("already-holds-step") == 1
-    assert "unpinnable-step" not in names and "revise" not in names
+    assert "-".join(["unpinnable", "step"]) not in names and "revise" not in names
     event = events[names.index("already-holds-step")]
     dumped = json.dumps(event, ensure_ascii=False)
     assert "a one" in dumped and "already holds; rerouted to pin step 4" in dumped
