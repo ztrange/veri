@@ -213,17 +213,30 @@ def replay(top, out=None):
         return 0
 
 
+AUTHORED = "%an%x1f%ae%x1f%at%x1f%B"
+
+
+def _authored(*revs):
+    """The (author, email, author time, message) of each commit <revs> name: what a rebase or a cherry-pick keeps."""
+    log = git.out("log", "--format=%x1e" + AUTHORED, *revs, "--")
+    return {tuple(record.rstrip("\n").split("\x1f")) for record in log.split("\x1e")[1:]}
+
+
 def joined_runs(tip, default):
     """The offline joins `<tip>..origin/<default>` landed, oldest first: (issue, pull request url, api path,
-    [(short sha, subject)]) each, a run's commits being those after the previous Veri-Joined commit up to its own;
-    commits after the last are no run's. ValueError naming the commit when its Veri-Joined trailer cannot be read as
-    one run's."""
-    log = git.out("log", "--reverse", "--format=%x1e%h%x1f%s%x1f%(trailers:key=Veri-Joined,valueonly,unfold,"
-                  "separator=%x1d)", "%s..refs/remotes/origin/%s" % (tip, default), "--")
+    [(sha, short sha, subject)]) each. Only the stack's own commits count: a landed commit whose author, author time
+    and message no commit of <tip>'s history outside origin's carries (a held pull request merged first) is no run's.
+    A run's commits are those after the previous Veri-Joined commit up to its own; commits after the last are no
+    run's. ValueError naming the commit when its Veri-Joined trailer cannot be read as one run's."""
+    stack = _authored(tip, "^refs/remotes/origin/%s" % default)
+    log = git.out("log", "--reverse", "--format=%x1e%H%x1f%h%x1f%s%x1f%(trailers:key=Veri-Joined,valueonly,unfold,"
+                  "separator=%x1d)%x1f" + AUTHORED, "%s..refs/remotes/origin/%s" % (tip, default), "--")
     runs, commits = [], []
     for record in log.split("\x1e")[1:]:
-        short, subject, trailers = record.rstrip("\n").split("\x1f")
-        commits.append((short, subject))
+        sha, short, subject, trailers, *authored = record.rstrip("\n").split("\x1f")
+        if tuple(authored) not in stack:
+            continue
+        commits.append((sha, short, subject))
         values = [value for value in trailers.split("\x1d") if value]
         if not values:
             continue
@@ -279,9 +292,9 @@ def close_landed(top, tip):
         else:
             landed.setdefault(issue, []).extend(commits)
     for issue, commits in landed.items():
-        shas = " ".join(short for short, _ in commits)
+        shas = " ".join(sha for sha, _, _ in commits)
         k = hashlib.sha256(("%s %s %s" % (issue, tip, shas)).encode()).hexdigest()[:16]
-        body = "### ✅ Landed\n\n%s" % "\n".join("- %s %s" % commit for commit in commits)
+        body = "### ✅ Landed\n\n%s" % "\n".join("- %s %s" % (short, subject) for _, short, subject in commits)
         queue_comment(top, issue, "landed", body, k)
     code = replay(top)
     return 2 if failed else code
