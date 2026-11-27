@@ -28,11 +28,12 @@ GO_RED = "GO-RED.md#A `⟦go-red⟧` step — a mutation probe on its named case
 # A refactor-kind run's procedure: the whole file, which has no heading of its own (#4621).
 REFACTOR_KIND = "REFACTOR-KIND.md"
 SPEC = ".tdd/issue-%s-spec.md"
+GREEN_HALF = "green-half"
 
 # The stages in the order they run -> (the heading anchor, `<file>#<heading>` under the skill's directory, of the
 # section whose prose takes over at a stop there (S4); the marks of the step kinds it does not handle (S3, RN6): it
 # stops before such a stage without calling it). green-half's reason is specs/prd-027.md GH1.
-STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦replaces-case⟧")),
+STAGES = {"red-half": (RED, ()), GREEN_HALF: (GREEN, ("⟦ci-repair⟧", "⟦replaces-case⟧")),
           "refactor-half": (REFACTOR, ()), "step-close": (REFACTOR, ()), "revise": (REVISE, ()),
           "diff-step": (DIFF, ()), "reroute": (GREEN, ()), "go-red-step": (GO_RED, ()),
           "skill-edit-half": ("SKILL-EDIT.md#The skill-edit step", ())}
@@ -42,7 +43,7 @@ SERIES = tuple(stage for stage in STAGES
                if stage not in ("revise", "diff-step", "reroute", "go-red-step", "skill-edit-half"))
 # The phase stages -> the phase a verifier judges: a REJECT there (`.tdd/verdict-<phase>.exit` holding 1)
 # is revise.sh's.
-PHASES = {"red-half": "red", "green-half": "green", "refactor-half": "refactor", "diff-step": "diff"}
+PHASES = {"red-half": "red", GREEN_HALF: "green", "refactor-half": "refactor", "diff-step": "diff"}
 # A green-half stop on a report line wrong-test-route.sh answers (two of green_half.ROUTES; SPLIT and TIDY_FIRST keep
 # their seam), and the green report reroute.sh is then handed (PRD 038.10 RRT8).
 ROUTED = re.compile(r"stopped at \d+ (WRONG_TEST|SUPERSEDED): ")
@@ -205,7 +206,7 @@ def left_to_prose(step, stage, hand):
 def under_way(at, stage):
     """The action <stage> opens with: the reroute or revise already under way, else the stage's own call."""
     wt, n, step = at
-    report = reroute_stage.pending(wt, n, step) if stage == "green-half" else None
+    report = reroute_stage.pending(wt, n, step) if stage == GREEN_HALF else None
     if report is not None:
         # A reroute under way (its 3 called run-step.sh again): back to it, on the report it was handed.
         return ("reroute", report[1]["report"])
@@ -218,12 +219,12 @@ def under_way(at, stage):
 def stage_answer(at, stage, code, out):
     """What <stage>'s (<code>, <out>) asks next: None on its 0, a REJECT's next action, else the seam's exit."""
     wt, n, step = at
-    if code == 1 and stage == "green-half" and ROUTED.match((out.splitlines() or [""])[-1]):
+    if code == 1 and stage == GREEN_HALF and ROUTED.match((out.splitlines() or [""])[-1]):
         return ("reroute", GREEN_REPORT)
     if code == 1 and stage in PHASES and (verdict(wt, PHASES[stage]) == "1" or stage in KIND_STAGES and
                                           fused_step.rejected(wt, n, stage, step) is not None):
         # diff-step's flip REJECT leaves its rejected record with the verifier's PASS in place.
-        return ("reroute", VERIFY_GREEN_REASON) if stage == "green-half" else ("revise",)
+        return ("reroute", VERIFY_GREEN_REASON) if stage == GREEN_HALF else ("revise",)
     if code == 0:
         return None
     said = [line for line in out.splitlines() if line.startswith(RECORD_SEAM % stage)]
@@ -256,7 +257,7 @@ def reroute(at, hand, report):
     never calling it; else the seam's exit."""
     wt, n, step = at
     if "reroute" in hand:
-        record(wt, n, "green-half", step)
+        record(wt, n, GREEN_HALF, step)
         sys.stdout.write("seam=reroute code=1 reason=hand next=%s\n" % GREEN)
         return 1
     code, out = run_stage("reroute.sh", n, report)
@@ -271,7 +272,7 @@ def reroute(at, hand, report):
         # and green-half then starts afresh.
         reroute_stage.answered(wt, n)
         return RESTART
-    record(wt, n, "green-half", step)
+    record(wt, n, GREEN_HALF, step)
     sys.stdout.write("seam=reroute code=%d next=%s\n" % (code, NEXT_SCRIPTS[0] + " " + n if code == 3 else GREEN))
     return code
 
@@ -308,7 +309,7 @@ def revise(at, stage, hand):
     code, out = run_stage("revise.sh", n, PHASES[stage])
     if code == 0:
         return ("stage",)
-    if code == 1 and stage == "green-half" and ROUTED.match((out.splitlines() or [""])[-1]):
+    if code == 1 and stage == GREEN_HALF and ROUTED.match((out.splitlines() or [""])[-1]):
         # A revise-green route (PRD 038.9 RVS7) is reroute.sh's, on the report of the attempt that stopped.
         return ("reroute", REVISE_GREEN_REPORT % revise_stage.spent(wt, step, "green"))
     record(wt, n, stage, step)
