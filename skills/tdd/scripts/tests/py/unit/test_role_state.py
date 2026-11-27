@@ -262,3 +262,15 @@ def test_4805_state_last_n_of_an_n_auto_line_is_the_word_auto():
 
 def test_4805_state_last_n_of_a_numeric_n_line_after_n_auto_is_the_number():
     assert _state(["n=auto", "n=2"]).last_n() == 2
+
+
+def test_4806_item_line_takes_the_id_one_above_the_highest_item_id():
+    role_state = importlib.import_module("veri.role_state")
+
+    assert role_state.item_line(["n=3", "message 4 S a", "decision 2 S b"], "message", "t", "STAMP") == "message 5 STAMP t"
+
+
+def test_4806_item_line_counts_only_item_lines_ids():
+    role_state = importlib.import_module("veri.role_state")
+
+    assert role_state.item_line(["message 1 S a", "stray 9 S b"], "message", "t", "STAMP") == "message 2 STAMP t"
