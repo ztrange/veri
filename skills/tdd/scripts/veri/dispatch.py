@@ -368,7 +368,7 @@ def _lower_n(state, world, cases):
         return None
     lines = world.role_state()
     parsed = role_state.State(lines)
-    expired = [line for line, (value, expiry) in zip(parsed.items("timed-n"), parsed.timed_ns())
+    expired = [line for line, (value, expiry) in zip(parsed.items("timed-n"), parsed.timed_ns(), strict=True)
                if world.clock() < expiry and value > new]
     kept = [line for line in lines if line not in expired]
     stamp = time.strftime(role_state.STAMP, time.localtime(world.clock()))
