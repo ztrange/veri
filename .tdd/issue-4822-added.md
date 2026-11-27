@@ -1,0 +1,1 @@
+- [ ] fix the weak-assertion case skills/tdd/scripts/tests/py/test_ruff_tree_audit_process.py::test_the_repository_passes_ruff_under_its_config: it asserts only ruff's exit 0, so dropping `W` from `ruff.toml`'s `select` keeps it green and lets new trailing whitespace land; edit only that case, no production code ⟦test-quality⟧ ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 2⟧
