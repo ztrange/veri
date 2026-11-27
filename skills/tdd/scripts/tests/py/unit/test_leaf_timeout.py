@@ -247,6 +247,36 @@ def test_cli_with_a_skipped_baseline_sizes_and_pins_1800_from_the_ceiling_record
     assert (code, out, pin.read_text() if pin.exists() else "<no record>") == (0, "1800\n", "1800\n")
 
 
+@pytest.mark.parametrize("record", [None, "4\nidle fast 100\n"], ids=["no-record", "no-idle-all-line"])
+def test_cli_with_a_skipped_baseline_and_no_recorded_idle_full_tier_pins_900_and_names_the_fallback_issue_4835(
+        tmp_path, monkeypatch, run_cli, leaf_timeout, record):
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    work = _worktree(tmp_path / "work")
+    ceiling = tmp_path / "ceiling-record"
+    if record is not None:
+        ceiling.write_text(record)
+    code, out, err = run_cli(leaf_timeout, ["0", "--full", "124"],
+                             env={"VERI_ISSUE": "4835", "VERI_TEST_CEILING_FILE": str(ceiling)}, cwd=work)
+    pin = work / ".tdd" / "issue-4835-timeout"
+    assert (code, out, pin.read_text() if pin.exists() else "<no record>", err) == (
+        0, "900\n", "900\n",
+        f"leaf-timeout: baseline skipped and {ceiling} records no idle full-tier duration, so the default 900 s\n")
+
+
+def test_cli_with_a_measured_baseline_keeps_max_900_six_times_full_and_ignores_the_ceiling_record_issue_4835(
+        tmp_path, monkeypatch, run_cli, leaf_timeout):
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    work = _worktree(tmp_path / "work")
+    ceiling = tmp_path / "ceiling-record"
+    ceiling.write_text("4\nidle all 300\n")
+    seen = []
+    for issue, full in (("4835", "124"), ("4836", "200")):
+        code, out, err = run_cli(leaf_timeout, ["8", "--full", full],
+                                 env={"VERI_ISSUE": issue, "VERI_TEST_CEILING_FILE": str(ceiling)}, cwd=work)
+        seen.append((code, out, (work / ".tdd" / f"issue-{issue}-timeout").read_text(), err))
+    assert seen == [(0, "900\n", "900\n", ""), (0, "1200\n", "1200\n", "")]
+
+
 def test_cli_with_veri_issue_unset_prints_1200_and_records_no_settled_timeout_under_tdd_issue_954(
         tmp_path, monkeypatch, run_cli, leaf_timeout):
     monkeypatch.delenv("VERI_TIMEOUT", raising=False)

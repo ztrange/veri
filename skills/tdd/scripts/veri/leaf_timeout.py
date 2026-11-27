@@ -72,6 +72,17 @@ def record(timeout):
         pass
 
 
+def idle_full_tier():
+    """The full tier's idle seconds the test-ceiling record holds, for a skipped baseline (#4835); 0, so the
+    default 900 s, with one stderr line naming that fallback when the record holds none."""
+    idle = ceiling.read_idle("all")
+    if idle is None:
+        print(f"leaf-timeout: baseline skipped and {ceiling.record_path()} records no idle full-tier duration,"
+              " so the default 900 s", file=sys.stderr)
+        return 0
+    return idle
+
+
 def main(argv):
     override = tunables.read("VERI_TIMEOUT")
     if override:
@@ -88,7 +99,7 @@ def main(argv):
         code = require_seconds("<full-seconds>", full)
         if code:
             return code
-        baseline = ceiling.read_idle("all") if int(baseline) == 0 else full
+        baseline = idle_full_tier() if int(baseline) == 0 else full
     derived = max(900, int(baseline) * 6)
     if argv[1:2] == ["refactor"]:
         budget = tunables.get("VERI_REFACTOR_BUDGET", unless_empty=True)
