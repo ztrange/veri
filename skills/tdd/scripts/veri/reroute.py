@@ -133,7 +133,7 @@ def waited(wt, n, where, name):
 def edited(wt, values):
     """The rerouted red's report: the case it edited, to verify, and every test path the re-record covers."""
     got = fused.report("leaf", wt, ".tdd/%s.out" % values["leaf"], "TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED")
-    if got["AGAINST_UNMODIFIED"] in ("PASSES", "UNTESTABLE", "HOLDS"):  # a pin is verify-pin's, by hand (PIN.md)
+    if got["AGAINST_UNMODIFIED"] in ("PASSES", "UNTESTABLE", "HOLDS"):  # no failing test to verify: an answer
         raise fused.Stop("leaf", "AGAINST_UNMODIFIED: " + got["AGAINST_UNMODIFIED"], 1)
     for key in ("TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED"):
         if not got[key] or key == "AGAINST_UNMODIFIED" and got[key] != "FAILS":
