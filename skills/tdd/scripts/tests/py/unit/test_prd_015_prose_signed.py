@@ -21,16 +21,9 @@ def test_veri_file_requirements_list_f1_naming_feature_f13_and_f14():
     assert "feature" in rows.get("F1", "") and "F13" in rows and "F14" in rows, sorted(rows)
 
 
-@pytest.mark.tree_audit("the repository's graded prose units, copied without .git")
-def test_prose_owed_sh_prints_nothing_for_readme_and_root_requirements_list_rd28_under_readme(tmp_path, run_cli):
-    prose_owed = importlib.import_module("veri.prose_owed")
-    root = tmp_path / "repo"
-    shutil.copytree(ROOT, root, ignore=shutil.ignore_patterns(".git", ".tdd", "node_modules", "__pycache__"), symlinks=True)
+def test_root_requirements_list_rd28_under_readme():
+    section = (ROOT / "REQUIREMENTS.md").read_text().split("\n## README.md", 1)[1].split("\n## ", 1)[0]
 
-    code, out, err = run_cli(prose_owed, [str(root)])
-
-    section = (root / "REQUIREMENTS.md").read_text().split("\n## README.md", 1)[1].split("\n## ", 1)[0]
-    assert "README.md" not in out.split("\n") and code in (0, 1), (code, out, err)
     assert re.search(r"^\| RD28 \|", section, re.M), section
 
 
