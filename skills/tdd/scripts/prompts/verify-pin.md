@@ -2,9 +2,12 @@
 
 ## Phase: verify-pin
 
-A developer agent has written **one new test** at `{{TEST_PATH}}` (the target test is
-`{{TARGET_TEST}}`; the test ids under judgement are `{{TEST_PATHS}}`) for a criterion the
-code **already satisfies**, so there is nothing to make fail. Confirm the test is a genuine **regression pin** worth committing.
+You judge 1 to 5 tests, `{{TEST_PATHS}}`, against the step's criterion, for a
+criterion the code **already satisfies**, so there is nothing to make fail. Read them as they
+stand at `HEAD`, never at the branch point: an earlier step of this run most often built the
+behaviour they cover. Either they are existing tests the developer names as already covering the
+criterion (`HOLDS`: committed at `HEAD`, and `git status` shows no change), or one of them is the
+test the step added, the uncommitted change on top of `HEAD` (`PASSES`).
 
 {{STEP}}### The issue's behavior spec
 
@@ -12,43 +15,24 @@ code **already satisfies**, so there is nothing to make fail. Confirm the test i
 
 ### Your checks
 
-1. **It passes now.** Run the target test yourself against the current, unmodified code.
-   It must **pass** — not error, not skip.
-2. **It fails without the behavior.** First run
-   `{{MUTATION_PROBE}} --before {{BRANCH_BASE}} --keep '{{TEST_PATH}}' -- <command that runs the target test>`.
-   It restores the production files the branch changed to the branch point, runs the target
-   test and restores the tree: the target test must **FAIL**. Break the production code
-   yourself with a minimal edit (remove the guard, invert the condition, drop the branch) in
-   two cases only: that probe exits 2 because no file differs from the branch point, or it
-   exits 1 and the guard the step pins is code this branch's own diff added (it appears in
-   `git diff {{BRANCH_BASE}}`). Do it through
-   `{{MUTATION_PROBE}} <file> <old> <new> -- <command that runs the target test>`,
-   which edits, runs the command against the mutation and restores the file: the target test must **FAIL**.
-   For a branch-added guard, that red under the mutation is the pin's proof: a PASS, not a REJECT.
-   If that probe exits 2 and its stderr names an allowed address domain, any email address in
-   `<old>`/`<new>` must be on that domain: retry with one that is.
-   That exit 2 can also mean `<old>` is absent from the working-tree file or the command
-   fails on the unmutated file: fix `<old>` or the command and retry, and never report
-   such an exit as a PASS.
-   A probe exiting 2 gives no verdict, and one exiting 1 (the command still passed) is never a PASS.
-   Confirm that `git diff` prints what it printed before the probe before you report. A test that still passes on the real
-   before-state and is not a branch-added guard, or with the behavior removed by hand when
-   the hand mutation is the proof, pins nothing: that is a REJECT whose reason contains the
-   literal words "stays green" naming which run stayed green ("the real before-state stays
-   green", or "the hand mutation stays green"); a reason that says a run "passes" or is
-   "green" without those words is not accepted. A test
-   green on the real before-state that also stays green with the branch-added guard mutated
-   away is a REJECT whose reason says both: "the real before-state stays green" and "the
-   guard mutation stays green".
-   Make both of those runs — the one in check 1 and the one after the mutation — through
-   the wrapper {{INCLUDE:_timed-test-run.md}}
+1. **It passes now.** Run every named test yourself against the current, unmodified code.
+   Each must **pass** — not error, not skip. Make each run through the wrapper
+   {{INCLUDE:_timed-test-run.md}}
    and names the tier each belongs to:
 
-       {{TIMED_TEST_RUN}} target '{{TEST_PATH}}' <the command that runs the target test>
+       {{TIMED_TEST_RUN}} target '<test id>' <the command that runs that test>
 
-   {{INCLUDE:_exit-status-back.md}} so the mutated run stays
-   red — and red is what check 2 is after.
-3. **Quality of the test.** REJECT if the test is:
+   {{INCLUDE:_exit-status-back.md}} so a failing run stays
+   failing — and any named test failing is a REJECT naming it.
+2. **They cover the criterion.** Together, the named tests assert the criterion's observable
+   outcome. A test that runs the code without asserting that outcome, or asserts a
+   neighbouring behaviour, does not cover it: REJECT naming what no named test asserts. When
+   the spec has a `## Bug` section, the bug paragraph after these checks (`_verify-red-bug.md`,
+   the one verify-red reads) reaches you, and
+   coverage means the named tests assert the bug's *Expected*; read it for a pin, whose tests
+   pass, so no failure of theirs is matched against *What happened*.
+3. **Quality of the test** — only for a test the step added (`PASSES`), never for an existing
+   one (`HOLDS`), whose style is not this step's product. REJECT if the test is:
    - **missing a named case** — the step's text names a test case the step asks to be
      pinned (a "separate case", a second behaviour) and the change adds no case for it:
      REJECT naming the missing case, or
@@ -72,5 +56,6 @@ code **already satisfies**, so there is nothing to make fail. Confirm the test i
    - **not self-contained** — it runs another test suite, whole or sliced, or re-runs the
      suite it lives in, instead of exercising the unit directly.
 
-PASS only if all three hold: it passes now, it fails under the mutation, and it is a
-clean, behavior-level pin of the criterion. Leave the working tree exactly as you found it.
+{{BUG_REPRODUCTION}}
+PASS only if every check that applies holds: checks 1 and 2 always, check 3 only on `PASSES`.
+Leave the working tree exactly as you found it.
