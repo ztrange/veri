@@ -2236,3 +2236,47 @@ def test_4803_a_post_getting_no_answer_outside_an_outage_still_exits_2_and_queue
     assert (code, out) == (2, "")
     assert _queued(tmp_path) is None
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
+def _queue_one(tmp_path, key):
+    with open(tmp_path / ".tdd" / "github-queue", "a") as f:
+        f.write(json.dumps({"type": "comment", "issue": "7", "kind": "red",
+                            "body": "earlier\n\n<!-- veri-queued %s -->" % key, "key": key}) + "\n")
+
+
+def test_4803_a_post_with_a_non_empty_queue_replays_it_first_then_posts(monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    github = importlib.import_module("github")
+    _offline_step_done(monkeypatch, tmp_path)
+    posted = []
+    monkeypatch.setattr(github, "gh_issue_comment",
+                        lambda number, body: posted.append(body.split("\n")[0]) or "https://x/1")
+    monkeypatch.setattr(github, "issue_comments", lambda number: [])
+    _queue_one(tmp_path, "a1")
+
+    code, out, err = run_cli(comment, ["7", "step-done"], cwd=tmp_path)
+
+    assert code == 0, err
+    assert posted[0] == "earlier" and len(posted) == 2
+    assert _queued(tmp_path) is None
+    assert out == ""
+
+
+def test_4803_a_post_behind_a_replay_that_gets_no_answer_is_queued_behind_the_others(monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    github = importlib.import_module("github")
+    _offline_step_done(monkeypatch, tmp_path)
+
+    def no_answer(number):
+        raise github.NoAnswer("")
+
+    monkeypatch.setattr(github, "issue_comments", no_answer)
+    _queue_one(tmp_path, "a1")
+
+    code, out, err = run_cli(comment, ["7", "step-done"], cwd=tmp_path)
+
+    assert code == 0, err
+    entries = _queued(tmp_path)
+    assert [e["key"] for e in entries][0] == "a1" and len(entries) == 2
+    assert out == "queued %s\n" % entries[1]["key"]
+    assert "a1" in err
