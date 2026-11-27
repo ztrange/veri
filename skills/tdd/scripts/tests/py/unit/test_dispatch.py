@@ -4077,3 +4077,85 @@ def test_4806_a_lowering_from_t_2_lowers_a_numeric_n_of_3_to_2_records_a_veri_lo
         None, "t-lowered 2 2 tests/a.py::test_x,tests/b.py::test_y\n"
               "n-lowered 3 2 tests/a.py::test_x,tests/b.py::test_y\n", ["n=3", "n=2"], 1)
     assert all(word in message[0] for word in ("veri (load)", " 3 ", " 2 ", "tests/a.py::test_x,tests/b.py::test_y"))
+
+
+def test_4806_with_n_1_a_lowering_from_t_2_writes_no_n_line_and_prints_no_n_lowered(dispatch):
+    world = FakeWorld({"lowering": FLOOR_LOWERING, "live": ["7"], "alive": ["7"]}, role_state=["n=1"])
+
+    code = dispatch.main([], world=world)
+
+    assert (code, "".join(world.said), world.role_state_written) == (
+        None, "t-lowered 2 2 tests/a.py::test_x,tests/b.py::test_y\n", [])
+
+
+def test_4806_a_lowering_from_t_above_2_prints_t_lowered_and_leaves_n_unchanged(dispatch):
+    world = FakeWorld({"lowering": LOWERING, "live": ["7"], "alive": ["7"]}, role_state=["n=3"])
+
+    code = dispatch.main([], world=world)
+
+    assert (code, "".join(world.said), world.role_state_written) == (
+        None, "t-lowered 6 4 tests/a.py::test_x,tests/b.py::test_y\n", [])
+
+
+def test_4806_the_same_lowering_record_seen_on_a_second_poll_lowers_nothing_more(dispatch):
+    tick = {"lowering": FLOOR_LOWERING, "live": ["7"], "alive": ["7"]}
+    world = FakeWorld(tick, tick, tick, role_state=["n=3"])
+
+    code = dispatch.main([], world=world)
+
+    assert (code, world.waits, [lines[-2] for lines in world.role_state_written], "".join(world.said).count("n-lowered")) == (
+        None, 3, ["n=2"], 1)
+
+
+def test_4806_a_lowering_over_an_unexpired_timed_n_of_4_records_n_3_and_expires_it_so_the_next_target_is_3(dispatch):
+    timed = "timed-n 1 2026-11-27T10:00:00 4 until 2099-01-01T00:00:00"
+    world = FakeWorld({"lowering": FLOOR_LOWERING, "live": ["7"], "alive": ["7"]}, role_state=["n=2", timed])
+
+    state, _ = dispatch.step(dispatch.State(0, follows_role_state=True), world)
+    world.wait()
+    state, code = dispatch.step(state, world)
+
+    written = world.role_state_written[-1]
+    assert (code, state.target, timed in written, written[:2]) == (None, 3, False, ["n=2", "n=3"])
+
+
+def test_4806_after_the_lowering_with_live_3_and_n_2_dispatch_launches_nothing_until_live_is_below_2(dispatch):
+    three = {"live": ["7", "8", "9"], "alive": ["7", "8", "9"], "queue": ["12"], "lowering": FLOOR_LOWERING}
+    two = {**three, "live": ["7", "8"], "alive": ["7", "8"], "no_worktree": ["9"], "closing": {"9": "done 9 https://github.com/o/r/pull/9"}}
+    first = FakeWorld(three, three, role_state=["n=3"])
+    dispatch.main([], world=first)
+    second = FakeWorld(two, two, role_state=first.role_state_lines, notified=first.notified_lines)
+    dispatch.main([], world=second)
+    third = FakeWorld({**three, "live": ["7"], "alive": ["7"]}, role_state=first.role_state_lines,
+                      notified=second.notified_lines)
+    dispatch.main([], world=third)
+
+    assert (first.launched, first.waits, second.launched, third.launched) == ([], 2, [], ["12"])
+
+
+def test_4806_under_n_auto_a_lowering_from_t_2_changes_no_role_state(dispatch):
+    tick = {"lowering": FLOOR_LOWERING, "live": ["5"], "alive": ["5"], "queue": ["12"], "budget": (8, 2), "w_other": 2}
+
+    code, target, world = _auto_poll(dispatch, tick)
+
+    assert (code, target, world.role_state_written, [line for line in world.said if line.startswith("n-lowered")]) == (
+        None, 2, [], [])
+
+
+def test_4806_under_target_a_lowering_from_t_2_changes_no_role_state(dispatch):
+    world = FakeWorld({"lowering": FLOOR_LOWERING, "live": ["7"], "alive": ["7"]}, role_state=["n=3"])
+
+    code = dispatch.main(["--target", "3"], world=world)
+
+    assert (code, "".join(world.said), world.role_state_written) == (
+        None, "t-lowered 2 2 tests/a.py::test_x,tests/b.py::test_y\n", [])
+
+
+def test_4806_the_real_world_writes_the_lanes_role_state_file_whole(dispatch, monkeypatch, tmp_path):
+    monkeypatch.setattr(dispatch.layout, "main_tree", lambda **_: str(tmp_path))
+    monkeypatch.setenv("VERI_LABEL", "ready-for-agent:mu")
+
+    dispatch.World().write_role_state(["n=3", "n=2"])
+
+    assert ((tmp_path / ".tdd" / "role-dev-mu.state").read_text(), dispatch.World().role_state()) == (
+        "n=3\nn=2\n", ["n=3", "n=2"])

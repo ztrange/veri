@@ -180,7 +180,8 @@ class World:
 
     def lowering(self):
         """(time, old T, new T, cases) of the lowering on record in VERI_TEST_LOAD_FILE (PRD 036.7), read for the
-        t-lowered notice and never acted on; None when the file is absent, unreadable or holds less than those four."""
+        t-lowered notice and, from T's floor, the N lowering (PRD 036.8); None when the file is absent, unreadable
+        or holds less than those four."""
         load_timeouts = leg_budget.load_timeouts_module()
         try:
             with open(load_timeouts.load_path()) as f:
