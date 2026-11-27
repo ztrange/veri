@@ -37,7 +37,6 @@ FILES_RUNNING_GIT_INIT = (
     "test_issue_worktree_process.py",
     "test_leaf_tree_guard_process.py",
     "test_ledger_growth_process.py",
-    "test_merge_lock.py",
     "test_merge_lock_gate_push_process.py",
     "test_merge_lock_process.py",
     "test_metrics_process.py",
