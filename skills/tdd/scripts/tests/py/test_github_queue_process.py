@@ -492,13 +492,57 @@ def test_4823_close_landed_when_origins_default_branch_cannot_be_told_queues_not
 
 
 @pytest.mark.process(PROCESS)
+@pytest.mark.parametrize("tip", ["--all", "stack", "HEAD~1"])
 def test_4823_close_landed_given_a_tip_that_is_not_a_hex_commit_name_exits_2_with_the_usage(
-        tmp_path, monkeypatch, run_cli):
+        tmp_path, monkeypatch, run_cli, tip):
     work, _, _, _ = landed_world(tmp_path)
     hub = Hub(monkeypatch)
 
-    code, out, err = run_cli(hub.queue, ["close-landed", "--all"], cwd=work)
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
 
     assert code == 2, err
     assert "usage: github-queue.sh" in err, err
     assert hub.posted == [], err
+
+
+@pytest.mark.process(PROCESS)
+def test_4823_close_landed_comments_on_no_run_whose_early_commits_landed_but_whose_join_did_not(
+        tmp_path, monkeypatch, run_cli):
+    work, tip, landed, _ = landed_world(tmp_path, unlanded=1)
+    hub = Hub(monkeypatch)
+
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
+
+    assert code == 0, err
+    assert [number for number, _ in hub.posted] == ["11"], err
+    lists_exactly(hub.bodies("11")[0], landed[0][1], [])
+
+
+@pytest.mark.process(PROCESS)
+@pytest.mark.parametrize("value", ["see %s tdd/12-a-run", "%s tdd/12-a-run, offline"], ids=["before", "after"])
+def test_4823_close_landed_over_a_veri_joined_trailer_with_extra_text_queues_nothing_and_exits_2(
+        tmp_path, monkeypatch, run_cli, value):
+    trailer = "Veri-Joined: " + value % pull_url("12")
+    work, tip, _, _ = landed_world(tmp_path, trailers={("12", 2): lambda base: trailer + "\n" + onto(base)})
+    hub = Hub(monkeypatch)
+
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
+
+    assert code == 2, err
+    assert "feat: add bravo (#12)" in err and "Veri-Joined" in err and "Traceback" not in err, err
+    assert hub.posted == [] and not (work / ".tdd" / "github-queue").exists(), err
+
+
+@pytest.mark.process(PROCESS)
+def test_4823_close_landed_over_a_range_with_no_joined_run_leaves_an_existing_queue_unreplayed_and_exits_3(
+        tmp_path, monkeypatch, run_cli):
+    work, tip, _, _ = landed_world(tmp_path, trailers={("11", 2): "", ("12", 2): ""})
+    hub = Hub(monkeypatch)
+    hub.queue.queue_comment(str(work), "99", "note", "queued during an earlier outage", "k99")
+    queued = (work / ".tdd" / "github-queue").read_text()
+
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
+
+    assert code == 3, err
+    assert "no Veri-Joined commit" in err, err
+    assert hub.posted == [] and (work / ".tdd" / "github-queue").read_text() == queued, err
