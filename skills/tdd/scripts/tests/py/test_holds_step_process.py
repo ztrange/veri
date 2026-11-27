@@ -67,6 +67,19 @@ def test_holds_step_exits_2_running_no_case_when_a_tracked_file_differs_from_the
     assert (code, ran.exists()) == (2, False)
 
 
+@pytest.mark.process("holds-step.sh run in a real git repository holding a commit made after the step start")
+def test_holds_step_exits_2_running_no_case_when_a_commit_landed_after_the_step_start_4779(tmp_path):
+    """A clean status proves nothing about a commit: only the diff against the step start sees it."""
+    repo, ran = tmp_path / "repo", tmp_path / "ran"
+    sha = step_start(repo, {"a.sh": f"touch '{ran}'\n"})
+    (repo / "CLAUDE.md").write_text('veri: one test file: sh "$1"\n# committed after the step start\n')
+    git(repo, "commit", "-q", "-am", "after the start")
+
+    code, _, err = holds_step(repo, "42", sha, "tests/a.sh::case_a")
+
+    assert (code, ran.exists(), "a tracked file changed" in err) == (2, False, True)
+
+
 @pytest.mark.process("holds-step.sh run in a real git repository whose worktree holds an untracked file")
 def test_holds_step_exits_2_when_the_worktree_holds_an_untracked_file(tmp_path):
     repo, ran = tmp_path / "repo", tmp_path / "ran"
