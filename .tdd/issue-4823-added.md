@@ -1,0 +1,2 @@
+- [ ] `github-queue.sh close-landed <tip-sha>` whose read of a run's PR gets no answer from GitHub (faked) queues no `Landed` comment for that run, names the run's issue and PR on stderr and exits 2 ⟦criterion 3⟧
+- [ ] `github-queue.sh close-landed <tip-sha>` whose replay of the queued `Landed` comments gets no answer from GitHub (faked) leaves them in `.tdd/github-queue` and exits 2, saying so on stderr ⟦criterion 1⟧
