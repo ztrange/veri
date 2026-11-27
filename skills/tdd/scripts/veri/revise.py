@@ -164,7 +164,7 @@ def attempt(n, wt, settled, step, values):
     fused.checked("2", fused.script("comment.sh"), n, "revise", phase, str(k), cwd=wt)
     fused.mark("2", wt, n, step, "revise", "budget=" + budget,
                VERI_PHASE=phase, VERI_ATTEMPT=str(k))
-    if phase == "red":
+    if phase == "red" and values["test_path"] is not None:  # a HOLDS step wrote no test, so restores nothing
         rerouted = rerouted_red(wt, n, step)  # a rerouted case's revise keeps every path the reroute edited
         kept = list(dict.fromkeys((rerouted or {}).get("rerouted", []) + [values["test_path"]]))
         fused.checked("3", fused.script("restore-production.sh"), *kept, cwd=wt)

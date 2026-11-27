@@ -423,6 +423,37 @@ def test_4770_a_revised_red_reporting_holds_re_verifies_as_pin_over_its_covering
                                               "tests/test_c.py::test_three"]
 
 
+HOLDS_REPORT = "AGAINST_UNMODIFIED: HOLDS\nCOVERING_TESTS: tests/test_b.py::test_two\nOUTCOME: REWRITTEN\n"
+HOLDS_TRACKED = "tests/test_b.py\nveri/thing.py\n"
+
+
+def test_4770_a_holds_steps_red_revise_after_its_verify_pin_reject_restores_nothing_and_launches_the_next_attempt(
+        revise):
+    """PRD 044.2: a step whose own develop-red.out says `AGAINST_UNMODIFIED: HOLDS` names no TEST_PATH:, so its red
+    revise restores no production file at any attempt, and a verify-pin REJECT launches attempt 2 on REVISE_BUDGET."""
+    _red(revise)
+    (revise.wt / ".tdd" / "verify-pin.reason").write_text("VERDICT: REJECT\nthe covering ids miss the criterion\n")
+    code, out, err, fake = revise(fake=Fake({("git", "ls-files"): (0, HOLDS_TRACKED),
+                                             ("wait-leaf.sh", "verdict-pin"): (1, ""),
+                                             ("wait-leaf.sh", "revise-red-2"): (3, "")}, report=HOLDS_REPORT),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert (code, fake.launched()) == (3, ["revise-red-1", "verdict-pin", "revise-red-2"]), (out, err)
+    assert "restore-production.sh" not in fake.names()
+
+
+def test_4770_a_revised_red_whose_covering_tests_name_an_untracked_path_stops_with_exit_2(revise):
+    """PRD 044.2: a revised red's `COVERING_TESTS:` id whose path `git ls-files` does not list is refused by
+    covering_tests, and revise stops with exit 2 naming it, launching no verdict-pin."""
+    _red(revise)
+    report = HOLDS_REPORT.replace("tests/test_b.py::test_two", "tests/test_z.py::test_nine")
+    code, out, err, fake = revise(fake=Fake({("git", "ls-files"): (0, HOLDS_TRACKED)}, report=report),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert (code, out.splitlines()[-1]) == (2, "stopped at 4 COVERING_TESTS: tests/test_z.py is not tracked"), err
+    assert "verdict-pin" not in fake.launched()
+
+
 def test_4692_a_revised_red_reporting_bare_against_unmodified_passes_re_verifies_as_pin_not_exit_1(revise):
     """The bare `AGAINST_UNMODIFIED: PASSES` is a pin too: verdict-pin, no divergence gate, no exit-1 stop."""
     _red(revise)
