@@ -1,4 +1,5 @@
-"""github-queue.sh: the issue writes a live run makes while GitHub is down, queued and replayed in order, run in-process.
+"""github-queue.sh: the issue writes a live run makes while GitHub is down, queued and replayed in order,
+run in-process.
 
 The queue is `.tdd/github-queue` in the repository's main working tree (found from any worktree through git's common
 directory), one JSON object per line, in the order the writes were made: a `comment` entry (`issue`, `kind`, `body`,
@@ -160,7 +161,8 @@ def land(e):
     """Make queued entry <e>'s write; NoAnswer when GitHub gives none."""
     if e["type"] == "comment":
         marker = MARKER % e["key"]
-        if any(github.trusted_comment(c) and marker in (c.get("body") or "") for c in github.issue_comments(e["issue"])):
+        comments = github.issue_comments(e["issue"])
+        if any(github.trusted_comment(c) and marker in (c.get("body") or "") for c in comments):
             return
         github.gh_issue_comment(e["issue"], github.published(e["body"]))
         return
