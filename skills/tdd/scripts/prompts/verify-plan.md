@@ -100,9 +100,10 @@ end-to-end path through real processes that must stay covered. Your reason names
 the constraint it leaves out.
 
 REJECT a plan that plans a test-only change, one satisfiable only by editing a test, as a
-Red/Green step: Green may not edit a test, so the run bails on it. Such a change is a pin step
-when it adds a test case for behaviour that already holds: an ordinary step whose Red reports
-that the case already passes (`AGAINST_UNMODIFIED: PASSES`). `⟦diff-checked⟧` is reserved for
+Red/Green step: Green may not edit a test, so the run bails on it. A step whose criterion
+already holds is an already-holding step: an ordinary step whose Red reports either
+`AGAINST_UNMODIFIED: HOLDS` (existing tests already cover it, and no test is written) or
+`AGAINST_UNMODIFIED: PASSES` (one test is added, and it already passes). `⟦diff-checked⟧` is reserved for
 steps that leave no test behind, so it is never offered for a change that adds a case.
 
 REJECT a plan whose `⟦diff-checked⟧` step text asks for a test to be added (a case, a pinning case, a process case): verify-diff rejects every `⟦diff-checked⟧` step whose own commits add a test, so such a step can never pass. Your reason names the step and the test it asks for.
