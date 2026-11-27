@@ -154,8 +154,9 @@ def pin_ids(words):
 
 def pin_ids_refusal(test_ids):
     """Why the pin phase's <test_ids> cannot be judged, or "" when they can: more than covering_tests.MOST of them, or
-    one holding whitespace (free text, not a test id), or one whose path (the part before `::`) `git ls-files` does not
-    list."""
+    one holding whitespace (free text, not a test id), or one whose path (the part before `::`) is neither tracked nor
+    an untracked, unignored file of the worktree: Red never stages the test it writes, and verify-pin runs before the
+    step's `test: pin` commit, so a test in a new file is still a test id."""
     if len(test_ids) > covering_tests.MOST:
         return f"build-verify-prompt: pin takes at most {covering_tests.MOST} test ids, got {len(test_ids)}"
     free_text = [test_id for test_id in test_ids if not test_id or test_id != "".join(test_id.split())]
@@ -164,13 +165,13 @@ def pin_ids_refusal(test_ids):
     if not test_ids:
         return ""
     try:
-        tracked = set(git.out("ls-files", "-z").split("\0"))
+        tracked = set(git.out("ls-files", "-z", "--cached", "--others", "--exclude-standard").split("\0"))
     except git.GitFailed as failed:
         return f"build-verify-prompt: pin cannot list the tracked files: {failed}"
     for test_id in test_ids:
         path = test_id.split("::", 1)[0]
         if path not in tracked:
-            return f"build-verify-prompt: pin test id '{test_id}': {path} is not tracked"
+            return f"build-verify-prompt: pin test id '{test_id}': {path} is not tracked or in the worktree"
     return ""
 
 

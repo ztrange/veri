@@ -110,8 +110,9 @@ Entries for the scripts in `$S` (`<base directory>/scripts`), moved out of SKILL
   verb**: build the blind prompt → launch the verifier leaf **through the supervisor** →
   parse the verdict. Prints the verifier's **reason** on stdout; **exit 0 = PASS, 1 =
   REJECT, 2 = malformed or killed-stuck**. The `pin` phase is the *already satisfied*
-  check: it takes 1 to 5 test ids after the spec file, each a tracked path or `<path>::<node>`
-  (**exit 2** otherwise: no id, more than 5, an untracked path, or a free-text argument), and the
+  check: it takes 1 to 5 test ids after the spec file, each a path or `<path>::<node>` whose path is
+  tracked or an untracked, unignored file of the worktree, since Red never stages the test it writes
+  (**exit 2** otherwise: no id, more than 5, a path that is neither, or a free-text argument), and the
   verifier confirms they pass now and together cover the criterion, judging the quality of a test
   the step added by the same trivial / over-coupled / too-complex bar as `red`. It applies no
   mutation and runs nothing at the before-state.
