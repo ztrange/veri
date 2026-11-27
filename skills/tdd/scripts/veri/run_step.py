@@ -38,8 +38,10 @@ STAGES = {"red-half": (RED, ()), "green-half": (GREEN, ("⟦ci-repair⟧", "⟦r
           "skill-edit-half": ("SKILL-EDIT.md#The skill-edit step", ())}
 # The stages run in series; revise runs only on a half's REJECT and reroute only on a Green route, each a stage only
 # so `--hand` can name it; diff-step and go-red-step each run a kind's step in place of the series.
-SERIES = tuple(stage for stage in STAGES if stage not in ("revise", "diff-step", "reroute", "go-red-step", "skill-edit-half"))
-# The phase stages -> the phase a verifier judges: a REJECT there (`.tdd/verdict-<phase>.exit` holding 1) is revise.sh's.
+SERIES = tuple(stage for stage in STAGES
+               if stage not in ("revise", "diff-step", "reroute", "go-red-step", "skill-edit-half"))
+# The phase stages -> the phase a verifier judges: a REJECT there (`.tdd/verdict-<phase>.exit` holding 1)
+# is revise.sh's.
 PHASES = {"red-half": "red", "green-half": "green", "refactor-half": "refactor", "diff-step": "diff"}
 # A green-half stop on a report line wrong-test-route.sh answers (two of green_half.ROUTES; SPLIT and TIDY_FIRST keep
 # their seam), and the green report reroute.sh is then handed (PRD 038.10 RRT8).
@@ -59,10 +61,11 @@ RECORD_SEAM = "seam=%s code=1 reason=record next="
 # it launches none itself (RN12).
 CALLS = tuple(stage + ".sh" for stage in SERIES)
 # The kinds that are not a cycle step, red_half.REFUSED's (RN7) -> (the anchor of the prose that runs them, the stage
-# that runs them as the step's one stage in place of the series, or None): a step of a kind no stage runs stops before
-# any stage on `seam=none` (038.3 DST8; 038.4 adds ⟦skill-edit⟧'s).
+# that runs them as the step's one stage in place of the series, or None): a step of a kind no stage runs stops
+# before any stage on `seam=none` (038.3 DST8; 038.4 adds ⟦skill-edit⟧'s).
 KINDS = {"⟦diff-checked⟧": (DIFF, "diff-step"), ledger.GO_RED_MARK: (GO_RED, "go-red-step"),
-         "⟦phases:": ("SKILL.md#A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier", None),
+         "⟦phases:": ("SKILL.md#A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier",
+                      None),
          "⟦skill-edit⟧": ("SKILL-EDIT.md#The skill-edit step", "skill-edit-half"), "⟦fixture-repair⟧": (RED, None)}
 # The stages a kind runs in place of the series.
 KIND_STAGES = tuple(stage for _, stage in KINDS.values() if stage)
@@ -162,7 +165,8 @@ def main(argv):
         if action is None:
             if stage in hand:
                 return seam(wt, n, step, stage, 1, anchor, "hand")
-            if any(replaces_case.is_replaces_case_step(step) if mark == "⟦replaces-case⟧" else ledger.has_kind(step, mark) for mark in unhandled):
+            if any(replaces_case.is_replaces_case_step(step) if mark == "⟦replaces-case⟧"
+                   else ledger.has_kind(step, mark) for mark in unhandled):
                 return seam(wt, n, step, stage, 1, anchor, "unmodelled")
             report = reroute_stage.pending(wt, n, step) if stage == "green-half" else None
             if report is not None:
@@ -303,7 +307,8 @@ def record(wt, n, stage, step):
 
 
 def resumed(wt, n, step, order):
-    """The index in <order> of the stage .tdd/issue-<n>-step recorded, when it names <step> (ledger.same_step); else 0."""
+    """The index in <order> of the stage .tdd/issue-<n>-step recorded, when it names <step> (ledger.same_step);
+    else 0."""
     try:
         seam = fused.read_settled(fused.settled_file(wt, n, "step"))
     except OSError:

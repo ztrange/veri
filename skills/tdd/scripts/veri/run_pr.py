@@ -21,7 +21,8 @@ CALLS = EARLY + LATE
 def ledger_sha(wt, n):
     """The sha of the ledger's last commit; "" when git fails or names none, which no record ever matches."""
     try:
-        return fused.run_script("git", "log", "-1", "--format=%H", "--", run_dir.ledger("", "%s") % n, cwd=wt)[1].strip()
+        return fused.run_script(
+            "git", "log", "-1", "--format=%H", "--", run_dir.ledger("", "%s") % n, cwd=wt)[1].strip()
     except Exception:
         return ""
 
@@ -37,7 +38,8 @@ def record(wt, n, seam):
 
 def run_stages(n, wt, stages, hands):
     """Call <stages> in order, stopping before one in <hands> and at the first non-zero exit (RPR3, RPR5): None when
-    every one exited 0, else the call's exit code. A 3 records its stage, so the next call resumes there. fused.call prints each call's line and its stdout, so nothing here prints them again (RPR10)."""
+    every one exited 0, else the call's exit code. A 3 records its stage, so the next call resumes there. fused.call
+    prints each call's line and its stdout, so nothing here prints them again (RPR10)."""
     for stage in stages:
         if stage in hands:
             sys.stdout.write("seam=%s code=1 reason=hand next=%s\n" % (stage[:-3], ANCHOR))
@@ -50,7 +52,8 @@ def run_stages(n, wt, stages, hands):
             if code == 3:
                 record(wt, n, stage[:-3])
             why = " reason=rejected" if (stage, code) == ("verify-branch.sh", 1) else ""
-            sys.stdout.write("seam=%s code=%d%s next=%s\n" % (stage[:-3], code, why, "run-pr.sh %s" % n if code == 3 else ANCHOR))
+            sys.stdout.write("seam=%s code=%d%s next=%s\n"
+                             % (stage[:-3], code, why, "run-pr.sh %s" % n if code == 3 else ANCHOR))
             return code
     return None
 

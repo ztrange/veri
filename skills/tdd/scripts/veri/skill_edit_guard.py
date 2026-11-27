@@ -34,7 +34,8 @@ def offending(unit, base, pins=()):
     if not at_base and not os.path.exists(file):
         raise Refusal(f"skill-edit-guard.sh: {file} exists neither at {base} nor in the working tree")
     allowed = {file, requirements.list_path(unit), *pins}
-    changed = _git_lines("diff", "--name-only", "--no-renames", base) + _git_lines("ls-files", "--others", "--exclude-standard")
+    changed = (_git_lines("diff", "--name-only", "--no-renames", base)
+               + _git_lines("ls-files", "--others", "--exclude-standard"))
     return [path for path in changed if path and path not in allowed and not LEDGER.fullmatch(path)]
 
 

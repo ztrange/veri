@@ -58,7 +58,8 @@ def run(n, phase):
     if given is None:
         return 2
     settled, wt = given
-    # A red reroute inside a refactor loop is revised on the step run-step.sh works on, never the next unchecked (#4734).
+    # A red reroute inside a refactor loop is revised on the step run-step.sh works on,
+    # never the next unchecked (#4734).
     step = fused_step.first_step(wt, n, refactor_pending) if phase == "refactor" else fused_step.open_step(wt, n)
     resumed = fused.load_wait(wt, n, NAME)
     if resumed is None:
@@ -106,8 +107,9 @@ def route_pin_reject(n, wt, step, values):
 
 def start(n, wt, step, phase, k):
     """The values the rejected verifier judged: red's from the report it judged (`.tdd/develop-red.out`, at every
-    attempt: the revise report names neither key), since red-half writes its record only after a PASS; green's from red-half's record,
-    and refactor's from refactor-half's rejected record, the only place its wait values survive (exit 2 without one).
+    attempt: the revise report names neither key), since red-half writes its record only after a PASS; green's from
+    red-half's record, and refactor's from refactor-half's rejected record, the only place its wait values survive
+    (exit 2 without one).
     Green and refactor return None, the seam line printed, when no red-half record names the step (PRD 038.1 SC4)."""
     if phase == "red":
         return judged(wt, ".tdd/develop-red.out")
@@ -290,9 +292,10 @@ def launch_pin(where, n, wt, settled, step, values):
 
 
 def verify(n, wt, settled, step, values, as_phase=None):
-    """REVISE.md sub-step 5's re-verify: verdict-<phase> launched by the phase stage's own launch, so it takes exactly
-    that stage's run-verdict.sh arguments and the run's recorded branch base (RVS13). The leaf launched, or SKIPPED
-    with the phase switched off (ADR-0033): its skip marked and `skipped` written to its exit file, as the stage does."""
+    """REVISE.md sub-step 5's re-verify: verdict-<phase> launched by the phase stage's own launch, so it takes
+    exactly that stage's run-verdict.sh arguments and the run's recorded branch base (RVS13). The leaf launched, or
+    SKIPPED with the phase switched off (ADR-0033): its skip marked and `skipped` written to its exit file, as the
+    stage does."""
     phase = as_phase or values["phase"]
     if fused_step.verify_switched_off(wt, n, phase):
         fused.mark("5", wt, n, step, "verify-%s-skipped" % phase, "reason=switched-off")

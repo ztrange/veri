@@ -1,6 +1,7 @@
 """A run's local records carried on origin's `refs/veri/runs/<n>`: a commit on no branch holding the issue's lines of
-`.tdd/events.jsonl` (and those naming no issue), its `.tdd/issue-<n>-skill-commit`, its `.tdd/issue-<n>-timeout` and its
-`.tdd/issue-<n>-branch-base`, so another machine's metrics and resume read them; nothing else travels, since nothing else is read back. Never committed on the run's branch: rebase-merge would carry them into main's history."""
+`.tdd/events.jsonl` (and those naming no issue), its `.tdd/issue-<n>-skill-commit`, its `.tdd/issue-<n>-timeout` and
+its `.tdd/issue-<n>-branch-base`, so another machine's metrics and resume read them; nothing else travels, since
+nothing else is read back. Never committed on the run's branch: rebase-merge would carry them into main's history."""
 import getpass
 import json
 import os
@@ -35,7 +36,8 @@ PREFERENCES = "/Library/Preferences/SystemConfiguration/preferences.plist"
 # path (`/Users/<name>2`), left alone.
 PATH_END = r"(?![A-Za-z0-9_-])"
 PATH_START = r"(?<![A-Za-z0-9_.-])"
-GENERIC_TEMP = re.compile(PATH_START + r"(?:/System/Volumes/Data)?(?:/private)?(?:/var/folders/[^/\s\"'`]+/[^/\s\"'`]+/[A-Z]"
+GENERIC_TEMP = re.compile(PATH_START + r"(?:/System/Volumes/Data)?(?:/private)?"
+                          r"(?:/var/folders/[^/\s\"'`]+/[^/\s\"'`]+/[A-Z]"
                           r"|/tmp)" + PATH_END)
 # A whole word: no letter or digit on either side, and not the inside of a placeholder (`<user>`), so a second pass
 # finds nothing new; a preceding encoded slash (`%2F`, `%2f`) also starts a word.
@@ -132,7 +134,8 @@ def _redactions(run, also=()):
     one that still does is replaced whole by `<redacted>`."""
     paths, hosts, accounts = _sensitive(run)
     # <also>'s roots join the `<repo>` paths, which _sensitive (one argument, the seam tests fake) gives first.
-    paths = tuple((repl, kind + [os.path.abspath(p) for p in also] if repl == "<repo>" else kind) for repl, kind in paths)
+    paths = tuple((repl, kind + [os.path.abspath(p) for p in also] if repl == "<repo>" else kind)
+                  for repl, kind in paths)
     steps = []
     for repl, kind in paths:
         forms = set().union(*(_path_spellings(path) for path in kind))
@@ -152,8 +155,8 @@ DECODE_PASSES = 50
 
 
 def _normalized(text):
-    """A copy of <text> as the fail-closed layer reads it, or None when it never stops decoding: URL-decoded (`+` read as
-    a space, the form encoding) until it stops changing, each pass shrinking it or leaving it, at most DECODE_PASSES
+    """A copy of <text> as the fail-closed layer reads it, or None when it never stops decoding: URL-decoded (`+` read
+    as a space, the form encoding) until it stops changing, each pass shrinking it or leaving it, at most DECODE_PASSES
     passes; then NFKC, with the zero-width characters and the soft hyphen dropped, an escaped slash or a backslash read
     as `/`, case-folded."""
     for _ in range(DECODE_PASSES):
@@ -205,7 +208,8 @@ def _redact(value, redactions):
                 base, n = name, 1
                 while name in value or name in out:
                     n += 1
-                    name = "%s-%d" % (base[:-1], n) + ">" if base.startswith("<") and base.endswith(">") else "%s-%d" % (base, n)
+                    name = ("%s-%d" % (base[:-1], n) + ">" if base.startswith("<") and base.endswith(">")
+                            else "%s-%d" % (base, n))
             out[name] = _redact(item, redactions)
         return out
     return value
@@ -265,7 +269,8 @@ def _out(*args, cwd, data=None, env=None):
 
 
 def commit(run, issue):
-    """The commit (no parent, on no branch) holding <run>'s records for <issue> under `.tdd/`; GitFailed on a git error."""
+    """The commit (no parent, on no branch) holding <run>'s records for <issue> under `.tdd/`; GitFailed on a git
+    error."""
     entries = []
     for name, content in sorted(records(run, issue).items()):
         blob = _out("hash-object", "-w", "--stdin", cwd=run, data=content)
@@ -322,5 +327,6 @@ def after_push():
         if issue:
             push(".", issue)
     except git.GitFailed as failed:
-        print("push-branch.sh: %s not pushed: %s" % (ref(issue or "<n>"), " ".join((failed.stderr or str(failed)).split())),
+        print("push-branch.sh: %s not pushed: %s"
+              % (ref(issue or "<n>"), " ".join((failed.stderr or str(failed)).split())),
               file=sys.stderr)

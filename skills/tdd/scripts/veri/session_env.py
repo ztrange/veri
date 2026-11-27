@@ -15,7 +15,8 @@ SESSION_VARS = (
 
 
 def strip_session_env(env):
-    """Remove from `env` every SESSION_VARS name and, given a session id, every value carrying it but PATH's, CLAUDE_BIN's and a VERI_* variable's."""
+    """Remove from `env` every SESSION_VARS name and, given a session id, every value carrying it but PATH's,
+    CLAUDE_BIN's and a VERI_* variable's."""
     session_id = env.get("CLAUDE_CODE_SESSION_ID", "")
     for name in SESSION_VARS:
         env.pop(name, None)

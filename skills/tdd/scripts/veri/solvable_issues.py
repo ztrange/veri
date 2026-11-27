@@ -59,7 +59,8 @@ def priority_label():
 
 
 def author_label():
-    """The label that takes a stranger's issue once read (PRD 022.4), or None when VERI_AUTHOR_LABEL is set but empty."""
+    """The label that takes a stranger's issue once read (PRD 022.4), or None when VERI_AUTHOR_LABEL is set but
+    empty."""
     if refused_if_empty("VERI_AUTHOR_LABEL"):
         return None
     return tunables.get("VERI_AUTHOR_LABEL")
@@ -72,7 +73,8 @@ def author_read(issue, label):
 
 
 def band(issue, priority):
-    """An issue's selection band: priority bugs, then priority, then bugs the groom did not call low-risk, then the rest."""
+    """An issue's selection band: priority bugs, then priority, then bugs the groom did not call low-risk, then the
+    rest."""
     if carries(issue, priority):
         return 0 if carries(issue, "bug") else 1
     return 2 if carries(issue, "bug") and not carries(issue, "low-risk") else 3
@@ -105,7 +107,8 @@ def github_repository(root):
 
 
 def own_run_branch(pr, number):
-    """Whether <pr> is issue <number>'s own run branch, tdd/<number>-…: a released run's PR, which claims nothing while a draft (its resume continues it) and claims again once readied."""
+    """Whether <pr> is issue <number>'s own run branch, tdd/<number>-…: a released run's PR, which claims nothing while
+    a draft (its resume continues it) and claims again once readied."""
     return pr.head_ref.startswith("tdd/%s-" % number)
 
 
@@ -114,7 +117,8 @@ def taken(issue):
 
 
 def solvable(label, priority="priority", repo=None):
-    """(exit code, the solvable issue numbers in selection order) for the opt-in <label>; 2 for an unreadable listing."""
+    """(exit code, the solvable issue numbers in selection order) for the opt-in <label>; 2 for an unreadable
+    listing."""
     try:
         return select(label, priority, repo)
     except json.JSONDecodeError:
@@ -141,7 +145,8 @@ def solvable_in_scope():
 
 
 def inherit_bands(issues, blockers, bands):
-    """Lift `bands` in place to the best band of each open issue's dependents; return {blocker: dependent that set it}."""
+    """Lift `bands` in place to the best band of each open issue's dependents; return {blocker: dependent that set
+    it}."""
     origin = {}
     changed = True
     while changed:
@@ -172,11 +177,13 @@ def select(label, priority="priority", repo=None):
     try:
         # Over REST under every driver: gh issue list --json has no author_association, which the author rule reads.
         issues = open_listing("issues.json", prefix + "/issues")
-        prs = open_listing("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000", "--json", "body,state,headRefName,isDraft,isCrossRepository", *scope)
+        prs = open_listing("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000",
+                           "--json", "body,state,headRefName,isDraft,isCrossRepository", *scope)
     except NoAnswer:
         return 2, []
     issues = [issue for issue in items(issues) if "pull_request" not in issue]
-    claimed = {int(n) for pr in pulls_in(prs) if pr.state == "OPEN" and not pr.cross_repository for n in closed_issues(pr.body)
+    claimed = {int(n) for pr in pulls_in(prs) if pr.state == "OPEN" and not pr.cross_repository
+               for n in closed_issues(pr.body)
                if not own_run_branch(pr, n) or pr.draft is False}
     open_issues = {issue["number"] for issue in issues if is_open(issue)}
     blockers = {issue["number"]: blocked_by.blockers(issue.get("body") or "", repo or "") for issue in issues}
@@ -200,13 +207,15 @@ def select(label, priority="priority", repo=None):
     except NoAnswer:
         return 2, []
     otherwise = [issue for issue in issues
-                 if is_open(issue) and carries(issue, label) and not taken(issue) and not carries(issue, "parked") and not carries(issue, "draft") and issue["number"] not in claimed
+                 if is_open(issue) and carries(issue, label) and not taken(issue)
+                 and not carries(issue, "parked") and not carries(issue, "draft") and issue["number"] not in claimed
                  and not in_flight(main_tree, issue["number"])
                  and all(n not in open_issues for n in blockers[issue["number"]])]
     survivors = [issue for issue in otherwise if author_read(issue, author)]
     for issue in otherwise:
         if not author_read(issue, author):
-            print("solvable-issues: #%d skipped: its author is %s, not OWNER, MEMBER or COLLABORATOR; label it %s once read"
+            print("solvable-issues: #%d skipped: its author is %s, not OWNER, MEMBER or COLLABORATOR;"
+                  " label it %s once read"
                   % (issue["number"], author_association(issue), author), file=sys.stderr)
     if not survivors:
         return 3, []

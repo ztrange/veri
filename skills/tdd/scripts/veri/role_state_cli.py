@@ -31,7 +31,8 @@ def lane_budget(path, n):
     need = max(n, live) * d
     budget_entries.write(main, lane, need)
     own = budget_entries.entry_name(main, lane)
-    others = ", ".join("%s=%d" % (name.partition("@")[0], value) for name, value in budget_entries.unexpired_entries() if name != own)
+    others = ", ".join("%s=%d" % (name.partition("@")[0], value)
+                       for name, value in budget_entries.unexpired_entries() if name != own)
     total, source = leg_budget.capacity(say=False)
     return "N=%d; lane %s needs %d (max(N, %d live conductors) x %d); other lanes: %s; C=%d from %s; T=%d\n" % (
         n, lane, need, live, d, others or "none", total, source, leg_budget.budget(say=False)[0])
