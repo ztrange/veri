@@ -6,13 +6,15 @@ import time
 
 import pytest
 
+from repo_builder import new_repo
+
 
 @pytest.mark.process("git")
 def test_dev_set_n_writes_role_dev_state_in_main_tree_and_show_prints_it(tmp_path, run_cli):
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     set_code, _, _ = run_cli(role_state, ["dev", "set", "n", "3"], cwd=repo)
     show_code, shown, _ = run_cli(role_state, ["dev", "show"], cwd=repo)
     written = repo / ".tdd" / "role-dev.state"
@@ -24,7 +26,7 @@ def test_no_arguments_and_wrong_set_argument_count_exit_2_with_usage_and_write_n
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     bad = [[], ["dev", "set"], ["dev", "set", "n"], ["dev", "set", "n", "3", "x"]]
     results = [run_cli(role_state, argv, cwd=repo) for argv in bad]
     codes = [code for code, _, _ in results]
@@ -41,7 +43,7 @@ def test_dev_set_lane_writes_the_lane_and_show_prints_it_beside_an_earlier_n(tmp
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     n_code, _, _ = run_cli(role_state, ["dev", "set", "n", "7"], cwd=repo)
     lane_code, _, _ = run_cli(role_state, ["dev", "set", "lane", "mu"], cwd=repo)
     show_code, shown, _ = run_cli(role_state, ["dev", "show"], cwd=repo)
@@ -55,7 +57,7 @@ def test_dev_set_n_from_a_linked_worktree_writes_into_the_main_working_tree(tmp_
     repo.mkdir()
     linked = tmp_path / "linked"
     git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     subprocess.run(git + ["commit", "-q", "--allow-empty", "-m", "init"], cwd=repo, check=True)
     subprocess.run(["git", "worktree", "add", "-q", "--detach", str(linked)], cwd=repo, check=True)
     code, _, _ = run_cli(role_state, ["dev", "set", "n", "2"], cwd=linked)
@@ -69,7 +71,7 @@ def test_dev_lane_mu_set_n_writes_the_lane_file_and_leaves_the_default_lane_file
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     run_cli(role_state, ["dev", "set", "n", "5"], cwd=repo)
     default = repo / ".tdd" / "role-dev.state"
     before = default.read_bytes()
@@ -83,7 +85,7 @@ def test_dev_add_to_each_list_prints_an_id_and_show_lists_the_text(tmp_path, run
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     lists = ["decision", "message", "override", "timed-n"]
     texts = {name: "text-of-" + name for name in lists}
     texts["timed-n"] = "4 until 2026-11-10T20:00:00"
@@ -100,7 +102,7 @@ def test_dev_add_records_the_local_add_time_and_show_lists_it_on_the_items_line(
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     before = time.strftime("%Y-%m-%d")
     run_cli(role_state, ["dev", "add", "decision", "pick-the-lane"], cwd=repo)
     after = time.strftime("%Y-%m-%d")
@@ -114,7 +116,7 @@ def test_dev_drop_removes_the_item_with_that_id_from_show_and_keeps_the_other_it
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     _, first_id, _ = run_cli(role_state, ["dev", "add", "decision", "keep-alpha"], cwd=repo)
     _, second_id, _ = run_cli(role_state, ["dev", "add", "decision", "drop-beta"], cwd=repo)
     code, _, _ = run_cli(role_state, ["dev", "drop", "decision", second_id.strip()], cwd=repo)
@@ -127,7 +129,7 @@ def test_dev_drop_of_an_item_added_after_an_earlier_drop_removes_only_it_and_kee
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     _, first_id, _ = run_cli(role_state, ["dev", "add", "decision", "gone-alpha"], cwd=repo)
     run_cli(role_state, ["dev", "add", "decision", "stays-beta"], cwd=repo)
     run_cli(role_state, ["dev", "drop", "decision", first_id.strip()], cwd=repo)
@@ -142,7 +144,7 @@ def test_dev_add_after_a_set_prints_the_next_id_and_show_lists_the_item(tmp_path
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     run_cli(role_state, ["dev", "set", "n", "3"], cwd=repo)
     code, printed, _ = run_cli(role_state, ["dev", "add", "decision", "after-set-alpha"], cwd=repo)
     _, shown, _ = run_cli(role_state, ["dev", "show"], cwd=repo)
@@ -154,7 +156,7 @@ def test_dev_recovered_records_recovered_at_and_the_session_id_and_show_prints_t
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     code, _, _ = run_cli(role_state, ["dev", "recovered"], cwd=repo, env={"CLAUDE_CODE_SESSION_ID": "sess-4242"})
     _, shown, _ = run_cli(role_state, ["dev", "show"], cwd=repo)
     assert (code, "recovered-at" in shown, "sess-4242" in shown) == (0, True, True)
@@ -165,7 +167,7 @@ def test_dev_recovered_without_a_session_id_exits_2_and_leaves_the_state_file_un
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     state = repo / ".tdd" / "role-dev.state"
     empty_code, _, _ = run_cli(role_state, ["dev", "recovered"], cwd=repo, env={"CLAUDE_CODE_SESSION_ID": ""})
     absent_after = state.exists()
@@ -180,7 +182,7 @@ def test_dev_set_whose_rename_over_the_state_file_fails_leaves_the_previous_file
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     run_cli(role_state, ["dev", "set", "n", "3"], cwd=repo)
     state = repo / ".tdd" / "role-dev.state"
     before = state.read_bytes()
@@ -202,7 +204,7 @@ def test_dev_drop_whose_rename_over_the_state_file_fails_leaves_the_previous_fil
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     run_cli(role_state, ["dev", "add", "decision", "keep-alpha"], cwd=repo)
     _, second_id, _ = run_cli(role_state, ["dev", "add", "decision", "drop-beta"], cwd=repo)
     state = repo / ".tdd" / "role-dev.state"
@@ -225,7 +227,7 @@ def test_dev_show_with_no_state_file_exits_3_and_prints_nothing(tmp_path, run_cl
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     code, out, _ = run_cli(role_state, ["dev", "show"], cwd=repo)
     assert (code, out) == (3, "")
 
@@ -235,7 +237,7 @@ def test_a_role_other_than_dev_or_dev_exits_2_with_usage_and_writes_no_state_fil
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     code, _, err = run_cli(role_state, ["admin", "set", "n", "3"], cwd=repo)
     assert (code, "usage: role-state.sh" in err, (repo / ".tdd").exists()) == (2, True, False)
 
@@ -245,7 +247,7 @@ def test_an_unknown_verb_exits_2_with_usage_and_writes_no_state_file(tmp_path, r
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     code, out, err = run_cli(role_state, ["dev", "frobnicate", "n", "3"], cwd=repo)
     assert (code, out, "usage: role-state.sh" in err, (repo / ".tdd").exists()) == (2, "", True, False)
 
@@ -255,7 +257,7 @@ def test_set_with_a_field_other_than_n_or_lane_exits_2_with_usage_and_writes_no_
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     code, out, err = run_cli(role_state, ["dev", "set", "color", "red"], cwd=repo)
     assert (code, out, "usage: role-state.sh" in err, (repo / ".tdd").exists()) == (2, "", True, False)
 
@@ -265,7 +267,7 @@ def test_add_with_a_list_other_than_the_four_exits_2_with_usage_and_writes_no_st
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     code, out, err = run_cli(role_state, ["dev", "add", "gossip", "hello"], cwd=repo)
     assert (code, out, "usage: role-state.sh" in err, (repo / ".tdd").exists()) == (2, "", True, False)
 
@@ -275,7 +277,7 @@ def test_drop_with_a_list_other_than_the_four_exits_2_with_usage_and_leaves_the_
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     _, item, _ = run_cli(role_state, ["dev", "add", "decision", "keep-alpha"], cwd=repo)
     state = repo / ".tdd" / "role-dev.state"
     before = state.read_bytes()
@@ -288,7 +290,7 @@ def test_set_n_with_a_value_that_is_not_a_whole_number_exits_2_with_usage_and_le
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     run_cli(role_state, ["dev", "set", "n", "3"], cwd=repo)
     state = repo / ".tdd" / "role-dev.state"
     before = state.read_bytes()
@@ -303,7 +305,7 @@ def test_drop_of_an_id_the_list_does_not_hold_exits_3_and_leaves_the_state_file_
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     run_cli(role_state, ["dev", "add", "decision", "keep-alpha"], cwd=repo)
     state = repo / ".tdd" / "role-dev.state"
     before = state.read_bytes()
@@ -316,7 +318,7 @@ def test_add_timed_n_with_unparseable_text_exits_2_naming_the_form_and_writes_no
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     text = "4 until weekly usage reset ~2026-11-10 evening (Mario 11-09)"
     code, out, err = run_cli(role_state, ["dev", "add", "timed-n", text], cwd=repo)
     wrote = (repo / ".tdd" / "role-dev.state").exists()
@@ -328,7 +330,7 @@ def test_add_timed_n_with_well_formed_text_appends_the_line_and_prints_its_id_35
     role_state = importlib.import_module("veri.role_state")
     repo = tmp_path / "repo"
     repo.mkdir()
-    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+    new_repo(repo)
     text = "4 until 2026-11-10T20:00:00"
     code, out, _ = run_cli(role_state, ["dev", "add", "timed-n", text], cwd=repo)
     state = repo / ".tdd" / "role-dev.state"
