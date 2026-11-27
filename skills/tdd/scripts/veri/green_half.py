@@ -155,11 +155,12 @@ def kind(wt, n):
 
 
 def pr_body(n, wt, step):
-    """Green 3's PR body, unless GitHub is down (#4803): with `.tdd/github-outage` in the main working tree the PR read
-    and the body are skipped, and a read or write that gets no answer during a github-status incident is too; either
-    marks `pr-body-deferred`, and the next answered refresh rewrites the whole body, since it is counted afresh."""
+    """Green 3's PR body, unless GitHub is down (#4803): asked up front (`.tdd/github-outage` in the main working tree,
+    else github-status.sh's read), a down GitHub skips the PR read and the body outright, and a read or write that
+    gets no answer during an incident begun after that is skipped too; either marks `pr-body-deferred`, and the next
+    answered refresh rewrites the whole body, since it is counted afresh."""
     top = github_queue.root(wt)
-    if top is not None and github_queue.outage(top):
+    if top is not None and github_queue.down(top):
         return fused.mark("3", wt, n, step, "pr-body-deferred")
     try:
         refresh(n, wt)
