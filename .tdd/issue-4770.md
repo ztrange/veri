@@ -40,7 +40,7 @@
 - [x] Prose: `skills/tdd/BAIL.md`: drops the retired cause, as the issue's `## Requirements` states it, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
 - [x] Prose: `skills/tdd/REVISE.md`: a verify-pin REJECT goes straight to the revise loop, as the issue's `## Requirements` states it, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
 - [x] Prose: `CONTEXT.md`: as the issue's `## Requirements` states it, the unit regraded PASS and signed in `GRADED` inside this step ⟦criterion 1⟧
-- [ ] Prose: `skills/tdd/scripts/prompts/develop-red.md`: as the issue's `## Requirements` states it, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
+- [x] Prose: `skills/tdd/scripts/prompts/develop-red.md`: as the issue's `## Requirements` states it, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
 - [ ] Prose: `skills/tdd/scripts/prompts/develop-red-missing.md`: as the issue's `## Requirements` states it, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
 - [ ] Prose: `skills/tdd/scripts/prompts/develop-red-supersede.md`: as the issue's `## Requirements` states it, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
 - [ ] Prose: `skills/tdd/scripts/prompts/_develop-red-run-and-report.md`: as the issue's `## Requirements` states it, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
