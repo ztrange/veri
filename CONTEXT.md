@@ -130,7 +130,7 @@ A step whose criterion already holds: earlier work already satisfies it. It is t
 blind verifier, **verify-pin**, judges that named existing tests cover the criterion (the
 developer leaf reports `HOLDS`, writes no file, and the step is ticked ` ⟂ retired already holds`),
 or it lands one new test, already passing against the unmodified code, judged only for coverage
-of the criterion. No mutation is applied and no failure at the base is demanded; Green and
+of the criterion, that it passes now and its quality, never for failing first. No mutation is applied and no failure at the base is demanded; Green and
 Refactor are skipped, narrated as `📌 Already satisfied`.
 _Avoid_: skip, no-op step
 

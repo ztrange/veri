@@ -2561,7 +2561,7 @@ def test_verify_sh_does_not_accept_a_pass_from_a_pin_verifier_leaf_that_replaced
     assert (code, "full suite are green" in out) == (2, False)
 
 
-def test_4375_verify_sh_pin_renders_the_prompt_with_branch_base_filled_by_its_branch_base_flag_never_a_merge_base(
+def test_4375_verify_sh_pin_renders_the_prompt_naming_its_test_ids_with_no_before_state_probe_and_no_branch_base_slot(
         run_cli, tmp_path, monkeypatch, fake_processes):
     base = "3f9a1c0d5e7b"
     (tmp_path / "spec.md").write_text(SPEC)
@@ -2584,7 +2584,8 @@ def test_4375_verify_sh_pin_renders_the_prompt_with_branch_base_filled_by_its_br
                          env={"HOME": str(tmp_path)}, cwd=tmp_path)
 
     prompt = launched[0][1] if launched else ""
-    assert (code, f"--before {base} --keep" in prompt, "{{BRANCH_BASE}}" in prompt) == (0, True, False)
+    assert (code, "tests/test_slugify.py::test_lowercases" in prompt, "--before" in prompt, "{{BRANCH_BASE}}" in prompt) == (
+        0, True, False, False)
 
 
 def test_2916_verify_green_with_veri_issue_hands_the_runs_ledger_to_the_builder_so_the_prompt_lists_its_later_unchecked_steps(

@@ -1469,7 +1469,7 @@ def test_main_renders_a_verify_dual_stub_prompt_telling_the_blind_verifier_to_re
     assert (b"## Phase: verify-dual-stub" in prompt, b"git diff 0123abc..HEAD" in prompt) == (True,) * 2, out
 
 
-def test_main_fills_the_pin_prompts_branch_base_slot_from_branch_base_with_only_that_hex_commit_name_2900(
+def test_main_renders_the_pin_prompt_with_no_before_state_probe_and_refuses_a_non_hex_branch_base_2900(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"slugify must lowercase.\n")
@@ -1487,12 +1487,14 @@ def test_main_fills_the_pin_prompts_branch_base_slot_from_branch_base_with_only_
     refused = {value: run(["--branch-base", value, *pin])[::2] for value in ("nothex", "3f9a1C0", "3f9a1c0\n")}
     assert {
         "exit": filled[0],
-        "before-state probe names the base": f"--before {base} --keep 'tests/test_slugify.py'" in prompt,
+        "names its test ids": "`tests/test_slugify.py tests/test_slugify.py::test_slugify_lowercases`" in prompt,
+        "no before-state probe": "--before" not in prompt and base not in prompt,
         "no slot left": "{{BRANCH_BASE}}" not in prompt,
         "non-hex refusals": {value: (code, bool(err)) for value, (code, err) in refused.items()},
     } == {
         "exit": 0,
-        "before-state probe names the base": True,
+        "names its test ids": True,
+        "no before-state probe": True,
         "no slot left": True,
         "non-hex refusals": {value: (2, True) for value in refused},
     }
