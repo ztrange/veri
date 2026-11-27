@@ -9,7 +9,7 @@ SCRIPTS = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.pat
 # The leg and its plugin, which write and read it; veri/ceiling.py, whose exit 0 removes it; veri/dispatch_live.py,
 # which reads it for the t-lowered notice only; and the tunable's own declaration and its README row.
 NAMERS = {"tests/leg/load_timeouts.py", "tests/leg/pytest_leg.py", "veri/ceiling.py", "veri/dispatch_live.py",
-          "veri/tunables.py", "veri/README.md"}
+          "veri/tunables.py", "veri/README.md", "veri/leg_budget.py"}
 
 
 def names_the_load_file(path):
