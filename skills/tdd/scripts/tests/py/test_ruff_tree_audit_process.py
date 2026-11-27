@@ -20,7 +20,7 @@ def test_the_repository_passes_ruff_under_its_config():
     check = [str(RUFF), "check", "--no-cache", "--quiet", "--config", str(REPO / "ruff.toml")]
 
     ran = subprocess.run([*check, str(REPO)], stdin=subprocess.DEVNULL, capture_output=True, text=True, cwd=REPO)
-    planted = subprocess.run([*check, "--stdin-filename", str(REPO / "planted.py"), "-"],
+    planted = subprocess.run([*check, "--stdin-filename", str(REPO / "skills/tdd/scripts/veri/planted.py"), "-"],
                              input="planted = 1 \n" + "too_long = " + repr("x" * 108) + "\n",
                              capture_output=True, text=True, cwd=REPO)
 
