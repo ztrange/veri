@@ -148,8 +148,12 @@ records, and runs `$S/stack-pr.sh`.
   the sha are the two values `stack-recover.sh` printed, and `<slice> <total>` are `540 ""`, as
   `vmerge` waits. When it ends with 0
   (green) or 1 (red), CI has answered: run `$S/stack-red.sh`. Its exit 3 (not red): run
-  `$S/stack-land.sh` as vdev's *Landing a slice* says. Its exit 0 (red): go to vdev's *A red
-  stack*. Its exit 2, or `wait-ci.sh`'s exit 2, is told to the human in one line. Stop.
+  `$S/stack-land.sh` as vdev's *Landing a slice* says; when `stack-land.sh` exits 0, run
+  `$S/github-queue.sh close-landed <tip-sha>` with that same sha, which posts a `### ✅ Landed`
+  comment naming its commits on the default branch on each joined run's issue; its exit 2 is told
+  to the human in one line, its exit 0 and 3 are not reported. `stack-red.sh`'s exit 0 (red): go
+  to vdev's *A red stack*. `stack-red.sh`'s exit 2, or `wait-ci.sh`'s exit 2, is told to the human
+  in one line. Stop.
 - Exit 1 or 2: tell the human in one line each, with its stderr. Stop.
 - Exit 3: nothing was joined offline; report nothing. Stop.
 
