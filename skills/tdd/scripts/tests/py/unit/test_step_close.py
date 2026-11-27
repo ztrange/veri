@@ -438,7 +438,7 @@ def test_4029_it_writes_no_bail_classifies_nothing_resets_nothing_and_grows_no_p
     for answers in ({("push-branch.sh", None): (2, "")}, {}):
         code, out, err, fake = close(answers=answers)
         assert not {"classify-bail.sh", "preflight-refused.sh", "add-ledger-step.sh", "detach-leaf.sh",
-                    "supervise.sh", "pin-reject-route.sh", "adjudicate.sh"} & set(fake.names())
+                    "supervise.sh", "adjudicate.sh"} & set(fake.names())
         assert not [c for c in fake.calls if c[0] == "event.sh" and c[1][:1] in (("bail",), ("step-added",))]
         assert not [c for c in fake.calls if c[0] == "git" and c[1][:1] in (("reset",), ("clean",), ("checkout",))]
         assert not [c for c in fake.calls if c[0] == "comment.sh" and c[1][1:2] in (("bail",), ("park",))]

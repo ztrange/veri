@@ -264,7 +264,7 @@ def test_an_answer_it_does_not_run_stops_with_exit_1_naming_the_answer_launching
 @pytest.mark.parametrize("against", ["PASSES", "UNTESTABLE"])
 def test_a_rerouted_red_that_does_not_fail_stops_with_exit_1_naming_the_line_launching_no_verify_red_4434(
         reroute, against):
-    """PRD 038.10 RRT4: a pin report is verify-pin's, `pin-target.sh` and `pin-reject-route.sh`, by hand."""
+    """PRD 038.10 RRT4: a pin report is verify-pin's, by hand."""
     reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
     code, out, err, fake = reroute(files={"develop-red-contradicted.out": REROUTED.replace("FAILS", against)})
 
