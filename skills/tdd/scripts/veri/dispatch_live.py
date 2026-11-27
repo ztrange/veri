@@ -11,6 +11,8 @@ import budget_entries
 import event_log
 import full_run_lock
 import github
+import leg_budget
+import leg_registry
 import paths
 import pid_file
 import restart_marker
@@ -50,12 +52,6 @@ def lane():
 
 def state_file():
     return state_path(layout.main_tree(missing=""), "dev", via("lane")())
-
-
-def _leg():
-    """The pytest leg's module, whose registry rule (registered_legs) the waiter entries share; it lives in tests/leg/,
-    loaded by budget_entries.leg."""
-    return budget_entries.leg()
 
 
 class World:
@@ -140,12 +136,11 @@ class World:
     # the test queue
     def waiting(self):
         """The live waiter entries under VERI_PYTEST_WAITERS: legs waiting for T, alive under their recorded start time."""
-        return len(_leg().registered_legs(full_run_lock.waiters_dir()))
+        return len(leg_registry.registered_legs(full_run_lock.waiters_dir()))
 
     def test_budget(self):
         """(T, the workers live registered legs hold)."""
-        leg = _leg()
-        return leg.budget()[0], leg.registered_workers(full_run_lock.legs_dir())
+        return leg_budget.budget()[0], leg_registry.registered_workers(full_run_lock.legs_dir())
 
     def stretches(self, issue):
         """(tier, seconds, idle) of each `test-stretch` event in <issue>'s run journal, in journal order; [] with none."""
@@ -174,8 +169,7 @@ class World:
     def lowering(self):
         """(time, old T, new T, cases) of the lowering on record in VERI_TEST_LOAD_FILE (PRD 036.7), read for the
         t-lowered notice and never acted on; None when the file is absent, unreadable or holds less than those four."""
-        _leg()
-        import load_timeouts
+        load_timeouts = leg_budget.load_timeouts_module()
         try:
             with open(load_timeouts.load_path()) as f:
                 lines = f.read().splitlines()
