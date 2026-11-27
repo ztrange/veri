@@ -277,7 +277,8 @@ by the steps below. Steps 1 to 7 stay stated here.
    and its `full` measurement to `$S/leaf-timeout.sh`, so every leaf of the run is launched
    under the result rather than under the supervisor's fixed 900 s default:
    ```
-   timeout="$($S/leaf-timeout.sh "$baseline" --full "$full")"
+   timeout="$($S/leaf-timeout.sh "$baseline" --full "$full")"            # step 3 ran the full tier
+   timeout="$($S/leaf-timeout.sh "$baseline" --full "$full" --reused)"   # step 3 reused its time
    ```
    `--full` says which of the two measurements the timeout is sized from: the full-tier one
    displaces the fast one rather than mixing with it, because a leaf runs the full tier and
@@ -285,10 +286,12 @@ by the steps below. Steps 1 to 7 stay stated here.
    The script keeps a quick suite on today's 900 s and gives a slow one 6 × its baseline —
    which is what stops a leaf whose own test command takes minutes being killed as stuck
    while it is working (#71: a 900 s cap against a 140-250 s suite, two bails, both steps
-   reverted). A skipped baseline hands it `0`, never the seconds the skip took, and the script then
-   sizes the run from the full tier's idle duration `make ceiling` records (the `idle all <seconds>`
-   line of `VERI_TEST_CEILING_FILE`, default `~/.veri-test-ceiling`); with none recorded it keeps
-   900 s and names that fallback on stderr (#4835: a 1 s skip pinned 900 s against probes needing more).
+   reverted). A skipped baseline hands it `0`, never the seconds the skip took. A full tier step 3
+   ran still sizes the run; when step 3 reused the full-tier time instead, the call ends in `--reused`
+   and the script sizes the run from the full tier's idle duration `make ceiling` records (the
+   `idle all <seconds>` line of `VERI_TEST_CEILING_FILE`, default `~/.veri-test-ceiling`); with none
+   recorded it keeps 900 s and names that fallback on stderr (#4835: a 1 s skip pinned 900 s
+   against probes needing more).
    An export would not survive: every Bash call is a fresh shell. So step 1.2,
    once it has entered the issue's worktree, calls the script again with the issue number,
    which records the settled number once per issue in `.tdd/issue-<n>-timeout` at the run

@@ -43,8 +43,9 @@ def run(n, settled):
     """Step 1's sub-steps 2-5 in the worktree preflight settled, in their order; 0 with .tdd/issue-<n>-run-start
     written and its lines printed last (ST3), else a Stop."""
     wt = settled["worktree"]
-    fused.checked("1.2", fused.script("leaf-timeout.sh"), settled["baseline"], "--full", settled["full"], cwd=wt,
-                  env=tunables.with_values(VERI_ISSUE=n))
+    reused = ("--reused",) if settled.get("full_tier_mode") == "reuse" else ()
+    fused.checked("1.2", fused.script("leaf-timeout.sh"), settled["baseline"], "--full", settled["full"], *reused,
+                  cwd=wt, env=tunables.with_values(VERI_ISSUE=n))
     spec = os.path.join(".tdd", "issue-%s-spec.md" % n)
     fused.checked("1.3", fused.script("capture-spec.sh"), n, cwd=wt, out=spec)
     ignored = fused.checked("1.4", fused.script("ensure-run-state-ignored.sh"), cwd=wt).strip()

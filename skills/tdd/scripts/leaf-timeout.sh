@@ -4,7 +4,7 @@
 # Prints the larger of 900 and 6 × the baseline; with refactor, that × max(1, VERI_REFACTOR_BUDGET);
 # with --full, derived from <full-seconds>. An explicit VERI_TIMEOUT is printed as given.
 #
-# usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seconds>]
+# usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seconds> [--reused]]
 #          VERI_TIMEOUT=<n> leaf-timeout.sh …   # <n> a whole number >= 1, used as given
 # Exit:    0 the timeout on stdout; 2 a malformed baseline, full-tier value or VERI_TIMEOUT, nothing on stdout
 . "$(dirname "$0")/lib/shim-python.sh"

@@ -480,7 +480,7 @@ def test_3771_o_baseline_full_tier_reuse_starts_no_full_tier_run_records_nothing
     starts = [a for b, a in calls if b == "detach-command.sh" and a[0] == "start"]
     assert len(starts) == 1
     assert not [a for b, a in calls if b == "full-tier-time.sh"]
-    assert calls[-1] == ("leaf-timeout.sh", ("8", "--full", "55"))
+    assert calls[-1] == ("leaf-timeout.sh", ("8", "--full", "55", "--reused"))
     assert code == 0
 
 
@@ -1463,7 +1463,7 @@ def test_4337_a_base_commit_whose_ci_run_concluded_success_starts_no_baseline_ru
     assert gh and "--commit" in gh[0] and gh[0][gh[0].index("--commit") + 1] == SHA_4337
     assert gh[0][gh[0].index("--workflow") + 1] == "CI"
     assert starts == []
-    assert calls[-1][0] == "leaf-timeout.sh" and calls[-1][1][1:] == ("--full", "55")
+    assert calls[-1][0] == "leaf-timeout.sh" and calls[-1][1][1:] == ("--full", "55", "--reused")
     assert code == 0
 
 
@@ -1580,4 +1580,4 @@ def test_4835_a_skipped_baseline_pins_0_seconds_and_hands_0_to_leaf_timeout_not_
     written = (tmp_path / "wt" / ".tdd" / "issue-12-preflight").read_text().splitlines()
     pinned = [line for line in written if line.startswith("baseline=")]
     timeouts = [a for b, a in calls if b == "leaf-timeout.sh"]
-    assert (code, starts, pinned, timeouts) == (0, [], ["baseline=0"], [("0", "--full", "55")])
+    assert (code, starts, pinned, timeouts) == (0, [], ["baseline=0"], [("0", "--full", "55", "--reused")])
