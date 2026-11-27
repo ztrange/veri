@@ -41,7 +41,6 @@ FILES_RUNNING_GIT_INIT = (
     "test_merge_lock_process.py",
     "test_metrics_process.py",
     "test_mutation_parity_process.py",
-    "test_mutation_probe_process.py",
     "test_no_product_caller_process.py",
     "test_one_operator_role_process.py",
     "test_one_role_process.py",
