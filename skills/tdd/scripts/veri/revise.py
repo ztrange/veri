@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 
+import covering_tests
 import diff_step
 import event_log
 import fused
@@ -180,8 +181,11 @@ def checks(n, wt, settled, step, values):
     the re-verify is launched (its leaf, or SKIPPED)."""
     routed(wt, values)
     if values["phase"] == "red":
-        if passes_unmodified(wt, values):
+        got = fused.report("4", wt, ".tdd/revise-red-%d.out" % values["k"], "AGAINST_UNMODIFIED", "COVERING_TESTS")
+        if passes_unmodified(got["AGAINST_UNMODIFIED"]):
             return verify(n, wt, settled, step, values, "pin")
+        if got["AGAINST_UNMODIFIED"] == "HOLDS":
+            return verify(n, wt, settled, step, values, "pin", covering(wt, got["COVERING_TESTS"]))
         return red_checks(n, wt, settled, step, values)
     if values["phase"] == "refactor":
         return verify(n, wt, settled, step, values)
@@ -199,10 +203,20 @@ def checks(n, wt, settled, step, values):
     return verify(n, wt, settled, step, values)
 
 
-def passes_unmodified(wt, values):
+def passes_unmodified(got):
     """A revised red whose report says `AGAINST_UNMODIFIED: PASSES`, bare or followed by its why, is a pin."""
-    got = fused.report("4", wt, ".tdd/revise-red-%d.out" % values["k"], "AGAINST_UNMODIFIED")["AGAINST_UNMODIFIED"]
     return got is not None and (got == "PASSES" or got.startswith("PASSES" + WHY))
+
+
+def covering(wt, line):
+    """The ids a revised red's `COVERING_TESTS:` <line> names, each path one `git ls-files` lists; a line
+    covering_tests refuses stops with exit 2, as red-half's (PRD 044.2)."""
+    try:
+        with fused.quiet():
+            tracked = set(fused.checked("4", "git", "ls-files", cwd=wt).splitlines())
+        return covering_tests.ids(line or "", tracked)
+    except ValueError as error:
+        raise fused.Stop("4", str(error), 2) from error
 
 
 def check_earlier(n, wt, step, excepted):
@@ -274,26 +288,29 @@ def read(wt, path):
         return f.read()
 
 
-def launch_pin(where, n, wt, settled, step, values):
+def launch_pin(where, n, wt, settled, step, values, ids=None):
+    """verdict-pin over <ids>, or the step's own Red case as one id."""
     fused.launch(where, wt, "verdict-pin", "run-verdict.sh", "--step", step, "--fast-cmd", settled["fast_cmd"],
                  "--branch-base", fused_step.branch_base(where, wt, n), "pin",
-                 SPEC % n, fused_step.red_test_id(values["test_path"], values["target_test"]),
+                 SPEC % n, *(ids or [fused_step.red_test_id(values["test_path"], values["target_test"])]),
                  env=fused.step_env(n, step, VERI_TEST_CMD=settled["fast_cmd"]), out=".tdd/verify-pin.reason",
                  err=".tdd/verify-pin.err")
 
 
-def verify(n, wt, settled, step, values, as_phase=None):
-    """REVISE.md sub-step 5's re-verify: verdict-<phase> launched by the phase stage's own launch, so it takes
-    exactly that stage's run-verdict.sh arguments and the run's recorded branch base (RVS13). The leaf launched, or
-    SKIPPED with the phase switched off (ADR-0033): its skip marked and `skipped` written to its exit file, as the
-    stage does."""
+def verify(n, wt, settled, step, values, as_phase=None, ids=None):
+    """REVISE.md sub-step 5's re-verify: verdict-<phase> launched by the phase stage's own launch, so it takes exactly
+    that stage's run-verdict.sh arguments and the run's recorded branch base (RVS13). The leaf launched, or SKIPPED
+    with the phase switched off (ADR-0033): its skip marked and `skipped` written to its exit file, as the stage does."""
     phase = as_phase or values["phase"]
     if fused_step.verify_switched_off(wt, n, phase):
         fused.mark("5", wt, n, step, "verify-%s-skipped" % phase, "reason=switched-off")
         with open(os.path.join(wt, ".tdd", "verdict-%s.exit" % phase), "w") as f:
             f.write("skipped\n")
         return SKIPPED
-    (launch_pin if as_phase else LAUNCH[phase])("5", n, wt, settled, step, values)
+    if as_phase:
+        launch_pin("5", n, wt, settled, step, values, ids)
+    else:
+        LAUNCH[phase]("5", n, wt, settled, step, values)
     fused.save_wait(wt, n, NAME, "verdict-" + phase, values)
     return "verdict-" + phase
 

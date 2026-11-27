@@ -402,6 +402,27 @@ def test_4770_a_revised_red_reporting_passes_re_verifies_as_pin_over_the_steps_t
     assert words[words.index("pin") + 1:] == [".tdd/issue-12-spec.md", "tests/test_b.py::test_two"], (code, err)
 
 
+def test_4770_a_revised_red_reporting_holds_re_verifies_as_pin_over_its_covering_tests_with_no_restore(revise):
+    """PRD 044.2: a revised red whose report says `AGAINST_UNMODIFIED: HOLDS` is re-verified as a pin over the tracked
+    ids its `COVERING_TESTS:` line names; no restore-production.sh after the revise leaf, and no TEST_PATH: of that
+    report (a revise red report never carries one)."""
+    _red(revise)
+    first = revise(fake=Fake({("wait-leaf.sh", "revise-red-1"): (3, "")}, report=RED_REPORT),
+                   argv=("12", "red"), missing=("red-half",))[0]
+    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS", "AGAINST_UNMODIFIED: HOLDS") \
+        + "COVERING_TESTS: tests/test_b.py::test_two tests/test_c.py::test_three\n"
+    tracked = "tests/test_b.py\ntests/test_c.py\nveri/thing.py\n"
+    code, out, err, fake = revise(fake=Fake({("git", "ls-files"): (0, tracked),
+                                             ("wait-leaf.sh", "verdict-pin"): (3, "")}, report=report),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert (first, fake.launched()) == (3, ["verdict-pin"]), (code, out, err)
+    assert "restore-production.sh" not in fake.names()
+    words = list(fake.call("detach-leaf.sh")[1])
+    assert words[words.index("pin") + 1:] == [".tdd/issue-12-spec.md", "tests/test_b.py::test_two",
+                                              "tests/test_c.py::test_three"]
+
+
 def test_4692_a_revised_red_reporting_bare_against_unmodified_passes_re_verifies_as_pin_not_exit_1(revise):
     """The bare `AGAINST_UNMODIFIED: PASSES` is a pin too: verdict-pin, no divergence gate, no exit-1 stop."""
     _red(revise)
