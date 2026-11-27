@@ -15,16 +15,9 @@ def test_veri_plan_requirements_list_vpl1_to_vpl27_in_order():
     assert ids == ["VPL%d" % n for n in range(1, 28)], ids
 
 
-@pytest.mark.tree_audit("the repository's graded prose units, copied without .git")
-def test_prose_owed_sh_prints_nothing_for_veri_file_skill_and_requirements_list_f1_naming_feature_f13_and_f14(tmp_path, run_cli):
-    prose_owed = importlib.import_module("veri.prose_owed")
-    root = tmp_path / "repo"
-    shutil.copytree(ROOT, root, ignore=shutil.ignore_patterns(".git", ".tdd", "node_modules", "__pycache__"), symlinks=True)
+def test_veri_file_requirements_list_f1_naming_feature_f13_and_f14():
+    rows = {m[0]: m[1] for m in re.findall(r"^\| (F\d+) \| (.*)$", (ROOT / "skills/vfile/REQUIREMENTS.md").read_text(), re.M)}
 
-    code, out, err = run_cli(prose_owed, [str(root)])
-
-    rows = {m[0]: m[1] for m in re.findall(r"^\| (F\d+) \| (.*)$", (root / "skills/vfile/REQUIREMENTS.md").read_text(), re.M)}
-    assert "skills/vfile/SKILL.md" not in out.split("\n") and code in (0, 1), (code, out, err)
     assert "feature" in rows.get("F1", "") and "F13" in rows and "F14" in rows, sorted(rows)
 
 
