@@ -4039,7 +4039,7 @@ def test_4805_an_unexpired_timed_n_wins_over_n_auto(dispatch):
 
 @pytest.mark.parametrize("n, need", [("auto", 10), ("3", 6)], ids=["auto-writes-c", "numeric-writes-max-n-live-times-d"])
 def test_4805_with_n_auto_dispatch_writes_the_lanes_need_as_c_and_with_a_numeric_n_as_max_n_live_times_d(dispatch, n, need):
-    _, _, world = _auto_poll(dispatch, {"live": ["5"], "alive": ["5"], "capacity": 10, "budget": (10, 0)},
+    _, _, world = _auto_poll(dispatch, {"live": ["5"], "alive": ["5"], "capacity": 10, "budget": (6, 0)},
                              role_state=["n=" + n])
 
     assert world.budget_written == [need]
