@@ -625,3 +625,27 @@ def test_4803_during_an_incident_with_no_outage_file_each_finished_criterion_is_
     assert code == 0, out
     assert not {"gh", "tick-issue-criterion.sh"} & set(fake.names())
     assert _queued(tmp_path) == [("tick", "12", 1), ("tick", "12", 3)]
+
+
+def test_4803_criteria_after_an_incident_caught_mid_close_are_queued_without_another_body_read(
+        close, tmp_path, monkeypatch):
+    answers = iter([False])
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: next(answers, True))
+
+    code, out, err, fake = close(step="one thing works ⟦criterion 1⟧ ⟦criterion 3⟧", answers={("gh", None): (2, "")})
+
+    assert code == 0, out
+    assert fake.names().count("gh") == 1
+    assert _queued(tmp_path) == [("tick", "12", 1), ("tick", "12", 3)]
+
+
+def test_4803_a_close_asks_whether_github_is_down_once_however_many_criteria_finished(close, tmp_path, monkeypatch):
+    queue = importlib.import_module("veri.github_queue")
+    asked = []
+    monkeypatch.setattr(queue, "down", lambda top: asked.append(top) or False)
+
+    code, out, err, fake = close(step="one thing works ⟦criterion 1⟧ ⟦criterion 3⟧")
+
+    assert code == 0, out
+    assert len(asked) == 1
+    assert fake.names().count("tick-issue-criterion.sh") == 2
