@@ -1565,3 +1565,19 @@ def test_4337_a_fast_tier_that_ran_and_was_waited_on_to_green_is_recorded(monkey
     assert (first[0], first[1].splitlines()[-1], second[0]) == (3, "waiting on preflight-fast-12", 0)
     assert [a for b, a in calls if b == "baseline-full-tier.sh" and a[:1] == ("--record-green",)] == [
         ("--record-green", "12", TREE_4337, "make unit", "make test")]
+
+
+def test_4835_a_skipped_baseline_pins_0_seconds_and_hands_0_to_leaf_timeout_not_the_seconds_the_skip_took(
+        monkeypatch, run_cli, tmp_path):
+    import itertools
+    import types
+    preflight = importlib.import_module("veri.preflight")
+    ticks = itertools.count(1000.0, 0.4)
+    monkeypatch.setattr(preflight, "time", types.SimpleNamespace(monotonic=lambda: next(ticks)))
+
+    code, out, starts, calls = _ci_run_4337(monkeypatch, run_cli, tmp_path)
+
+    written = (tmp_path / "wt" / ".tdd" / "issue-12-preflight").read_text().splitlines()
+    pinned = [line for line in written if line.startswith("baseline=")]
+    timeouts = [a for b, a in calls if b == "leaf-timeout.sh"]
+    assert (code, starts, pinned, timeouts) == (0, [], ["baseline=0"], [("0", "--full", "55")])
