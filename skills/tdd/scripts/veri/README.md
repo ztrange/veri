@@ -970,6 +970,7 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `State(lines)`: the grammar of the state file. `fields()` (every `key=value` line as a dict), `field(name)` (last `name=` value, `None`), `values(name)` (every `name=` value, in file order), `items(*kinds)` (raw item lines), `last_n()`, `timed_ns()` (`(value, expiry)` pairs), `override_numbers()`. A bad line raises `Malformed(kind, line)` (`kind` one of `n-missing`, `n`, `timed-n`, `override`); each caller words it.
 - `run_verbs(argv, after_set_n=None)`, `USAGE`: role-state.sh's verbs and its usage line; after a written `set n`, it prints the line `after_set_n(path, n)` returns (role_state_cli's lane budget line).
 - `STAMP`: the strftime format of the state file's stamps; reset_cost writes a restart's time in it.
+- `AUTO_N`: the `n` value `auto`; `last_n()` returns it as is, and dispatch and role_state_cli branch on it.
 
 ## watch_runs
 - `live_conductors()`: the issues whose conductor is live, running per status, starting or pid-filed; dispatch's slot count and role_state_cli's lane need read it.
