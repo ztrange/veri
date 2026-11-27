@@ -154,9 +154,13 @@ def pin_ids(words):
 
 def pin_ids_refusal(test_ids):
     """Why the pin phase's <test_ids> cannot be judged, or "" when they can: more than covering_tests.MOST of them, or
-    one whose path (the part before `::`) `git ls-files` does not list."""
+    one holding whitespace (free text, not a test id), or one whose path (the part before `::`) `git ls-files` does not
+    list."""
     if len(test_ids) > covering_tests.MOST:
         return f"build-verify-prompt: pin takes at most {covering_tests.MOST} test ids, got {len(test_ids)}"
+    free_text = [test_id for test_id in test_ids if not test_id or test_id != "".join(test_id.split())]
+    if free_text:
+        return f"build-verify-prompt: pin argument '{free_text[0]}' is not a test id"
     if not test_ids:
         return ""
     try:
