@@ -71,6 +71,7 @@ def checked(step, name, *args, ok=(0,), **kw):
 
 
 DETACH = script("detach-command.sh")
+BASELINE_FULL_TIER = script("baseline-full-tier.sh")
 
 
 def wait_on(name, wt, env):
@@ -379,7 +380,7 @@ def recorded_green(n, wt, fast, body_file, detect):
     """Whether this machine records a green baseline of the tree under test with these commands."""
     tree = call("git", "rev-parse", "HEAD^{tree}", cwd=wt)[1].strip()
     full = checked(3, detect, "--tier", "all", "--issue", body_file, wt, cwd=wt).strip()
-    out = call(script("baseline-full-tier.sh"), "--green", n, tree, fast, full, cwd=wt)[1]
+    out = call(BASELINE_FULL_TIER, "--green", n, tree, fast, full, cwd=wt)[1]
     return out.strip() == "skip"
 
 
@@ -419,7 +420,7 @@ def start_full(n, wt, fast, body_file, fast_began, code, detect, env):
     if body_file is None:
         body_file = issue_body(n, wt)
     full = checked(3, detect, "--tier", "all", "--issue", body_file, wt, cwd=wt).strip()
-    verdict = checked(3, script("baseline-full-tier.sh"), n, full, cwd=wt)
+    verdict = checked(3, BASELINE_FULL_TIER, n, full, cwd=wt)
     alone = checked(3, detect, "--tier", "one test file", "--issue", body_file, wt, cwd=wt).strip()
     began = time.monotonic()
     reused = None
@@ -564,7 +565,7 @@ def baseline_suite(n, wt, saved, fast, body_file, detect, env, got):
     # CI's word or the record's never is, even once its full tier is waited on to green.
     if code == 0 and CARRIED.get("fast_ran"):
         tree = call("git", "rev-parse", "HEAD^{tree}", cwd=wt)[1].strip()
-        call(script("baseline-full-tier.sh"), "--record-green", n, tree, fast, full, cwd=wt)
+        call(BASELINE_FULL_TIER, "--record-green", n, tree, fast, full, cwd=wt)
     return code
 
 
