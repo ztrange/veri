@@ -1,15 +1,16 @@
 # ruff, the static checker `make test` runs over every tracked Python file (PRD 039,
 # tests/py/test_ruff_tree_audit_process.py): the pyflakes rules (unused imports, undefined and
-# redefined names), the pycodestyle errors (E4, E7, E9) and warnings (W), import order, the
-# complexity cap (C901) and the bugbear rules (likely bugs).
+# redefined names), the pycodestyle errors (E4, E7, E9) and warnings (W), the 120-column
+# line-length cap (E501), import order, the complexity cap (C901) and the bugbear rules (likely bugs).
 # `src` names the flat sibling
 # directories, so their modules sort as first-party.
 target-version = "py312"
+line-length = 120
 extend-exclude = [".tdd"]
 src = ["skills/tdd/scripts/veri", "skills/tdd/scripts/tests/leg", "skills/tdd/scripts/tests/py"]
 
 [lint]
-select = ["F", "E4", "E7", "E9", "W", "I", "C901", "B"]
+select = ["F", "E4", "E7", "E9", "E501", "W", "I", "C901", "B"]
 # E701: each veri module's bootstrap is the one line
 # `if __name__ == "__main__": __import__("runpy").run_path(…"/pycache_prefix.py")`, pinned by
 # tests/py/unit/test_shims.py and tests/py/test_stale_bytecode_process.py.
@@ -31,3 +32,6 @@ max-complexity = 40
 "skills/tdd/scripts/tests/py/conftest.py" = ["E402"]
 # Its later imports follow sys.dont_write_bytecode: the entry-point run writes no bytecode for them.
 "skills/tdd/scripts/veri/run_conductor.py" = ["E402"]
+# E501: the test tree is not wrapped yet. The follow-up sweeps that remove this line wrap tests/py/ outside unit/,
+# then tests/py/unit/.
+"skills/tdd/scripts/tests/py/**" = ["E501"]
