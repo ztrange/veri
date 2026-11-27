@@ -107,6 +107,7 @@ class Opener:
 
 @pytest.fixture
 def page(monkeypatch):
+    monkeypatch.delenv("VERI_GITHUB_STATUS_URL", raising=False)
     return Page(monkeypatch)
 
 

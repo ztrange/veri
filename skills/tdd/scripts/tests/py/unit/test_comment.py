@@ -139,6 +139,7 @@ def test_step_done_exits_2_with_one_stderr_line_and_journals_nothing_when_github
         raise github.NoAnswer("")
 
     monkeypatch.setattr(github, "gh_issue_comment", no_answer)
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: False)
     (tmp_path / ".git").mkdir()
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] second step bravo\n")
@@ -2149,4 +2150,89 @@ def test_retire_with_no_retired_step_in_the_ledger_exits_2_posting_and_journalin
     assert code == 2
     assert err.count("\n") == 1 and "retired" in err
     assert posted == []
+    assert not (tmp_path / ".tdd" / "events.jsonl").exists()
+
+
+def _queued(tmp_path):
+    """The `.tdd/github-queue` entries as dicts, in file order; None when there is no queue."""
+    path = tmp_path / ".tdd" / "github-queue"
+    return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else None
+
+
+def _offline_step_done(monkeypatch, tmp_path, incident=False):
+    """A step-done post whose comment gets no answer; the status read answers <incident>."""
+    github = importlib.import_module("github")
+    queue = importlib.import_module("veri.github_queue")
+
+    def no_answer(number, body):
+        raise github.NoAnswer("")
+
+    monkeypatch.setattr(github, "gh_issue_comment", no_answer)
+    monkeypatch.setattr(queue, "incident", lambda: incident)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] second step bravo\n")
+
+
+@pytest.mark.parametrize("down", ["outage-file", "incident"])
+def test_4803_a_post_getting_no_answer_while_github_is_down_is_queued_with_exit_0_and_a_queued_key_line(
+        monkeypatch, run_cli, tmp_path, down):
+    comment = importlib.import_module("veri.comment")
+    _offline_step_done(monkeypatch, tmp_path, incident=down == "incident")
+    if down == "outage-file":
+        (tmp_path / ".tdd" / "github-outage").write_text("")
+
+    code, out, err = run_cli(comment, ["7", "step-done"], cwd=tmp_path)
+
+    assert code == 0, err
+    [entry] = _queued(tmp_path)
+    assert (entry["type"], entry["issue"], entry["kind"]) == ("comment", "7", "step-done")
+    assert re.fullmatch(r"[0-9a-f]{16}", entry["key"])
+    assert out == "queued %s\n" % entry["key"]
+    assert "second step bravo" in entry["body"]
+
+
+def test_4803_a_queued_body_ends_with_the_hidden_key_marker_and_its_only_event_is_comment_queued(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    _offline_step_done(monkeypatch, tmp_path)
+    (tmp_path / ".tdd" / "github-outage").write_text("")
+
+    code, out, err = run_cli(comment, ["7", "step-done"], cwd=tmp_path)
+
+    [entry] = _queued(tmp_path)
+    assert entry["body"].endswith("<!-- veri-queued %s -->" % entry["key"])
+    events = [json.loads(line) for line in (tmp_path / ".tdd" / "events.jsonl").read_text().splitlines()]
+    assert [(e["event"], e["kind"], e["key"]) for e in events] == [("comment-queued", "step-done", entry["key"])]
+
+
+def test_4803_the_queue_is_the_main_working_trees_when_the_post_runs_in_a_linked_worktree(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    _offline_step_done(monkeypatch, tmp_path)
+    (tmp_path / ".tdd" / "github-outage").write_text("")
+    gitdir = tmp_path / ".git" / "worktrees" / "wt7"
+    gitdir.mkdir(parents=True)
+    (gitdir / "commondir").write_text("../..\n")
+    wt = tmp_path / ".tdd" / "wt" / "7"
+    (wt / ".tdd").mkdir(parents=True)
+    (wt / ".git").write_text("gitdir: %s\n" % gitdir)
+    (wt / ".tdd" / "issue-7.md").write_text("# Plan for #7\n\n- [x] second step bravo\n")
+
+    code, out, err = run_cli(comment, ["7", "step-done"], cwd=wt)
+
+    assert code == 0, err
+    assert len(_queued(tmp_path)) == 1
+    assert not (wt / ".tdd" / "github-queue").exists()
+
+
+def test_4803_a_post_getting_no_answer_outside_an_outage_still_exits_2_and_queues_nothing(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    _offline_step_done(monkeypatch, tmp_path, incident=False)
+
+    code, out, err = run_cli(comment, ["7", "step-done"], cwd=tmp_path)
+
+    assert (code, out) == (2, "")
+    assert _queued(tmp_path) is None
     assert not (tmp_path / ".tdd" / "events.jsonl").exists()
