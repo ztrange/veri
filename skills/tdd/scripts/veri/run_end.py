@@ -64,7 +64,7 @@ def standing_mark(events, ends=MARKS):
 
 
 def _reposted_done(events):
-    if not standing_mark(events, ("comment",)):
+    if not standing_mark([e for e in events if e.get("event") != "comment" or e.get("kind") == "done"], ("comment",)):
         return {}
     return next((e for e in events if e.get("event") == "done"), {})
 
