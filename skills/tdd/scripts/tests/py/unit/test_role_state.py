@@ -258,3 +258,7 @@ def test_4805_a_timed_n_of_auto_exits_2_recording_nothing_through_set_and_throug
 
 def test_4805_state_last_n_of_an_n_auto_line_is_the_word_auto():
     assert _state(["n=3", "n=auto"]).last_n() == "auto"
+
+
+def test_4805_state_last_n_of_a_numeric_n_line_after_n_auto_is_the_number():
+    assert _state(["n=auto", "n=2"]).last_n() == 2
