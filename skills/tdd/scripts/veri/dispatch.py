@@ -354,20 +354,22 @@ def _lowered(state, world):
         world.say(f"n-lowered {lowered[0]} {lowered[1]} {cases}\n")
 
 
-# T's floor (load_timeouts.py): a lowering from it changes nothing, so dispatch lowers N instead (PRD 036.8 D22).
+# T's floor, the leg's own: a lowering from it changes nothing, so dispatch lowers N instead (PRD 036.8 D22).
 FLOOR_T = 2
 
 
 def _lower_n(state, world, cases):
     """Lowers the role state's numeric N by 1, never below 1 (PRD 036.8): writes n=, drops every unexpired timed-n
     line so no earlier one takes over or raises N back, and adds a `veri (load)` message; (old, new), or None when N is
-    already at most 1. Never raised back: only the human raises N."""
+    already at most 1 or the last n= line is auto. Never raised back: only the human raises N."""
     old = state.target
     new = max(1, old - 1)
     if new >= old:
         return None
     lines = world.role_state()
     parsed = role_state.State(lines)
+    if parsed.last_n() == role_state.AUTO_N:
+        return None  # an unexpired timed-n over n=auto: an n= line would drop the lane's auto for good
     unexpired = [line for line, (_, expiry) in zip(parsed.items("timed-n"), parsed.timed_ns(), strict=True)
                if world.clock() < expiry]
     kept = [line for line in lines if line not in unexpired]

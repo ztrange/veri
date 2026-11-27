@@ -274,3 +274,15 @@ def test_4806_item_line_counts_only_item_lines_ids():
     role_state = importlib.import_module("veri.role_state")
 
     assert role_state.item_line(["message 1 S a", "stray 9 S b"], "message", "t", "STAMP") == "message 2 STAMP t"
+
+
+def test_4806_item_line_takes_the_kind_it_is_given():
+    role_state = importlib.import_module("veri.role_state")
+
+    assert role_state.item_line(["decision 1 S a"], "decision", "t", "STAMP") == "decision 2 STAMP t"
+
+
+def test_4806_item_line_skips_an_item_line_with_no_id_or_a_non_numeric_one():
+    role_state = importlib.import_module("veri.role_state")
+
+    assert role_state.item_line(["message", "message x S a", "message 3 S b"], "message", "t", "STAMP") == "message 4 STAMP t"
