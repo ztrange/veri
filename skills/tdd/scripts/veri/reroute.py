@@ -20,6 +20,7 @@ USAGE = "usage: reroute.sh <n> <report>"
 SPEC = ".tdd/issue-%s-spec.md"
 LEDGER = run_dir.ledger("", "%s")
 REASON = ".tdd/verify-%s.reason"
+VERDICT_RED = "verdict-red"
 
 # The $S/ scripts this call makes, in the order each is first made.
 CALLS = ("wrong-test-route.sh", "event.sh", "build-develop-prompt.sh", "restore-production.sh", "stop-requested.sh",
@@ -81,7 +82,7 @@ def run(n, report):
         fused_step.cost_check(wt, step)
         values.update(edited(wt, values))
         at = verify(step_at, settled, values)
-    while at == "verdict-red":
+    while at == VERDICT_RED:
         code = fused.wait(wt, n, NAME, at)
         if code == 1:
             revise_red(step_at, red, values)
@@ -164,8 +165,8 @@ def verify(step_at, settled, values):
         return None
     path, target = values["verify"][0]
     red_half.launch_verdict("verify", n, wt, settled, step, {"test_path": path, "target_test": target})
-    fused.save_wait(wt, n, NAME, "verdict-red", values)
-    return "verdict-red"
+    fused.save_wait(wt, n, NAME, VERDICT_RED, values)
+    return VERDICT_RED
 
 
 def finish(step_at, values, red):
@@ -194,7 +195,7 @@ def revise_red(step_at, red, values):
     record naming the step, so run-step.sh sends it to revise.sh <n> red as it does red-half's own REJECT. The record
     carries `rerouted`, every test path the reroute's re-record covers, so the revised PASS keeps the step's own Red
     case and records the frozen tests over every path, as a reroute PASS does."""
-    reject(step_at, "red-half", "verdict-red", red, rerouted=values["paths"])
+    reject(step_at, "red-half", VERDICT_RED, red, rerouted=values["paths"])
     raise Revise("red")
 
 
