@@ -285,7 +285,11 @@ by the steps below. Steps 1 to 7 stay stated here.
    The script keeps a quick suite on today's 900 s and gives a slow one 6 × its baseline —
    which is what stops a leaf whose own test command takes minutes being killed as stuck
    while it is working (#71: a 900 s cap against a 140-250 s suite, two bails, both steps
-   reverted). An export would not survive: every Bash call is a fresh shell. So step 1.2,
+   reverted). A skipped baseline hands it `0`, never the seconds the skip took, and the script then
+   sizes the run from the full tier's idle duration `make ceiling` records (the `idle all <seconds>`
+   line of `VERI_TEST_CEILING_FILE`, default `~/.veri-test-ceiling`); with none recorded it keeps
+   900 s and names that fallback on stderr (#4835: a 1 s skip pinned 900 s against probes needing more).
+   An export would not survive: every Bash call is a fresh shell. So step 1.2,
    once it has entered the issue's worktree, calls the script again with the issue number,
    which records the settled number once per issue in `.tdd/issue-<n>-timeout` at the run
    worktree's root, and `supervise.sh` reads that file whenever `VERI_TIMEOUT` is unset —
