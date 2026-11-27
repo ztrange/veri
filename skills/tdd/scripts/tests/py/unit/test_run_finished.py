@@ -429,7 +429,9 @@ def test_a_resumed_run_that_reposts_its_done_comment_after_two_earlier_done_even
         done_comment % (1103, 2),
         '{"ts":1200,"event":"resume"}',
         LAUNCH % 1201,
-        done_comment % (1202, 3)])
+        done_comment % (1202, 3),
+        '{"ts":1203,"event":"stage-start","stage":"ci-wait"}',
+        '{"ts":1204,"event":"stage-end","stage":"ci-wait","status":0,"secs":1}'])
 
     code, out, _ = finish(run_cli, fake_processes, repo, "Closes #4242")
     status = importlib.import_module("veri.status")
@@ -438,36 +440,53 @@ def test_a_resumed_run_that_reposts_its_done_comment_after_two_earlier_done_even
     assert (code, out, activity["state"], activity["pr"]) == (0, "", "done", "https://github.com/o/r/pull/8")
 
 
-def resumed_run_whose_reposted_done_is_followed_by(tmp_path, ci_wait):
+def resumed_run_whose_reposted_done_is_followed_by(tmp_path, after):
+    """A run whose first finish waited on a green CI before its done event, then resumed and re-posted its Done
+    comment, followed by <after>."""
     done_comment = '{"ts":%s,"event":"comment","kind":"done","url":"https://github.com/o/r/issues/4242#issuecomment-%s"}'
     return make_run(tmp_path, [
-        LAUNCH % 1000, DONE, done_comment % (1002, 1),
+        LAUNCH % 1000,
+        '{"ts":1000,"event":"stage-start","stage":"ci-wait"}',
+        '{"ts":1000,"event":"stage-end","stage":"ci-wait","status":0,"secs":1}',
+        DONE, done_comment % (1002, 1),
         '{"ts":1102,"event":"resume"}',
         LAUNCH % 1103,
-        done_comment % (1106, 2),
+        done_comment % (1106, 2), *after])
+
+
+REBASED = ['{"ts":1107,"event":"stage-start","stage":"rebase"}',
+           '{"ts":1108,"event":"stage-end","stage":"rebase","status":0,"secs":1}']
+
+
+def assert_reposted_done_not_done(tmp_path, run_cli, fake_processes, after):
+    repo = resumed_run_whose_reposted_done_is_followed_by(tmp_path, after)
+
+    code, out, _ = finish(run_cli, fake_processes, repo, "Closes #4242")
+    status = importlib.import_module("veri.status")
+    activity = json.loads(status.run_activity(str(repo / ".tdd" / "wt" / "4242"), True))
+
+    assert (code, out.startswith("not-done "), activity["state"] == "done") == (1, True, False)
+
+
+def test_a_resumed_run_whose_conductor_died_in_the_rebase_after_its_reposted_done_reads_as_not_done_4792(
+        tmp_path, run_cli, fake_processes):
+    assert_reposted_done_not_done(tmp_path, run_cli, fake_processes, ['{"ts":1107,"event":"stage-start","stage":"rebase"}'])
+
+
+def test_a_resumed_run_whose_rebase_failed_after_its_reposted_done_reads_as_not_done_4792(
+        tmp_path, run_cli, fake_processes):
+    assert_reposted_done_not_done(tmp_path, run_cli, fake_processes, [
         '{"ts":1107,"event":"stage-start","stage":"rebase"}',
-        '{"ts":1108,"event":"stage-end","stage":"rebase","status":0,"secs":1}',
-        '{"ts":1109,"event":"stage-start","stage":"ci-wait"}', *ci_wait])
+        '{"ts":1108,"event":"stage-end","stage":"rebase","status":1,"secs":1}'])
 
 
 def test_a_resumed_run_whose_conductor_died_in_the_ci_wait_after_its_reposted_done_reads_as_not_done_4792(
         tmp_path, run_cli, fake_processes):
-    repo = resumed_run_whose_reposted_done_is_followed_by(tmp_path, [])
-
-    code, out, _ = finish(run_cli, fake_processes, repo, "Closes #4242")
-    status = importlib.import_module("veri.status")
-    activity = json.loads(status.run_activity(str(repo / ".tdd" / "wt" / "4242"), True))
-
-    assert (code, out.startswith("not-done "), activity["state"] == "done") == (1, True, False)
+    assert_reposted_done_not_done(tmp_path, run_cli, fake_processes, [*REBASED, '{"ts":1109,"event":"stage-start","stage":"ci-wait"}'])
 
 
 def test_a_resumed_run_whose_ci_went_red_after_its_reposted_done_reads_as_not_done_4792(
         tmp_path, run_cli, fake_processes):
-    repo = resumed_run_whose_reposted_done_is_followed_by(
-        tmp_path, ['{"ts":1110,"event":"stage-end","stage":"ci-wait","status":1,"secs":1}'])
-
-    code, out, _ = finish(run_cli, fake_processes, repo, "Closes #4242")
-    status = importlib.import_module("veri.status")
-    activity = json.loads(status.run_activity(str(repo / ".tdd" / "wt" / "4242"), True))
-
-    assert (code, out.startswith("not-done "), activity["state"] == "done") == (1, True, False)
+    assert_reposted_done_not_done(tmp_path, run_cli, fake_processes, [
+        *REBASED, '{"ts":1109,"event":"stage-start","stage":"ci-wait"}',
+        '{"ts":1110,"event":"stage-end","stage":"ci-wait","status":1,"secs":1}'])

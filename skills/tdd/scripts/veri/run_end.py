@@ -64,8 +64,9 @@ def standing_mark(events, ends=MARKS):
 
 
 def _ci_green_after(events):
-    """Whether no CI wait in <events> is pending or red: the last `ci-wait` stage, if any, ended with status 0."""
-    green = True
+    """Whether CI went green in <events>: a `ci-wait` stage ran and the last one ended with status 0. None ran is not
+    green, so a conductor that died before its CI wait (in the rebase, say) never reads as finished."""
+    green = False
     for event in events:
         if event.get("stage") != "ci-wait":
             continue
@@ -77,8 +78,8 @@ def _ci_green_after(events):
 
 
 def _reposted_done(events):
-    """The latest done event when a kind=done comment stands after the last resume (a re-posted Done) and no CI wait
-    after that comment is pending, killed or red (#4332); {} otherwise."""
+    """The latest done event when a kind=done comment stands after the last resume (a re-posted Done) and a CI wait
+    after that comment went green (#4332); {} otherwise."""
     without_other_comments = [e for e in events if e.get("event") != "comment" or e.get("kind") == "done"]
     comment = standing_mark(without_other_comments, ("comment",))
     if not comment or not _ci_green_after(events[next(i for i, e in enumerate(events) if e is comment):]):
