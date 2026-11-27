@@ -25,11 +25,13 @@ from replaces_case import is_replaces_case_step
 from replaces_case import parse as parse_replaces_case
 
 DEVELOP_INTERFACE_PHASES = INTERFACE_PHASES[:1] + ("beside",) + INTERFACE_PHASES[1:]
-PHASES = ("red", "green", "refactor", "cover", "seam", "break", "surround", "transform", "diff", "structural", "predicate", "revise",
+PHASES = ("red", "green", "refactor", "cover", "seam", "break", "surround", "transform", "diff", "structural",
+          "predicate", "revise",
           "reconcile", "exhausted", "over-budget", "rebase", "replaces-report", "red-contradicted", "red-repair",
           "red-missing", "red-supersede", "test-quality") + DEVELOP_INTERFACE_PHASES
 REVISE_PHASES = ("red", "green", "refactor", "transform", "diff")
-WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "seam": 4, "break": 4, "surround": 4, "transform": 4, "diff": 5, "structural": 5,
+WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "seam": 4, "break": 4, "surround": 4, "transform": 4,
+        "diff": 5, "structural": 5,
         "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7,
         "replaces-report": 6, "red-contradicted": 5, "red-repair": 6, "red-missing": 5, "red-supersede": 6,
         "test-quality": 4,
@@ -73,7 +75,8 @@ class Refusal:
 
 
 class Arguments:
-    """The checked arguments: `phase`, `revised_phase` ("" unless phase is revise), the `names` each argument after the phase
+    """The checked arguments: `phase`, `revised_phase` ("" unless phase is revise),
+    the `names` each argument after the phase
     goes by (`args` aligned to them, the revised phase already taken off) and `args`."""
     __slots__ = ("phase", "revised_phase", "names", "args")
 
@@ -147,7 +150,8 @@ def arguments(argv):
 
 class Fragments:
     """The prompt fragments a phase uses, as file names under `scripts/prompts/`:
-    `template` (the phase's own file), `bug` (the bug-reproduction file or None), `marked` (slot -> file, ordered: one per
+    `template` (the phase's own file), `bug` (the bug-reproduction file or None),
+    `marked` (slot -> file, ordered: one per
     step marker or revise sub-phase that brings a paragraph), `freeze` (the files the FREEZE_RULE slot joins, ordered),
     `inline` (slot -> file, ordered: spliced where the template carries the slot), `repair` (the step is a suite or ci
     repair) and `replaces_red` (the red cases are a replaces-case step's)."""
@@ -195,7 +199,8 @@ def fragments(phase, revised_phase, step, has_bug):
     if phase != "revise" or replaces_red:
         inline["RED_CASES"] = "_develop-red-cases-replaces-case.md" if replaces_red else "_develop-red-cases.md"
     inline["TEST_REWRITE"] = "_develop-" + {"red": "test-rewrite-grant", "contract-a": "test-move-contract-a",
-                                            "surround": "test-rewrite-surround"}.get(revised_phase, "test-rewrite-none") + ".md"
+                                            "surround": "test-rewrite-surround"}.get(revised_phase,
+                                                                                     "test-rewrite-none") + ".md"
     if revised_phase == "green":
         inline["WRONG_TEST_REPORT"] = "_develop-wrong-test-report.md"
         inline["WRONG_TEST_FORMAT"] = "_develop-wrong-test-format.md"
@@ -205,7 +210,8 @@ def fragments(phase, revised_phase, step, has_bug):
 
 
 def render(parsed, chosen):
-    """The prompt text (bytes, no trailing newline) for the checked `Arguments` and their `Fragments`, or a `Refusal` with
+    """The prompt text (bytes, no trailing newline) for the
+    checked `Arguments` and their `Fragments`, or a `Refusal` with
     no usage line.
 
     Files are read in this order, and the order is behaviour: every file the prompt is built from is first checked
@@ -237,10 +243,14 @@ def render(parsed, chosen):
         if not os.access(path, os.R_OK):
             return Refusal(f"build-develop-prompt: cannot read '{path}'", usage=False)
     prompts_b = os.fsencode(prompts)
-    values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE", "SUITE_REPAIR", "FIXTURE_REPAIR", "CI_REPAIR", "TEST_QUALITY", "STEP",
+    values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "RED_CASES", "RED_LEAD", "REPLACES_CASE",
+                            "SUITE_REPAIR", "FIXTURE_REPAIR", "CI_REPAIR", "TEST_QUALITY", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
-                            "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT", "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
-                            "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES", "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON", "SUPERSEDED_CASES", "ISSUE_NUMBER", "STEP_ARGUMENT",
+                            "NODE_ID_RULE", "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "WRONG_TEST_REPORT",
+                            "WRONG_TEST_FORMAT", "TEST_REWRITE", "REJECTION_REASON", "BRANCH",
+                            "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES",
+                            "REPORT_FILE", "MISSING_CASES", "CASE", "CASES", "WRONG_TEST_REASON", "SUPERSEDED_CASES",
+                            "ISSUE_NUMBER", "STEP_ARGUMENT",
                             "AFFECTED_RUN_LINE", "RUN_LINE", "TEST_FILES", "SMELL_NAMES", "NEAR_DUPLICATES"), b"")
     for name, value in zip(names[3:], args[3:], strict=False):
         if name in ARGUMENT_PLACEHOLDERS:
@@ -283,7 +293,8 @@ def render(parsed, chosen):
                 rerouted = []
             values["STEP_ARGUMENT"] = os.fsencode(" ".join(
                 [shlex.quote(step)] + ["--except " + shlex.quote(c) for c in dict.fromkeys(rerouted)]))
-        if "RED_CASES" in splice(("NODE_ID_RULE", "RED_LEAD", "RED_CASES", "TEST_REWRITE")) and chosen.replaces_red and phase == "revise":
+        if ("RED_CASES" in splice(("NODE_ID_RULE", "RED_LEAD", "RED_CASES", "TEST_REWRITE")) and chosen.replaces_red
+                and phase == "revise"):
             values["RED_CASES"] = b"\n\n" + values["RED_CASES"]
         if phase == "revise" and revised_phase != "red":
             text = re.sub(rb"^(?:FAIL_OUTPUT|PREDICTION_NOTE|SETUP):.*\n", b"", text, flags=re.MULTILINE)

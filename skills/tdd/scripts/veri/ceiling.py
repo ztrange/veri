@@ -40,7 +40,8 @@ def run_suite(workers, record, tests=()):
 def run_unit(workers):
     """Runs `make unit` at <workers> workers; returns make's exit code."""
     env = tunables.with_values(VERI_PYTEST_WORKERS=str(workers))
-    return subprocess.run(["make", "--no-print-directory", "-C", ROOT, "unit"], env=env, stdin=subprocess.DEVNULL).returncode
+    return subprocess.run(["make", "--no-print-directory", "-C", ROOT, "unit"], env=env,
+                          stdin=subprocess.DEVNULL).returncode
 
 
 def failures(record):
@@ -94,7 +95,8 @@ def cap_path():
 
 def read_cap():
     """(cap, complaint): the cap the human set on line 1 of the cap file (cap_path) when it is a whole number of at
-    least 2. No file is no cap and no complaint; one that cannot be read, or whose line 1 is anything else, is no cap and
+    least 2. No file is no cap and no complaint; one that cannot be read,
+    or whose line 1 is anything else, is no cap and
     a one-line complaint naming the file, for the caller's stderr. Nothing in veri writes or removes the file (D30)."""
     path = cap_path()
     try:
@@ -106,7 +108,8 @@ def read_cap():
         return None, "cannot read the test-worker cap file %s, so there is no cap: %s\n" % (path, error)
     if first.isascii() and first.isdigit() and int(first) >= 2:
         return int(first), None
-    return None, "the test-worker cap file %s holds %r on line 1, not a whole number of at least 2, so there is no cap\n" % (
+    return None, ("the test-worker cap file %s holds %r on line 1, not a whole number of at least 2, "
+                  "so there is no cap\n") % (
         path, first)
 
 
@@ -153,7 +156,8 @@ class NoAnswer(Exception):
 
 def step(workers, scratch):
     """Runs the full selection at <workers>; returns how many cases timed out from load, each re-run alone with one
-    worker and passing there. Raises NoAnswer for a case red any other way, a hung case, or a run with nothing recorded."""
+    worker and passing there. Raises NoAnswer for a case red any other way, a hung case, or a run with nothing
+    recorded."""
     code, failed = run_suite(workers, os.path.join(scratch, "record-%d" % workers))
     if code and not failed:
         raise NoAnswer("make test exited %d at %d workers with no failed case recorded" % (code, workers))
@@ -176,7 +180,8 @@ def step(workers, scratch):
 def ramp(top, scratch, odd_top=False):
     """Steps w = 2, 4, … up to <top>, <top> itself last when it is odd and <odd_top> is set (a cap is), stopping at the
     first with a load timeout; returns the ceiling (None when that was the first step), one
-    `<workers> <seconds> <timeouts>` line per step run, and the ceiling step's seconds, the full suite's idle duration."""
+    `<workers> <seconds> <timeouts>` line per step run, and the ceiling step's seconds,
+    the full suite's idle duration."""
     ceiling, steps, idle = None, [], None
     for workers in list(range(2, top + 1, 2)) + ([top] if odd_top and top % 2 else []):
         entry = register(workers)

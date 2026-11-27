@@ -21,7 +21,8 @@ def section(doc, title):
 
 def waivable(doc, cause):
     """(rule, purpose) of the *Waivable rules* bullet naming `cause`, its wrapped lines joined; None for none."""
-    for rule, named, text in re.findall(r"^- `([^`]+)`: `([^`]+)`(.*(?:\n  .*)*)", section(doc, "Waivable rules"), re.M):
+    for rule, named, text in re.findall(r"^- `([^`]+)`: `([^`]+)`(.*(?:\n  .*)*)",
+                                        section(doc, "Waivable rules"), re.M):
         if named == cause:
             text = " ".join(text.split())
             purpose = re.search(r"Purpose: (.*?)(?= Resume action:|$)", text)

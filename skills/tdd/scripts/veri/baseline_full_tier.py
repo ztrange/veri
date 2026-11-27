@@ -77,7 +77,8 @@ def main(argv):
     if mode == "reuse":
         max_days, bad = tunables.resolve("VERI_FULL_TIER_MAX_AGE_DAYS")
         if bad:
-            sys.stderr.write("baseline-full-tier: VERI_FULL_TIER_MAX_AGE_DAYS must be %s, got '%s'\n" % (bad[1], bad[0]))
+            sys.stderr.write("baseline-full-tier: VERI_FULL_TIER_MAX_AGE_DAYS must be %s, got '%s'\n"
+                             % (bad[1], bad[0]))
             return 2
         record = full_tier_time.record_path()
         times = full_tier_time.read_times(record)

@@ -24,14 +24,17 @@ if __name__ == "__main__":
     __import__("sys").path[0] = VERI
     __import__("runpy").run_path(VERI + "/pycache_prefix.py")
 # Usage:   pytest_leg.py [--subset] [--cap=<n>] [pytest-args...]
-#          With VERI_PYTEST_WORKERS unset, the leg's workers come out of T, the budget every registered leg on the machine
+#          With VERI_PYTEST_WORKERS unset, the leg's workers come out of T,
+#            the budget every registered leg on the machine
 #            shares: line 1 of ~/.veri-test-ceiling (VERI_TEST_CEILING_FILE, `make ceiling`'s record) when it is a whole
 #            number of at least 2, else the physical cores (the affinity count off macOS), never below 2, said in one
 #            stderr line naming the file and `make ceiling`; lowered to the cap on line 1 of ~/.veri-test-cap
 #            (VERI_TEST_CAP_FILE, PRD 036.11) when that is a whole number of at least 2 below it (any other content, or
-#            an unreadable file, is one stderr line and no cap; the wait line then names the cap file); narrowed, while any
+#            an unreadable file, is one stderr line and no cap;
+#            the wait line then names the cap file); narrowed, while any
 #            lane entry under ~/.veri-test-budget (VERI_TEST_BUDGET_DIR) is unexpired, to the sum of their needs, never
-#            below 2 (PRD 036.5; the wait line then names each lane and its need beside C). It starts only once 2 of T are free, waiting meanwhile
+#            below 2 (PRD 036.5; the wait line then names each lane and its need beside C). It starts only once 2 of T
+#            are free, waiting meanwhile
 #            (PRD 036.4), takes every free worker, and registers what it takes
 #          --subset: the caller named the suites to run (`make test TESTS=…`), so no full-run lock is taken, and the leg
 #            takes at most 4 of the free workers
@@ -43,7 +46,8 @@ if __name__ == "__main__":
 #            `<n> unselected: named cases that neither pass ran (<targets>)`; cases the run's own -m/-k deselects from a
 #            target that ran never count
 #          2 the interpreter is below the floor in lib/venv-python.sh, or cannot import pytest, pytest_timeout or xdist,
-#            or VERI_PYTEST_WORKERS, VERI_PYTEST_IDLE or --cap is not a whole number of at least 1, or any other exception escaped the leg (registering
+#            or VERI_PYTEST_WORKERS, VERI_PYTEST_IDLE or --cap is not a whole number of at least 1, or any other
+#            exception escaped the leg (registering
 #            it, taking the full-run lock, checking or recording the bytecode cache), one stderr line naming it in
 #            entry.refusal's form (#3985); a record that fails after failing suites leaves their 1
 #            or no case started or reported for VERI_PYTEST_IDLE seconds (default 1200): the leg ends the workers it
@@ -245,9 +249,10 @@ def claim(cleanups=None, cap=None):
                     return count, entry, total
                 if not said:
                     holders = registered_legs(legs)
-                    sys.stderr.write("waiting for %d free test workers of T=%d (%s): %d in use by the registered legs with pids %s\n" % (
-                        FLOOR, total, source, sum(count for _, count in holders),
-                        ", ".join(name for name, _ in holders)))
+                    sys.stderr.write(
+                        "waiting for %d free test workers of T=%d (%s): %d in use by the registered legs with pids %s\n"
+                        % (FLOOR, total, source, sum(count for _, count in holders),
+                           ", ".join(name for name, _ in holders)))
                     sys.stderr.flush()
                     said = True
                     began = time.monotonic()  # noqa: F841 -- read on a later pass of the loop, which pyflakes misreads
@@ -267,7 +272,8 @@ def claim(cleanups=None, cap=None):
                             pid_file.record(waitfile, os.getpid(), atomic=True)
                             cleanups.append(removal)
                         except OSError as error:
-                            sys.stderr.write("cannot mark the core wait, so it counts toward the leaf's timeout: %s\n" % error)
+                            sys.stderr.write(
+                                "cannot mark the core wait, so it counts toward the leaf's timeout: %s\n" % error)
                             sys.stderr.flush()
                             waitfile = ""
             time.sleep(1)
@@ -304,11 +310,14 @@ def sweep_dead_runs():
 
 
 def remove_scratch_mirror(prefix, folder):
-    """Removes the trees under the bytecode prefix that mirror `folder`, a scratch directory this leg made or proved dead.
+    """Removes the trees under the bytecode prefix that mirror `folder`,
+    a scratch directory this leg made or proved dead.
 
-    CPython writes a source's .pyc under <prefix>/<the source's absolute directory>, so a source a case creates under the
+    CPython writes a source's .pyc under <prefix>/<the source's
+    absolute directory>, so a source a case creates under the
     run's directory leaves a tree there that nothing reads again. Fails closed: a tree goes only when it resolves to
-    exactly the mirror of `folder` (as spelled, or resolved) inside the prefix, so a symlink in the way, or a prefix that
+    exactly the mirror of `folder` (as spelled,
+    or resolved) inside the prefix, so a symlink in the way, or a prefix that
     is not a directory, leaves everything alone; a tree it cannot remove is reported, never skipped silently."""
     if not prefix or not os.path.isdir(prefix):
         return
@@ -437,7 +446,8 @@ def unrun_targets(collected, reported):
 def refuse_below_floor(floor, numbers, subject, version):
     if numbers >= [int(part) for part in floor.split(".")[:2]]:
         return False
-    sys.stderr.write("veri needs Python %s or newer for the suites under skills/tdd/scripts/tests/py/; %s is version %s.\n"
+    sys.stderr.write("veri needs Python %s or newer for the suites under skills/tdd/scripts/tests/py/; "
+                     "%s is version %s.\n"
                      % (floor, subject, version))
     return True
 
@@ -463,7 +473,8 @@ def _main(argv):
         found = re.search(r"Python ([0-9]+)\.([0-9]+)[0-9.]*", probe.stdout + probe.stderr)
     except Exception:
         found = None
-    if found and refuse_below_floor(floor, [int(found.group(1)), int(found.group(2))], "PATH's python3 " + path_python, found.group(0)[len("Python "):]):
+    if found and refuse_below_floor(floor, [int(found.group(1)), int(found.group(2))], "PATH's python3 " + path_python,
+                                    found.group(0)[len("Python "):]):
         return 2
     for package, module, tunable in (("pytest", "pytest", "VERI_PYTEST_IMPORTABLE"),
                                      ("pytest-timeout", "pytest_timeout", "VERI_PYTEST_TIMEOUT_IMPORTABLE"),
@@ -483,7 +494,8 @@ def _main(argv):
         return 2
     idle = tunables.get("VERI_PYTEST_IDLE")
     if not re.fullmatch("[1-9][0-9]*", idle):
-        sys.stderr.write("VERI_PYTEST_IDLE must be a whole number of seconds of at least 1; got %s.\n" % (idle or "it set but empty"))
+        sys.stderr.write("VERI_PYTEST_IDLE must be a whole number of seconds of at least 1; got %s.\n"
+                         % (idle or "it set but empty"))
         return 2
     import pytest
     os.environ["TMPDIR"] = leg_tmpdir.PINNED_TMPDIR
@@ -499,11 +511,14 @@ def _main(argv):
     saved = [list(record) for record in records]
     for record in records:
         record.clear()
-    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen", "failed_cases", "idle_watch", "load_timeouts"]))
+    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [
+        os.environ.get("PYTEST_PLUGINS"), "small_case_guard", "network_guard", "private_tmp_path", "serial_seen",
+        "failed_cases", "idle_watch", "load_timeouts"]))
     def terminate(signum, frame):
         # Ends the leg here, not by raising into pytest.main: pytest would run the session-finish hooks, xdist's worker
         # teardown among them, and a hung worker held that teardown up to its own timeout (#4254).
-        if not watch.end(128 + signum, lambda workers: "pytest leg ended by signal %d; workers %s ended\n" % (signum, workers)):
+        if not watch.end(128 + signum,
+                         lambda workers: "pytest leg ended by signal %d; workers %s ended\n" % (signum, workers)):
             signalled.append(signum)  # the leg's return owns its teardown: the leg exits 128 + signum once it is done
     conftest = sys.modules.get("conftest")
     entry = None
@@ -534,7 +549,8 @@ def _main(argv):
     previous = signal.signal(signal.SIGTERM, terminate)
     previous_hup = signal.signal(signal.SIGHUP, terminate)
     try:
-        if not subset and "-m" not in argv and not os.environ.get("PYTEST_XDIST_WORKER") and full_run_lock.enabled() and not full_run_lock.held_by_ancestor():
+        if (not subset and "-m" not in argv and not os.environ.get("PYTEST_XDIST_WORKER") and full_run_lock.enabled()
+                and not full_run_lock.held_by_ancestor()):
             full_lock = full_run_lock.acquire()
         sweep_dead_runs()
         with run_directory() as run:
@@ -565,16 +581,20 @@ def _main(argv):
                 if failed_cases.NAMED or failed_cases.REPORTED:
                     named = len(failed_cases.NAMED) if collected_by_pass_1 is None else collected_by_pass_1
                     combined = "%d named, %d run, %d passed, %d failed across both passes\n" % (
-                        named, len(failed_cases.REPORTED), len(set(failed_cases.PASSED)), len(set(failed_cases.NODEIDS)))
+                        named, len(failed_cases.REPORTED), len(set(failed_cases.PASSED)),
+                        len(set(failed_cases.NODEIDS)))
             if subset and selected:
                 collected = Collected()
                 with contextlib.redirect_stdout(io.StringIO()):
-                    pytest.main(["--collect-only", "-p", "no:cacheprovider", "--basetemp=" + base] + rest, plugins=[collected])
+                    pytest.main(["--collect-only", "-p", "no:cacheprovider", "--basetemp=" + base] + rest,
+                                plugins=[collected])
                 unrun, targets = unrun_targets(collected, failed_cases.REPORTED)
                 if unrun:
-                    sys.stdout.write("%d unselected: named cases that neither pass ran (%s)\n" % (len(unrun), " ".join(targets)))
+                    sys.stdout.write("%d unselected: named cases that neither pass ran (%s)\n"
+                                     % (len(unrun), " ".join(targets)))
                     statuses.append(pytest.ExitCode.TESTS_FAILED)
-            PASSES_RED[0] = not (pytest.ExitCode.OK in statuses and set(statuses) <= {pytest.ExitCode.OK, pytest.ExitCode.NO_TESTS_COLLECTED})
+            PASSES_RED[0] = not (pytest.ExitCode.OK in statuses
+                                 and set(statuses) <= {pytest.ExitCode.OK, pytest.ExitCode.NO_TESTS_COLLECTED})
             if combined:
                 sys.stdout.write(combined)
             if pytest.ExitCode.INTERNAL_ERROR in statuses:
@@ -613,7 +633,8 @@ def _main(argv):
 def launch(argv):
     """The leg as `make test` runs it: main's code, an exception escaping it exit 2 in entry.refusal's form, between the
     bytecode cache's check and its record. A check that raises is exit 2 before any pass; a record that raises is one
-    such line too, and turns a green leg's 0 into 2 while leaving a failing leg's 1 as it is; so does an exception main's
+    such line too, and turns a green leg's 0 into 2 while leaving
+    a failing leg's 1 as it is; so does an exception main's
     teardown raises after its passes ran (the run directory's removal, the lock's release, the registry entry's)."""
     prefix = sys.pycache_prefix
     try:

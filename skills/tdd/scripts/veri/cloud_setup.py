@@ -102,7 +102,8 @@ def _uv(*args):
 
 
 def _install(python, venv):
-    """Create the environment at venv with python when it has no bin/python3, then run veri's make install-dev into it."""
+    """Create the environment at venv with python when it has no bin/python3,
+    then run veri's make install-dev into it."""
     if not os.path.exists(os.path.join(venv, "bin", "python3")):
         subprocess.run([python, "-m", "venv", venv], check=True)
     subprocess.run(["make", "-C", ROOT, "install-dev"], env=tunables.with_values(VERI_VENV=venv), check=True)

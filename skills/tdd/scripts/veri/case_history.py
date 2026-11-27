@@ -28,7 +28,8 @@ Interface:
                                 the oldest commit whose change to `path` adds or removes an occurrence of
                                 `needle` (git log -S); "" when none does or git cannot log.
 
-Error modes: toplevel, has_rev, current_branch, revisions, paths_at, subject and first_revision_with turn a git failure into None / False / "" and
+Error modes: toplevel, has_rev, current_branch, revisions, paths_at, subject and first_revision_with turn a git failure
+into None / False / "" and
 raise only OSError when git cannot start. Every query runs in the current directory and
 runs git through git.git, the runner veri shares, untouched: the caller owns the working directory.
 """
@@ -54,7 +55,8 @@ def default_branch():
     """origin's default branch as refs/remotes/origin/HEAD names it, asking no remote; GitFailed when it names none."""
     default = git.default_branch(remote=False)
     if default is None:
-        raise git.GitFailed(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], None, "no refs/remotes/origin/HEAD")
+        raise git.GitFailed(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], None,
+                            "no refs/remotes/origin/HEAD")
     return default
 
 

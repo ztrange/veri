@@ -1,7 +1,8 @@
 """What a pull request head's CI state means for wait-ci.sh: values in, a decision out, no I/O.
 
 `decide(observation, marks, now, loop, options)` maps one answered read of the head, the marks kept on disk for
-it, the clock (None until a `Need("now")` asks for it) and what earlier polls of this call carried (`Loop`) to a `Decision`: the marks to write or remove,
+it, the clock (None until a `Need("now")` asks for it) and what earlier polls of this call carried (`Loop`) to a
+`Decision`: the marks to write or remove,
 then the outcome (`Exit`, `Sleep`, a `Need` to answer first, or a `Crash`) and the `Loop` for the next poll.
 Reading GitHub, the marks and the clock, and sleeping, are wait_ci's and ci_marks's."""
 import re
@@ -117,17 +118,22 @@ def _warn(message):
 def decide(obs, marks, now, loop, opts):
     state, head = obs.state, obs.head
     if state in ("none", "skipped") and obs.mergeable is False:
-        return Decision(Exit(2, "", _warn("%s conflicts with its base branch; no workflow will start until it is rebased" % opts.pr)), (), loop)
+        return Decision(
+            Exit(2, "", _warn("%s conflicts with its base branch; no workflow will start until it is rebased"
+                              % opts.pr)), (), loop)
     mismatched = bool(opts.want and head != opts.want)
     cleared = (Remove("head", opts.want),) if opts.want and marks.head is not None else ()
     matched = () if mismatched else cleared
     if state == "none" and opts.on_pr == "0" and not mismatched:
-        return Decision(Exit(0, "", _warn("%s has no checks and VERI_CI_ON_PR=0 says none will come" % opts.pr)), matched, loop)
+        return Decision(Exit(0, "", _warn("%s has no checks and VERI_CI_ON_PR=0 says none will come" % opts.pr)),
+                        matched, loop)
     if state == "none" and not opts.explicit:
         if obs.no_workflow is None:
             return Decision(Need("workflow"), (), loop)
         if obs.no_workflow:
-            return Decision(Exit(0, "", _warn("%s has no checks and no workflow triggers on pull_request; no check will come" % opts.pr)), cleared, loop)
+            return Decision(
+                Exit(0, "", _warn("%s has no checks and no workflow triggers on pull_request; no check will come"
+                                  % opts.pr)), cleared, loop)
     none = state == "none"
     effects = ([] if none else [Remove("none", head)]) + list(matched)
     if state == "skipped" or mismatched:
@@ -147,7 +153,8 @@ def decide(obs, marks, now, loop, opts):
         if marks.head is None:
             effects.append(Record("head", opts.want, str(now)))
         if now - first >= opts.head_wait:
-            return done(Exit(2, "", _warn("%s still reports head %s, not the expected %s, %d s after it was first seen differing"
+            return done(Exit(2, "", _warn("%s still reports head %s, not the expected %s, "
+                                          "%d s after it was first seen differing"
                                           % (opts.pr, head, opts.want, now - first))))
     if none and obs.mergeable:
         if loop.none_head != head:
@@ -178,7 +185,8 @@ def decide(obs, marks, now, loop, opts):
         if inherited:
             deadline = decimal(marks.deadline.rstrip("\n"))
             if deadline is None:
-                return done(Exit(2, "", _warn("deadline file %s is unreadable or not a non-negative whole number" % marks.deadline_path)))
+                return done(Exit(2, "", _warn("deadline file %s is unreadable or not a non-negative whole number"
+                                              % marks.deadline_path)))
         elif obs.draft:
             return done(Exit(2, "", _warn("%s is a draft; mark it ready before waiting on its checks" % opts.pr)))
         else:
@@ -187,6 +195,7 @@ def decide(obs, marks, now, loop, opts):
         loop = replace(loop, deadline=deadline, key=key, inherited=inherited)
     if now >= int(loop.deadline):
         if loop.inherited:
-            return done(Exit(2, "", _warn("checks of %s still pending past the deadline recorded for %s" % (opts.pr, loop.key))))
+            return done(Exit(2, "", _warn("checks of %s still pending past the deadline recorded for %s"
+                                          % (opts.pr, loop.key))))
         return done(Exit(3))
     return done(Exit(3) if now >= loop.slice_end else Sleep(opts.poll))

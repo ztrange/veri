@@ -1,12 +1,15 @@
 """The leg's watchdog (#4254): a leg in which no case starts or reports for VERI_PYTEST_IDLE seconds ends itself.
 
-xdist's controller waits for its workers' events with no deadline (`DSession.pytest_runtestloop`), and a per-case timeout
+xdist's controller waits for its workers' events with no
+deadline (`DSession.pytest_runtestloop`), and a per-case timeout
 fires only while a case runs, so a worker that stops reporting outside a case held its leg for hours. The leg loads this
-module as a plugin (PYTEST_PLUGINS, so its workers load it too) and makes a `Watch` the CURRENT one while its passes run:
+module as a plugin (PYTEST_PLUGINS, so its workers load it
+too) and makes a `Watch` the CURRENT one while its passes run:
 the hooks below record, in the leg, each worker it started (by pid) and the time and node id of the last case that
 started or reported; in a worker, where no Watch is current, they do nothing. The Watch's thread, once the leg has been
 idle for the window, writes the stacks of all the leg's threads, sends each worker SIGUSR1 (on which this plugin has the
-worker write all its threads' stacks), ends the workers (TERM, then KILL by pid after VERI_PYTEST_TERM_GRACE seconds, reaping the killed ones within that grace more), runs the leg's
+worker write all its threads' stacks), ends the workers (TERM, then KILL by pid after VERI_PYTEST_TERM_GRACE seconds,
+reaping the killed ones within that grace more), runs the leg's
 cleanups, prints one line and exits 2. `end` is also what
 the leg's TERM and HUP handler calls, so a signalled leg never waits on xdist's worker teardown.
 
@@ -70,7 +73,8 @@ def pytest_xdist_newgateway(gateway):
 
 @pytest.hookimpl(optionalhook=True)
 def pytest_testnodedown(node, error):
-    """A worker xdist reports down (finished, crashed, or replaced by a restart) is never signalled again: its pid may be
+    """A worker xdist reports down (finished, crashed,
+    or replaced by a restart) is never signalled again: its pid may be
     reused by then."""
     pid = worker_pid(getattr(node, "gateway", None))
     if CURRENT[0] is not None and pid in CURRENT[0].workers:
@@ -110,8 +114,10 @@ class Watch:
             pass
 
     def end_workers(self):
-        """TERM to each worker this leg started, KILL by pid to any still alive the grace (VERI_PYTEST_TERM_GRACE) later, then wait up to the
-        grace more until each is gone, reaped (#4278: a killed worker is still dying or a zombie until then, and would outlive
+        """TERM to each worker this leg started, KILL by pid to any still
+        alive the grace (VERI_PYTEST_TERM_GRACE) later, then wait up to the
+        grace more until each is gone, reaped (#4278:
+        a killed worker is still dying or a zombie until then, and would outlive
         the leg's exit); their pids."""
         workers = [pid for pid in self.workers if pid > 1 and pid != os.getpid()]
         for pid in workers:

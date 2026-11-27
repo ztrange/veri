@@ -12,7 +12,8 @@ CATEGORIES = {
          "preflight-refused", "pr-ready-failed", "rerecord-failed", "go-red-probe-unresolvable"), "system"),
     **dict.fromkeys(
         ("revise-exhausted", "revise-impossible", "untestable-criterion", "step-too-big", "rebase-unresolved",
-         "uncovered", "ci-red", "suite-red", "rebased-tip-red", "unreplaced-cases", "needs-user", "step-added-off-route",
+         "uncovered", "ci-red", "suite-red", "rebased-tip-red", "unreplaced-cases", "needs-user",
+         "step-added-off-route",
          "fixture-owed", "missing-reroutes-exhausted", "repair-reroutes-exhausted", "graded-edit-outside-skill-edit",
          "unpinnable-missing", "skill-edit-refused", "prep-owed",
          "no-seam", "surround-owed", "unwired", "surround-short", "tidy-first-owed",
