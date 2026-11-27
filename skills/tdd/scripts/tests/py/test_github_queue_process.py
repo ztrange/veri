@@ -75,11 +75,12 @@ def landed_world(tmp_path, runs=RUNS, trailers=None, held=(), before=(), after=N
 class Hub:
     """A fake GitHub: each pull request's read (merged, not merged, or no answer), each issue's comments, the posts."""
 
-    def __init__(self, monkeypatch, merged=None, dead_pulls=(), dead_posts=False, garbled_pulls=(), answers=None):
+    def __init__(self, monkeypatch, merged=None, dead_pulls=(), dead_posts=False, garbled_pulls=(), answers=None,
+                 raising_pulls=()):
         self.github = importlib.import_module("github")
         self.queue = importlib.import_module("veri.github_queue")
         self.merged, self.dead_pulls, self.dead_posts = merged or {}, set(dead_pulls), dead_posts
-        self.garbled_pulls, self.answers = set(garbled_pulls), answers or {}
+        self.garbled_pulls, self.answers, self.raising_pulls = set(garbled_pulls), answers or {}, set(raising_pulls)
         self.comments, self.posted = {}, []
         monkeypatch.setattr(self.github, "gh_api", self.gh_api)
         monkeypatch.setattr(self.github, "issue_comments", lambda number: list(self.comments.get(str(number), [])))
@@ -92,6 +93,8 @@ class Hub:
         issue = str(int(found[1]) - 40)
         if issue in self.dead_pulls:
             return subprocess.CompletedProcess(["gh", "api", path], 1, '{"message": "Server Error"}', "HTTP 502")
+        if issue in self.raising_pulls:
+            raise self.github.NoAnswer("gh api %s: timed out" % path)
         if issue in self.garbled_pulls:
             return subprocess.CompletedProcess(["gh", "api", path], 0, "<html>busy</html>", "")
         if issue in self.answers:
@@ -492,7 +495,8 @@ def test_4823_close_landed_when_origins_default_branch_cannot_be_told_queues_not
 
 
 @pytest.mark.process(PROCESS)
-@pytest.mark.parametrize("tip", ["--all", "stack", "HEAD~1"])
+@pytest.mark.parametrize("tip", ["--all", "stack", "HEAD~1", "deadbee~1", "a" * 41, "abcdef"],
+                         ids=["an-option", "a-branch", "a-revision", "a-sha-then-more", "41-hex", "6-hex"])
 def test_4823_close_landed_given_a_tip_that_is_not_a_hex_commit_name_exits_2_with_the_usage(
         tmp_path, monkeypatch, run_cli, tip):
     work, _, _, _ = landed_world(tmp_path)
@@ -546,3 +550,31 @@ def test_4823_close_landed_over_a_range_with_no_joined_run_leaves_an_existing_qu
     assert code == 3, err
     assert "no Veri-Joined commit" in err, err
     assert hub.posted == [] and (work / ".tdd" / "github-queue").read_text() == queued, err
+
+
+@pytest.mark.process(PROCESS)
+def test_4823_close_landed_over_a_veri_joined_branch_that_is_no_runs_queues_nothing_and_exits_2(
+        tmp_path, monkeypatch, run_cli):
+    trailer = "Veri-Joined: %s feature/bravo" % pull_url("12")
+    work, tip, _, _ = landed_world(tmp_path, trailers={("12", 2): lambda base: trailer + "\n" + onto(base)})
+    hub = Hub(monkeypatch)
+
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
+
+    assert code == 2, err
+    assert "feat: add bravo (#12)" in err and "feature/bravo" in err and "Traceback" not in err, err
+    assert hub.posted == [] and not (work / ".tdd" / "github-queue").exists(), err
+
+
+@pytest.mark.process(PROCESS)
+def test_4823_close_landed_whose_pull_request_read_raises_no_answer_names_the_run_and_posts_the_others(
+        tmp_path, monkeypatch, run_cli):
+    work, tip, landed, _ = landed_world(tmp_path)
+    hub = Hub(monkeypatch, raising_pulls={"12"})
+
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
+
+    assert code == 2, err
+    assert [number for number, _ in hub.posted] == ["11"], err
+    lists_exactly(hub.bodies("11")[0], landed[0][1], landed[1][1])
+    assert "#12" in err and pull_url("12") in err and "Traceback" not in err, err
