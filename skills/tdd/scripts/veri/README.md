@@ -579,7 +579,7 @@ The budgets (steps, time, refactor, context, affordability) and what leaves cost
 
 # Veri's own test runner
 
-How veri's own suite runs (`make test`, `make unit`, `make profile`): what the pytest leg shares with the launches, the bytecode cache, the one-full-run lock, the fast-tier admission guard and the per-case profiler. The leg's launcher and its plugins live in `skills/tdd/scripts/tests/leg/`. Builds on Foundations only.
+How veri's own suite runs (`make test`, `make unit`, `make profile`): what the pytest leg shares with the launches, the bytecode cache, the one-full-run lock, the fast-tier admission guard and the per-case profiler. The leg's launcher and its plugins live in `skills/tdd/scripts/tests/leg/`. Builds on Foundations and Run state and journal only.
 
 - `content_mtimes`: run by CI before `make test`: sets each tracked file's mtime from its blob id, so a restored `.pyc` of unchanged content stays valid.
 - `failed_cases`: the pytest leg's record plugin: keeps, in this process, the cases each session collected and how each one reported.
@@ -589,6 +589,7 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 - `profile.sh`: per-case timing of suites.
 - `pycache_prefix`: sets where this run reads and writes bytecode; a veri module's first line runs it before any veri import.
 - `budget_entries`: the lane budget's entries under `~/.veri-test-budget` (PRD 036.5), each lane's need and expiry, which every leg reads to narrow T.
+- `leg_registry`: the legs registry, one entry per live pytest leg named by its pid, holding its worker count and start time; the leg, test-ceiling.sh's ramp and dispatch read and write it here, so none imports the leg.
 - `leg_budget`: T, the pytest leg's worker budget, out of C0, the cap, the load file and the lane entries; the leg, dispatch and role_state_cli read it here, so none imports the leg.
 
 ## full_run_lock
@@ -600,6 +601,7 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 - `PINNED_TMPDIR`: the TMPDIR the pytest leg pins before it starts, and a directory run-conductor's free-space check reads.
 
 ## ceiling
+- `LEG`: the path of `skills/tdd/scripts/tests/leg/`, the pytest leg's directory, which `leg_budget` puts on sys.path to load `load_timeouts`.
 - `record_path()`: the ceiling record, `~/.veri-test-ceiling` (`VERI_TEST_CEILING_FILE`); the pytest leg reads its line 1 as T.
 - `cap_path()`: the cap file, `~/.veri-test-cap` (`VERI_TEST_CAP_FILE`). `read_cap()`: `(cap, complaint)`, the cap the human set on its line 1, or no cap and a one-line complaint for a file it cannot use; the pytest leg lowers T to it.
 - `read_idle(tier)`: the seconds of the record's `idle <tier> <seconds>` line, the tier's idle duration, or None when there is no such line or the record cannot be read; `timed-test-run.sh` journals a `test-stretch` event past twice it (PRD 036.10).
@@ -608,8 +610,12 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 - `write(main_tree, lane, need)`: replaces the lane's entry for that main working tree whole (a temporary file renamed into place): `need` on line 1, now plus `VERI_TEST_BUDGET_TTL` seconds on line 2. `entry_name(main_tree, lane)`: `<lane>@<16 hex of the sha256 of the tree's real path>`.
 - `unexpired_entries()`: `[(entry name, need)]` of the entries whose expiry is ahead; an unreadable or malformed one adds nothing, an expired one is removed. `unexpired()`: the same as `[(lane, need)]`, which the pytest leg sums into T.
 
+## leg_registry
+- `registered_legs(legs)`: the `(pid, workers)` of each registered leg in the directory `legs` proven alive under the start time its entry records; a leg proven gone or reused is removed, one that cannot be shown either way stays. `registered_workers(legs)`: their summed workers.
+- `registration(count)`: a registry entry's text: `count` on line 1 and this process's start time on line 2, or the count alone when ps cannot read it. `unregister(entry)`: removes an entry, a missing one ignored.
+
 ## leg_budget
-- `budget(say=True)`: `(T, its source)`: `capacity` narrowed to the unexpired lane entries' summed needs, never below 2. `capacity(say=True)`: `(C, its source)`: `c0` lowered to the cap file's line 1 and the load file's T. `c0()`: `(C0, its source)`: the ceiling record's line 1, else `cores()`, never below 2, its source None. `cores()`: the physical cores on macOS, the affinity count elsewhere.
+- `budget(say=True)`: `(T, its source)`: `capacity` narrowed to the unexpired lane entries' summed needs, never below 2. `capacity(say=True)`: `(C, its source)`: C0 lowered to the cap file's line 1 and the load file's T, where C0 is the ceiling record's line 1, else the physical cores on macOS and the affinity count elsewhere, never below 2.
 - `load_timeouts_module()`: the leg's `load_timeouts` module, `tests/leg/` put on sys.path first.
 
 # Target suites and tiers
