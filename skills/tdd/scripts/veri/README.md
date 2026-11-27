@@ -724,7 +724,7 @@ gh access, issue selection (solvable, parked, blocked), claiming and releasing i
 - `capture-spec.sh`: capture an issue as a spec file.
 - `coverage-blocker.sh`: file a coverage issue and block the refactor issue on it.
 - `github-status.sh`: whether GitHub's status page has an incident, open long enough, on the components veri needs; `wait` blocks, polling, until none counts (exit 3: call again).
-- `github-queue.sh`: the issue writes queued while GitHub is down, `.tdd/github-queue` in the main working tree under one lock: `comment.sh` appends comments and step-close ticks, `replay` lands them in file order and stops at the first with no answer.
+- `github-queue.sh`: the issue writes queued while GitHub is down, `.tdd/github-queue` in the main working tree under one lock: `comment.sh` appends comments and step-close ticks, `replay` lands them in file order and stops at the first with no answer; `close-landed <tip-sha>` queues and replays a `### ✅ Landed` comment per issue an offline join landed, each run's commits read up to its `Veri-Joined` trailer.
 - `invisible-work.sh`: sweep for work not visible on its issue. A local branch not on origin is skipped only when its tip equals the head sha of a MERGED or CLOSED PR that used its name; otherwise it is reported under invariant 1, a reused name included.
 - `issue-decisions.sh`: the decisions on an issue, oldest first, each marked `owner:` or `judge:`; a stranger's comment and veri's own are never one.
 - `park-decision.sh`: the owner's answer to a park: the trusted comments after an issue's newest parked comment.
@@ -782,13 +782,15 @@ The read of GitHub's status page behind `github-status.sh`; `github_outage` and 
 - `NoAnswer`: the status page gave no answer, or a knob is not a positive integer or `VERI_GITHUB_STATUS_URL` is not http(s); its message names the cause.
 
 ## github_queue
-The issue writes a run queues while GitHub is down, in `.tdd/github-queue` of the main working tree, behind `github-queue.sh replay`.
+The issue writes a run queues while GitHub is down, in `.tdd/github-queue` of the main working tree, behind `github-queue.sh replay` and `github-queue.sh close-landed <tip-sha>`.
 - `root(start=None)`: the main working tree the queue lives in, found from <start>; None when a linked worktree's gitdir cannot be read, so nothing is queued.
 - `incident()`, `down(top)`: whether `github-status.sh`'s default read reports an incident (no answer is none), and whether GitHub is down: `.tdd/github-outage` exists under <top>, else that read reports an incident.
 - `pending(top)`: whether the queue holds an entry.
 - `blocked(top)`: whether the queue's first entry is unreadable, so no replay can get past it; `comment.sh` then posts and queues nothing (exit 2).
-- `queue_comment(top, issue, kind, body)`, `queue_tick(top, issue, criterion)`: append one entry under `.tdd/github-queue.lock` and answer its key; a comment's body gains the hidden `<!-- veri-queued <key> -->` marker.
+- `queue_comment(top, issue, kind, body, k=None)`, `queue_tick(top, issue, criterion)`: append one entry under `.tdd/github-queue.lock` and answer its key; a comment's body gains the hidden `<!-- veri-queued <key> -->` marker.
 - `replay(top, out=None)`: post the entries in file order, each landed one removed; 0 once empty, 3 with no queue, 2 at the first entry with no answer, that entry and the rest kept.
+- `joined_runs(tip, default)`: the offline joins `<tip>..origin/<default>` landed, oldest first, as (issue, PR url, api path, [(short sha, subject)]), a run's commits running up to its `Veri-Joined` commit; ValueError naming a commit whose trailer is not one run's.
+- `close_landed(top, tip)`: fetch origin, queue one `### ✅ Landed` comment per issue whose join's PR reads merged under a key derived from the issue, tip and commits, then replay; 2 when origin, the range or a PR read gets no answer or a trailer is garbled, else the replay's code (3: no `Veri-Joined` commit).
 
 ## pointer_comment
 - `mirror(issue, pushed_at=None)`: post or edit issue `issue`'s one `### 📍 Run state` comment from the current directory's branch, ledger and journal; `pushed_at` is the push just made, else the comment keeps its last one. Never changes its caller's exit code.
