@@ -266,3 +266,63 @@ def test_4803_a_queued_comment_is_redacted_on_disk_so_no_local_path_sits_in_the_
     on_disk = (hub.root / ".tdd" / "github-queue").read_text()
     assert "/home/someone" not in on_disk
     assert "<path>" in on_disk
+
+
+def test_4803_incident_counts_a_status_read_that_gets_no_answer_as_no_incident(monkeypatch):
+    status = importlib.import_module("github_status")
+
+    def no_answer():
+        raise status.NoAnswer("")
+
+    monkeypatch.setattr(status, "default_read", no_answer)
+
+    assert importlib.import_module("veri.github_queue").incident() is False
+
+
+def test_4803_a_first_entry_of_an_unknown_type_blocks_the_queue_and_replay_exits_2_keeping_it(hub, run_cli):
+    hub.enqueue({"type": "label", "issue": "7", "key": "u1"}, comment("b2"))
+
+    assert hub.queue.blocked(str(hub.root)) is True
+    code, out, err = run_cli(hub.queue, ["replay"], cwd=hub.root)
+
+    assert (code, hub.posted, hub.left()) == (2, [], ["u1", "b2"])
+    assert "unreadable entry" in err
+
+
+def test_4803_replay_with_no_main_working_tree_exits_2_naming_it(hub, run_cli, monkeypatch):
+    monkeypatch.setattr(hub.queue, "root", lambda start=None: None)
+
+    code, out, err = run_cli(hub.queue, ["replay"], cwd=hub.root)
+
+    assert (code, hub.posted) == (2, [])
+    assert "no main working tree" in err
+
+
+def test_4803_a_rewrite_whose_write_fails_leaves_the_queue_as_it_was(hub, monkeypatch):
+    hub.enqueue(comment("a1"), comment("b2"), comment("c3"))
+    before = (hub.root / ".tdd" / "github-queue").read_text()
+    real_open = open
+
+    class Failing:
+        def __init__(self, handle):
+            self.handle = handle
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            self.handle.close()
+
+        def write(self, text):
+            raise OSError("disk full")
+
+    def failing_open(path, mode="r", *args, **kw):
+        handle = real_open(path, mode, *args, **kw)
+        return Failing(handle) if mode == "w" else handle
+
+    monkeypatch.setattr(hub.queue, "open", failing_open, raising=False)
+
+    with pytest.raises(OSError):
+        hub.queue.replay(str(hub.root))
+
+    assert (hub.root / ".tdd" / "github-queue").read_text() == before
