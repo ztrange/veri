@@ -45,8 +45,9 @@ def run_hanging_leg(tmp_path, idle=IDLE, signal_when_hung=None, **extra):
     pids.mkdir()
     (planted / "conftest.py").write_text(HANGING_CONFTEST)
     (planted / "test_one.py").write_text("def test_one():\n    pass\n\ndef test_two():\n    pass\n")
-    env = dict(os.environ, VERI_PYTEST_WORKERS="2", VERI_PYTEST_IDLE=str(idle), PLANTED_PIDS=str(pids),
-               PYTHONPATH=os.path.join(SCRIPTS, "veri"), **extra)
+    # A one-second grace, not the production 5 s: every case here ends workers that hang
+    env = dict(os.environ, VERI_PYTEST_WORKERS="2", VERI_PYTEST_IDLE=str(idle), VERI_PYTEST_TERM_GRACE="1",
+               PLANTED_PIDS=str(pids), PYTHONPATH=os.path.join(SCRIPTS, "veri"), **extra)
     # Files, not pipes: the workers inherit the leg's stderr, and a pipe would wait for them, not for the leg, to end.
     with open(tmp_path / "out", "w") as out, open(tmp_path / "err", "w") as err:
         leg = subprocess.Popen(
@@ -108,7 +109,7 @@ def test_4254_a_leg_sent_term_or_hup_while_its_workers_hang_ends_them_and_exits_
 
 
 @pytest.mark.process("the real leg over a planted suite whose two xdist workers hang and ignore TERM, sent TERM")
-def test_4254_a_leg_sent_term_kills_by_pid_a_hung_worker_that_ignores_term_5_s_later(tmp_path):
+def test_4254_a_leg_sent_term_kills_by_pid_a_hung_worker_that_ignores_term_after_the_grace(tmp_path):
     code, err, workers, alive_at_exit, took = run_hanging_leg(tmp_path, idle=600, signal_when_hung=signal.SIGTERM,
                                                              PLANTED_IGNORE_TERM="1")
 
