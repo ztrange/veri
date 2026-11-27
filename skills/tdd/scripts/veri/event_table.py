@@ -1,4 +1,5 @@
-"""Every event veri emits and the keys it carries: the one table the journal page, the writers and the fixture are checked against.
+"""Every event veri emits and the keys it carries:
+the one table the journal page, the writers and the fixture are checked against.
 
 `EVENTS` maps an event name to its keys, space-separated, in the order the emitter gives them. Each key is written
 `name:format`: a name ending in `?` is optional, every other key is required. The format is one of `FORMATS` or a list
@@ -10,11 +11,13 @@ carries from the run context (`COMMON`) are in no entry; `CONTEXT` declares the 
 Interface:
   keys(event)       the event's keys in order, () for an event with none; KeyError for an event the table does not hold
   required(event)   the subset of those keys every line of the event carries
-  format(event, key)  (format, empty allowed) for a key of `event`, or of the run context (event None or not declaring it);
+  format(event, key)  (format, empty allowed) for a key of `event`, or of the run context (event None or not
+                      declaring it);
                       the format is a `FORMATS` name, a tuple of values, or None when the key has none
   valid(event, key, value)  whether `value` (a str) is a valid value of that key
   stated(event, key)  that format in JOURNAL.md's words (`whole`, `one of a, b`, `, or empty` after one that may be)
-  declaring(event, key)  the `EVENTS` line to write so that the table declares `key` for `event` (no key: just the event;
+  declaring(event, key)  the `EVENTS` line to write so that the table declares `key` for `event`
+                         (no key: just the event;
                          no event: the `CONTEXT` line)
 """
 import json
@@ -30,7 +33,8 @@ CONTEXT = ("issue:whole,empty actor:text,empty phase:text,empty step:text,empty 
 EVENTS = {
     "adjudicated": "cause:(ci-timeout|ci-conflict|pr-ready-failed|report-missing|step-add-refused"
                    "|replaces-report-failed|unreplaced-cases|reconcile-failed"
-                   "|criterion-unreadable|graded-edit-outside-skill-edit|tests-frozen-refused) outcome:(retry|route|bail|deviate|unparsed)"
+                   "|criterion-unreadable|graded-edit-outside-skill-edit|tests-frozen-refused) "
+                   "outcome:(retry|route|bail|deviate|unparsed)"
                    " reason:text,empty",
     "already-holds-step": "step:text reason:text",
     "bail": "cause:(killed-stuck|killed-external|report-missing|no-verdict|reconcile-failed|ci-timeout|ci-conflict"
@@ -38,11 +42,13 @@ EVENTS = {
             "|revise-exhausted|revise-impossible|untestable-criterion|step-too-big|rebase-unresolved|uncovered|ci-red"
             "|suite-red|rebased-tip-red|unreplaced-cases|needs-user|step-added-off-route|fixture-owed"
             "|missing-reroutes-exhausted|repair-reroutes-exhausted|graded-edit-outside-skill-edit|unpinnable-missing"
-            "|skill-edit-refused|prep-owed|no-seam|surround-owed|unwired|surround-short|tidy-first-owed|branch-rejected|row-untraced) classification?:(process|system) suites?:text failed?:text",
+            "|skill-edit-refused|prep-owed|no-seam|surround-owed|unwired|surround-short|tidy-first-owed"
+            "|branch-rejected|row-untraced) classification?:(process|system) suites?:text failed?:text",
     "case-timeout": "nodeid:text workers:whole",
     "ci-flake": "head:sha run:whole files:text",
     "ci-rerun": "head:sha run:whole files:text",
-    "comment": "kind:(step-done|red|verify-red|green|verify-green|refactor|verify-refactor|revise|verify-revised|plan|verify-plan|pin|retire"
+    "comment": "kind:(step-done|red|verify-red|green|verify-green|refactor|verify-refactor|revise|verify-revised|plan"
+               "|verify-plan|pin|retire"
                "|resuming|done|bailed|stopped) url:url",
     "conductor-restart": "growth:whole knob:whole",
     "conductor-start": "pid:whole started:text,empty",
@@ -81,8 +87,10 @@ EVENTS = {
     "skill-edit-no-author": "unit:text",
     "skill-repin": "commit:sha",
     "snapshot-changed": "path:text",
-    "stage-end": "stage:(preflight|baseline|push|draft-pr|full-suite|ready|ci-wait|plan|refactor-loop|structural|rebase|merge|release) status:whole secs:whole",
-    "stage-start": "stage:(preflight|baseline|push|draft-pr|full-suite|ready|ci-wait|plan|refactor-loop|structural|rebase|merge|release)",
+    "stage-end": "stage:(preflight|baseline|push|draft-pr|full-suite|ready|ci-wait|plan|refactor-loop|structural"
+                 "|rebase|merge|release) status:whole secs:whole",
+    "stage-start": "stage:(preflight|baseline|push|draft-pr|full-suite|ready|ci-wait|plan|refactor-loop|structural"
+                   "|rebase|merge|release)",
     "step-added": "anchor?:text added?:whole",
     "step-done": "",
     "step-escalated": "anchor:text at?:(over-budget)",
@@ -104,9 +112,11 @@ EVENTS = {
     "unpinnable-step": "step:text reason:text,empty",
     "usage": "duration_ms:whole duration_api_ms:whole num_turns:whole total_cost_usd:decimal input_tokens:whole"
              " output_tokens:whole cache_read_input_tokens:whole cache_creation_input_tokens:whole model:text,empty"
-             " model_usage?:json first_turn_cache_creation_input_tokens?:whole first_turn_cache_read_input_tokens?:whole"
+             " model_usage?:json first_turn_cache_creation_input_tokens?:whole"
+             " first_turn_cache_read_input_tokens?:whole"
              " first_turn_input_tokens?:whole name?:text",
-    "verdict": "verdict:(PASS|REJECT|malformed) reason:text,empty cause?:(no-verdict) check?:(1|2|3|4|5) tree?:sha name?:text",
+    "verdict": "verdict:(PASS|REJECT|malformed) reason:text,empty cause?:(no-verdict) check?:(1|2|3|4|5) tree?:sha"
+               " name?:text",
     "verify-branch-skipped": "reason:(switched-off)",
     "verify-diff-skipped": "reason:(switched-off)",
     "verify-green-skipped": "reason:(switched-off)",
@@ -147,7 +157,8 @@ def format(event, key):
     raise KeyError(key)
 
 
-PATTERNS = {"whole": r"[0-9]+", "decimal": r"(?=.*[0-9])[0-9]*\.?[0-9]*", "url": r"https?://.*", "sha": r"[0-9a-f]{7,40}",
+PATTERNS = {"whole": r"[0-9]+", "decimal": r"(?=.*[0-9])[0-9]*\.?[0-9]*", "url": r"https?://.*",
+            "sha": r"[0-9a-f]{7,40}",
             "text": r".*"}
 
 

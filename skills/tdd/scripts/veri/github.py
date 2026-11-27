@@ -36,7 +36,8 @@ PARKED_HEADING = "### ⏸ Parked"
 VERI_COMMENT_PREFIXES = (
     PARKED_HEADING, "### ▶️ Resuming", "### ⛔ Bailed", "### ✅ Done", "### ✅ Step done", "### 📍 Run state",
     "### ⏹️ Stopped", "### ⛔ Preflight refused", "### 🔴 Red", "### 🟢 Green", "### 🛠️ Refactor", "### 🔎 ",
-    "### 🗺️ ", "### 📊 Metrics", "### ♻️ Revise ", "### 📌 Already satisfied", "### 🪦 Retired", "needs-user: the conductor stopped without a verdict.",
+    "### 🗺️ ", "### 📊 Metrics", "### ♻️ Revise ", "### 📌 Already satisfied", "### 🪦 Retired",
+    "needs-user: the conductor stopped without a verdict.",
 )
 
 # An absolute local path redact_local leaves (another account's home, any temp or /private path): to `<path>`, whole,
@@ -651,9 +652,10 @@ def gh_json_page(fixture, path, *args):
 
 
 class Pull(NamedTuple):
-    """One pull request, whichever route answered. A record carrying both draft spellings reads isDraft. Fields the answer did not carry read as: draft None,
-    url and html_url None, head_sha None (an empty or null one reads ""), head_ref, body and state "", labels (). <url> and <html_url> are what
-    the answer called them (a REST url is the API's; GraphQL has only url); <state> is upper-cased."""
+    """One pull request, whichever route answered. A record carrying both draft spellings reads isDraft. Fields the
+    answer did not carry read as: draft None, url and html_url None, head_sha None (an empty or null one reads ""),
+    head_ref, body and state "", labels (). <url> and <html_url> are what the answer called them (a REST url is the
+    API's; GraphQL has only url); <state> is upper-cased."""
     number: Optional[int]
     url: Optional[str]
     html_url: Optional[str]
@@ -730,17 +732,17 @@ def joined_issues(base, repo=None):
     """The issue numbers (ints) a `Closes #n` line names in the body of a pull request merged into <base>: closed pull
     requests against <base>, kept only when the answer itself names <base> as the base and says merged (GraphQL state
     MERGED, REST merged_at set), and its head is in this repository (Pull.cross_repository, PRD 022.14): the query's own
-    filter is not trusted, and a fork's PR a collaborator merged is a stranger's text. The read is not bounded by the open issues it
-    can matter to: it grows with every pull request merged into <base>. NoAnswer
-    when GitHub gave none; ValueError when the answer is not JSON."""
+    filter is not trusted, and a fork's PR a collaborator merged is a stranger's text. The read is not bounded by the
+    open issues it can matter to: it grows with every pull request merged into <base>. NoAnswer when GitHub gave none;
+    ValueError when the answer is not JSON."""
     return {int(n) for pr in merged_pulls(base, repo) if not pr.cross_repository for n in closed_issues(pr.body)}
 
 
 def merged_pulls(base, repo=None):
     """The pull requests merged into <base> as Pull records (number, body, cross_repository among them): closed pull
     requests against <base>, kept only when the answer itself names <base> as the base and says merged (GraphQL state
-    MERGED, REST merged_at set); a fork's is kept too, its cross_repository True, for the caller to decide. NoAnswer when
-    GitHub gave none; ValueError when the answer is not JSON."""
+    MERGED, REST merged_at set); a fork's is kept too, its cross_repository True, for the caller to decide. NoAnswer
+    when GitHub gave none; ValueError when the answer is not JSON."""
     path = "repos/%s/pulls?state=closed&base=%s&per_page=100" % (repo or "{owner}/{repo}", base)
     answer = gh_json("stack-prs.json", path, "pr", "list", "--base", base, "--state", "merged", "--limit", "10000",
                      "--json", "number,body,state,baseRefName,isCrossRepository", *(["--repo", repo] if repo else []))
@@ -823,11 +825,11 @@ CHECK_RUN_PAGES = 10
 
 
 def check_runs(sha):
-    """The check runs of commit <sha>, read by sha, as [(status, conclusion)] (conclusion None until completed): GitHub's
-    `filter=latest`, so a check re-run counts by its latest attempt only, an older one never listed. Read 100 to a page
-    until the answer's total_count is read, at most CHECK_RUN_PAGES pages. ValueError for a <sha> that is not 7 to 40 hex
-    digits, before any read; NoAnswer, its detail naming why, for a failed read, an answer not of that shape, a page
-    that ends short of the total, or a total past the bound."""
+    """The check runs of commit <sha>, read by sha, as [(status, conclusion)] (conclusion None until completed):
+    GitHub's `filter=latest`, so a check re-run counts by its latest attempt only, an older one never listed. Read 100
+    to a page until the answer's total_count is read, at most CHECK_RUN_PAGES pages. ValueError for a <sha> that is not
+    7 to 40 hex digits, before any read; NoAnswer, its detail naming why, for a failed read, an answer not of that
+    shape, a page that ends short of the total, or a total past the bound."""
     if not re.fullmatch(r"[0-9a-f]{7,40}", sha or ""):
         raise ValueError("not a commit sha: %r" % (sha,))
     found, total = [], None
@@ -839,13 +841,15 @@ def check_runs(sha):
         if not isinstance(runs, list) or not isinstance(count, int) or isinstance(count, bool) or count < 0:
             raise NoAnswer("", "the check runs of %s: the answer is not {total_count, check_runs}" % sha)
         if count > CHECK_RUN_PAGES * 100:
-            raise NoAnswer("", "the check runs of %s: %d of them, past the %d this reads" % (sha, count, CHECK_RUN_PAGES * 100))
+            raise NoAnswer("", "the check runs of %s: %d of them, past the %d this reads"
+                           % (sha, count, CHECK_RUN_PAGES * 100))
         total = count if total is None else total
         for raw in runs:
             status = raw.get("status") if isinstance(raw, dict) else None
             conclusion = raw.get("conclusion") if isinstance(raw, dict) else None
             if not isinstance(status, str) or not (conclusion is None or isinstance(conclusion, str)):
-                raise NoAnswer("", "the check runs of %s: a check run without a status or with a garbled conclusion" % sha)
+                raise NoAnswer("", "the check runs of %s: a check run without a status or with a garbled conclusion"
+                               % sha)
             found.append((status, conclusion))
         if len(found) >= total:
             return found
@@ -860,9 +864,9 @@ _CREATED = re.compile(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ")
 
 def workflow_runs(branch):
     """The newest 100 workflow runs GitHub lists for <branch>, one read, as [(head_sha, html_url, status, conclusion,
-    created_at, run_attempt, workflow_id)] (conclusion None until completed; run_attempt 1, or more once re-run), kept only when the run's head repository is the repository it ran
-    in: a fork's branch of the same name lists under it too. NoAnswer, its detail naming why, for a failed read or an
-    answer not of the workflow-runs shape."""
+    created_at, run_attempt, workflow_id)] (conclusion None until completed; run_attempt 1, or more once re-run), kept
+    only when the run's head repository is the repository it ran in: a fork's branch of the same name lists under it
+    too. NoAnswer, its detail naming why, for a failed read or an answer not of the workflow-runs shape."""
     what = "the workflow runs of %s" % branch
     answer = _json_answer(gh_api("repos/{owner}/{repo}/actions/runs?branch=%s&per_page=100" % branch,
                                  stderr=subprocess.PIPE), "reading " + what)
@@ -878,8 +882,8 @@ def workflow_runs(branch):
                 and (conclusion is None or isinstance(conclusion, str))
                 and isinstance(created, str) and _CREATED.fullmatch(created) and _attempt(attempt)
                 and isinstance(workflow, int) and not isinstance(workflow, bool)):
-            raise NoAnswer("", "%s: a run without a head sha, url, status, creation time, attempt or workflow, or with a"
-                           " garbled one" % what)
+            raise NoAnswer("", "%s: a run without a head sha, url, status, creation time, attempt or workflow, or with "
+                           "a garbled one" % what)
         repos = [(raw.get(side) or {}).get("full_name") if isinstance(raw.get(side) or {}, dict) else None
                  for side in ("repository", "head_repository")]
         if repos[0] and repos[0] == repos[1]:
@@ -911,9 +915,9 @@ def run_attempt(run_id, attempt):
 
 
 def run_failed_log(run_id, attempt=None):
-    """The failed-job log of workflow run <run_id> (`gh run view <run_id> --log-failed`, of attempt <attempt> when given:
-    `--attempt <n>`), as gh prints it. NoAnswer, its detail naming why, for a <run_id> that is not a whole number or an
-    <attempt> below 1 (before any call) or a call that fails."""
+    """The failed-job log of workflow run <run_id> (`gh run view <run_id> --log-failed`, of attempt <attempt> when
+    given: `--attempt <n>`), as gh prints it. NoAnswer, its detail naming why, for a <run_id> that is not a whole number
+    or an <attempt> below 1 (before any call) or a call that fails."""
     if not re.fullmatch(r"[0-9]+", str(run_id)) or not (attempt is None or _attempt(attempt)):
         raise NoAnswer("", "not a workflow run id and attempt: %r, %r" % (run_id, attempt))
     run = run_gh("run", "view", str(run_id), "--log-failed", *(["--attempt", str(attempt)] if attempt else []),

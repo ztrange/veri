@@ -40,7 +40,8 @@ def run_dir(issue):
 
 def launch(issue):
     scripts = paths.scripts_of(__file__)
-    for script, log_name in (("run-conductor.sh", f"conductor-{issue}.log"), ("restart-conductor.sh", f"restart-{issue}.log")):
+    for script, log_name in (("run-conductor.sh", f"conductor-{issue}.log"),
+                             ("restart-conductor.sh", f"restart-{issue}.log")):
         with open(layout.main_file(layout.main_tree(missing=""), log_name), "ab") as out:
             subprocess.Popen([os.path.join(scripts, "detach-leaf.sh"), os.path.join(scripts, script), issue],
                              stdin=subprocess.DEVNULL, stdout=out, stderr=out)
@@ -135,7 +136,8 @@ class World:
 
     # the test queue
     def waiting(self):
-        """The live waiter entries under VERI_PYTEST_WAITERS: legs waiting for T, alive under their recorded start time."""
+        """The live waiter entries under VERI_PYTEST_WAITERS:
+        legs waiting for T, alive under their recorded start time."""
         return len(leg_registry.registered_legs(full_run_lock.waiters_dir()))
 
     def test_budget(self):
@@ -143,7 +145,8 @@ class World:
         return leg_budget.budget()[0], leg_registry.registered_workers(full_run_lock.legs_dir())
 
     def other_workers(self):
-        """W_other (PRD 036.6): the workers live registered legs no conductor's leaf started (leg_registry.other_workers)."""
+        """W_other (PRD 036.6): the workers live registered legs no conductor's leaf started
+        (leg_registry.other_workers)."""
         return leg_registry.other_workers(full_run_lock.legs_dir())
 
     def capacity(self):
@@ -151,13 +154,14 @@ class World:
         return leg_budget.capacity(say=False)[0]
 
     def stretches(self, issue):
-        """(tier, seconds, idle) of each `test-stretch` event in <issue>'s run journal, in journal order; [] with none."""
+        """(tier, seconds, idle) of each `test-stretch` event in <issue>'s run journal,
+        in journal order; [] with none."""
         return [(e.get("tier", ""), e.get("seconds", ""), e.get("idle", ""))
                 for e in event_log.events(via("run_dir")(issue), "test-stretch", skip_unreadable=True)]
 
     def write_test_budget(self, need):
-        """Replaces this lane's entry under VERI_TEST_BUDGET_DIR (budget_entries.write) with <need>; nothing when no main
-        working tree can be named."""
+        """Replaces this lane's entry under VERI_TEST_BUDGET_DIR (budget_entries.write) with <need>; nothing when no
+        main working tree can be named."""
         main = layout.main_tree(missing="")
         if main:
             budget_entries.write(main, via("lane")() or "main", need)

@@ -31,9 +31,9 @@ def registration(count):
 def leg_state(pid, started):
     """"alive" when <pid> answers `kill 0` (a PermissionError included) and a start-time read, pinned to the format the
     entry records (pid_file.ps_field), equals <started>; "stale" when it is proven not that leg: the pid is gone, or two
-    such reads both succeed and each differs from <started> (a reused pid); "unknown" when neither can be shown: no start
-    time recorded (an older leg's entry), or any read that fails or prints nothing. Only "stale" removes an entry, so a
-    read failing under load never deletes a live leg's."""
+    such reads both succeed and each differs from <started> (a reused pid); "unknown" when neither can be shown: no
+    start time recorded (an older leg's entry), or any read that fails or prints nothing. Only "stale" removes an entry,
+    so a read failing under load never deletes a live leg's."""
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -56,9 +56,9 @@ def leg_state(pid, started):
 def registered_legs(legs):
     """The (pid, workers) of each registered leg proven alive under the start time its entry records (leg_state).
 
-    Any other entry holds no share and never fails the read: one whose name is not a pid, an unreadable or malformed one,
-    one with no start time (an older leg's), or one whose pid's start time cannot be read now. An entry proven stale is
-    removed; the others stay. The caller holds the claim lock, so no entry is read half-written."""
+    Any other entry holds no share and never fails the read: one whose name is not a pid, an unreadable or malformed
+    one, one with no start time (an older leg's), or one whose pid's start time cannot be read now. An entry proven
+    stale is removed; the others stay. The caller holds the claim lock, so no entry is read half-written."""
     return [(name, count) for name, count, _ in _live_entries(legs)]
 
 

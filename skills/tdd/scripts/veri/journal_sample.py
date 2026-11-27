@@ -28,7 +28,8 @@ def value(event_name, key):
 
 def sample():
     context = {key.encode(): value(None, key).encode() for key in event_table.CONTEXT_KEYS if key != "event"}
-    return b"".join(event.line([name.encode()] + [f"{key}={value(name, key)}".encode() for key in event_table.keys(name)],
+    return b"".join(event.line([name.encode()]
+                               + [f"{key}={value(name, key)}".encode() for key in event_table.keys(name)],
                                context, TS, AWAKE) for name in event_table.EVENTS)
 
 

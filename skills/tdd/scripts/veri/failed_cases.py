@@ -1,4 +1,5 @@
-"""The pytest leg's record plugin: keeps, in this process, the cases each session collected and how each one reported."""
+"""The pytest leg's record plugin:
+keeps, in this process, the cases each session collected and how each one reported."""
 import pytest
 
 NODEIDS = []

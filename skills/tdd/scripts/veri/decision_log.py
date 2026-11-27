@@ -19,7 +19,8 @@ def log_path(main=None):
 
 
 KEYS = ("question", "decision", "rule", "by", "at")
-# Who may decide: the operator role (role-state.sh's one role), or the owner, whose own answer or override is recorded too.
+# Who may decide: the operator role (role-state.sh's one role),
+# or the owner, whose own answer or override is recorded too.
 BY = ("dev", "owner")
 # The longest field a record stores, in characters: a longer one is refused, not cut, so no record is stored partly.
 FIELD_MAX = 2000
@@ -106,7 +107,8 @@ def main(argv):
         return 2
     for name, value in zip(("question", "decision", "rule"), argv[1:4], strict=True):
         if len(value) > FIELD_MAX:
-            sys.stderr.write("decision-log.sh: the %s is over %d characters; record a shorter one\n" % (name, FIELD_MAX))
+            sys.stderr.write("decision-log.sh: the %s is over %d characters; record a shorter one\n"
+                             % (name, FIELD_MAX))
             return 2
     record(*argv[1:])
     return 0

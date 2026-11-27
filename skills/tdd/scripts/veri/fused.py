@@ -105,7 +105,8 @@ def read_lines(lines):
 
 
 def conductor(wt):
-    """The conductor a call runs under, as <wt>'s `.tdd/conductor.pid` names it: {"pid", "started"}; None without one."""
+    """The conductor a call runs under, as <wt>'s `.tdd/conductor.pid` names it:
+    {"pid", "started"}; None without one."""
     try:
         with open(os.path.join(wt, ".tdd", "conductor.pid")) as f:
             lines = f.read().split("\n")

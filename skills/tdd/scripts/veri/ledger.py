@@ -1,4 +1,5 @@
-"""The ledger reader and ticker, ledger_steps and ledger_tick, run in-process; the one module that spells the ledger's grammar.
+"""The ledger reader and ticker, ledger_steps and ledger_tick, run in-process;
+the one module that spells the ledger's grammar.
 
 Interface: reading (read_ledger, ledger_items, ledger_steps, items_at), writing (replace_ledger, rewrite_ledger,
 ledger_tick, ledger_mark_phase, ledger_clear_pending, tick_line), a step's parts and predicates (body, listed_phases,
@@ -24,7 +25,8 @@ CRITERION_TAG = "⟦criterion "
 SPACE = r"[ \t\n\v\f\r]"
 STEP_RE = re.compile(rf"({SPACE}*-{SPACE})\[([ xX])\]( (.*))?")
 CRITERION_RE = CRITERION_TAG + "([0-9]+)⟧"
-KIND_RE = re.compile(r"⟦(full-suite|human-owed|diff-checked)⟧ (?:" + ADDED_MARK + " )?(?:⟦(?:branch|quality)-repair⟧ )?" + CRITERION_RE)
+KIND_RE = re.compile(r"⟦(full-suite|human-owed|diff-checked)⟧ (?:" + ADDED_MARK
+                     + " )?(?:⟦(?:branch|quality)-repair⟧ )?" + CRITERION_RE)
 INTERFACE_PHASES = ("expand", "cover-new", "migrate", "contract-a", "contract-b")  # the phases of an interface change
 MARK_DELIMITER = " ⟂ "
 PHASES_RE = re.compile(r"⟦phases: ([^⟧]*)⟧")
@@ -42,7 +44,8 @@ BEFORE_STATE_GREEN = re.compile(
 
 def ledger_path(run_dir, issue):
     """One-line delegate of run_dir.ledger. Its only caller is wrong_test_route.py (line 312, owned by open PR #3792);
-    delete it, and its tests (test_ledger.py, test_wrong_test_route.py), once #3792 lands and that module calls run_dir.ledger."""
+    delete it, and its tests (test_ledger.py, test_wrong_test_route.py), once #3792 lands and that module calls
+    run_dir.ledger."""
     return run_ledger(run_dir, issue)
 
 

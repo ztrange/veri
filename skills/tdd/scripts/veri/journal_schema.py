@@ -12,7 +12,8 @@ Interface, documented side (pure: each takes JOURNAL.md's text, the caller reads
 Interface, writer side (pure: takes a module's source text):
   writer_calls(source)    one (line, kind, fields) per call that appends an event, found with `ast`
 
-`kind` is a string literal or a module-level string constant assigned once, else None; `fields` holds only the names written
+`kind` is a string literal or a module-level string constant assigned once, else None;
+`fields` holds only the names written
 as a literal `"name=…"` (a constant, an f-string or `%`/`+` expression starting with one). Blind
 spots: a computed kind, `**fields`, a field list built in a variable, and events that prose writes
 through `event.sh`.

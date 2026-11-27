@@ -60,7 +60,8 @@ def resolve(name):
 
 
 def leaf_model(name):
-    """The model a leaf runs with, as `$(leaf-model.sh <name>)` reads it: its shipped default when no variable is set, empty when refused."""
+    """The model a leaf runs with, as `$(leaf-model.sh <name>)` reads it:
+    its shipped default when no variable is set, empty when refused."""
     model = resolve(name)
     if model is None or _is_echo_option(model):
         return ""
