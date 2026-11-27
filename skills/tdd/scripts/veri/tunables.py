@@ -170,6 +170,7 @@ TUNABLES = {
     "VERI_MERGE_LOCK_POLL": Tunable(text, "30"),
     "VERI_MERGE_LOCK_WAIT": Tunable(tokens, "1800"),
     "VERI_FETCH_RETRY_SLEEP": Tunable(text, "1"),
+    "VERI_FETCH_RETRIES": Tunable(text, "60"),
     "VERI_MERGE_SETTLE_READS": Tunable(text, "10"),
     "VERI_MERGE_SETTLE_SLEEP": Tunable(text, "3"),
     "VERI_SLICE_COMMITS": Tunable(text, "100"),
