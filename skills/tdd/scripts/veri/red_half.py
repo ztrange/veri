@@ -163,7 +163,11 @@ def red_report(wt):
             sys.stdout.write("%s=%s\n" % (key.lower(), got[key]))
     against = got["AGAINST_UNMODIFIED"]
     if against == "HOLDS":
-        raise fused.Stop("2", "COVERING_TESTS: " + " ".join(covering_tests.ids(got["COVERING_TESTS"] or "")), 1)
+        try:
+            held = covering_tests.ids(got["COVERING_TESTS"] or "")
+        except ValueError as error:
+            raise fused.Stop("2", str(error), 2) from error
+        raise fused.Stop("2", "COVERING_TESTS: " + " ".join(held), 1)
     if against in ("PASSES", "UNTESTABLE"):
         raise fused.Stop("2", "AGAINST_UNMODIFIED: " + against, 1)
     for key in ("TEST_PATH", "TARGET_TEST", "AGAINST_UNMODIFIED"):

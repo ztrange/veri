@@ -3,5 +3,8 @@ criterion (PRD 044.2, D7, D8)."""
 
 
 def ids(line):
-    """The ids <line> holds, space-separated."""
-    return line.split()
+    """The ids <line> holds, space-separated; ValueError, naming the line, when it holds none."""
+    found = line.split()
+    if not found:
+        raise ValueError("COVERING_TESTS: holds no id")
+    return found
