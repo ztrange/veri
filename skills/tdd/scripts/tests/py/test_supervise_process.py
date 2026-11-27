@@ -217,7 +217,7 @@ def run_hang_after_lock(tmp_path, startup_delay):
     with supervised([str(SCRIPTS / "supervise.sh"), "verify-rebase", sys.executable, str(script)],
                            cwd=work, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                            env={"PATH": os.path.dirname(sys.executable) + ":/usr/bin:/bin", "VERI_STUCK_RETRIES": "0",
-                                "VERI_POLL": "0.05", "VERI_TIMEOUT": "4", "VERI_HEARTBEAT": "600",
+                                "VERI_POLL": "0.05", "VERI_TIMEOUT": "2", "VERI_HEARTBEAT": "600",
                                 "VERI_AWAKE_CLOCK": "%s %s" % (clock, state),
                                 "HOME": str(tmp_path), "VERI_PYTEST_LEGS": str(tmp_path / "legs"),
                                 "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
@@ -245,7 +245,7 @@ def test_2380_a_leaf_that_hangs_after_acquiring_the_full_suite_lock_is_still_kil
 @pytest.mark.process("supervise.sh runs a real leaf that waits past VERI_TIMEOUT on a lock the test releases, then hangs holding it")
 @pytest.mark.timeout(60)
 def test_2717_a_leaf_slow_to_reach_the_full_suite_lock_past_the_hard_timeout_is_still_killed_stuck(tmp_path):
-    code, acquired, err = run_hang_after_lock(tmp_path, 5)
+    code, acquired, err = run_hang_after_lock(tmp_path, 3)
 
     assert (code, acquired) == (2, True), err
 
