@@ -4885,6 +4885,7 @@ def test_cli_a_ref_lock_that_is_never_released_makes_the_launch_refuse_with_exit
         tmp_path, monkeypatch, run_cli):
     _, _, run_conductor, caller = clone_behind_origin_holding_a_ref_lock(tmp_path, monkeypatch, "run_conductor_never_released")
     monkeypatch.setenv("VERI_FETCH_RETRY_SLEEP", "0")
+    monkeypatch.setenv("VERI_FETCH_RETRIES", "6")
     prompts, fetches = real_git_with_a_fake_claude_and_instant_sleep(monkeypatch)
 
     code, _, stderr = run_cli(run_conductor, ["4242"], cwd=caller)
