@@ -65,24 +65,30 @@ def locked(top):
 
 
 def lines_of(top):
-    """The queue's lines, or None when there is no queue."""
+    """The queue's lines, split on newlines only, so a body's U+2028, U+2029 or U+0085 stays inside its entry; None
+    when there is no queue."""
     try:
-        with open(os.path.join(top, FILE), encoding="utf-8") as handle:
-            return handle.read().splitlines()
+        with open(os.path.join(top, FILE), encoding="utf-8", newline="") as handle:
+            return handle.read().split("\n")
     except FileNotFoundError:
         return None
 
 
+def entries_of(top):
+    """The queue's non-blank lines; none when there is no queue."""
+    return [line for line in lines_of(top) or [] if line.strip()]
+
+
 def pending(top):
     """Whether the queue holds an entry."""
-    return top is not None and bool(lines_of(top))
+    return top is not None and bool(entries_of(top))
 
 
 def append(top, entry_):
     """Add <entry_> as the queue's last line, under the lock."""
     with locked(top):
         with open(os.path.join(top, FILE), "a", encoding="utf-8") as handle:
-            handle.write(json.dumps(entry_, ensure_ascii=False) + "\n")
+            handle.write(json.dumps(entry_) + "\n")
             handle.flush()
             os.fsync(handle.fileno())
 
@@ -128,6 +134,28 @@ def criterion_line(body, k):
     return records[k - 1].text if 1 <= k <= len(records) else None
 
 
+def parsed(line):
+    """Queue line <line> as its entry; ValueError when it is not one."""
+    try:
+        e = json.loads(line)
+        kind = e.get("type")
+    except (ValueError, AttributeError) as error:
+        raise ValueError(str(error)) from None
+    if kind not in ("comment", "tick"):
+        raise ValueError("type %r" % kind)
+    return e
+
+
+def blocked(top):
+    """Whether the queue's first entry is unreadable, so a replay can never get past it."""
+    lines = entries_of(top)
+    try:
+        lines and parsed(lines[0])
+    except ValueError:
+        return True
+    return False
+
+
 def land(e):
     """Make queued entry <e>'s write; NoAnswer when GitHub gives none."""
     if e["type"] == "comment":
@@ -137,7 +165,10 @@ def land(e):
         github.gh_issue_comment(e["issue"], github.published(e["body"]))
         return
     line = criterion_line(github.gh_issue_view(e["issue"], "body"), int(e["criterion"]))
-    if line is not None and tick_issue_criterion.tick(e["issue"], line) == 2:
+    if line is None:
+        print("github-queue.sh: dropped tick %s: #%s has no criterion %s any more"
+              % (e["key"], e["issue"], e["criterion"]), file=sys.stderr)
+    elif tick_issue_criterion.tick(e["issue"], line) == 2:
         raise github.NoAnswer("")
 
 
@@ -151,10 +182,8 @@ def replay(top, out=None):
         lines = [line for line in lines if line.strip()]
         while lines:
             try:
-                e = json.loads(lines[0])
-                if e.get("type") not in ("comment", "tick"):
-                    raise ValueError("type %r" % e.get("type"))
-            except (ValueError, AttributeError) as error:
+                e = parsed(lines[0])
+            except ValueError as error:
                 return entry.refuse("github-queue.sh: unreadable entry in %s: %s" % (FILE, error))
             try:
                 land(e)

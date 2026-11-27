@@ -787,6 +787,7 @@ The issue writes a run queues while GitHub is down, in `.tdd/github-queue` of th
 - `root(start=None)`: the main working tree the queue lives in, found from <start>; None when a linked worktree's gitdir cannot be read, so nothing is queued.
 - `outage(top)`, `incident()`, `down(top)`: whether `.tdd/github-outage` exists under <top>, whether `github-status.sh`'s default read reports an incident (no answer is none), and either.
 - `pending(top)`: whether the queue holds an entry.
+- `blocked(top)`: whether the queue's first entry is unreadable, so no replay can get past it; `comment.sh` then posts and queues nothing (exit 2).
 - `queue_comment(top, issue, kind, body)`, `queue_tick(top, issue, criterion)`: append one entry under `.tdd/github-queue.lock` and answer its key; a comment's body gains the hidden `<!-- veri-queued <key> -->` marker.
 - `replay(top, out=None)`: post the entries in file order, each landed one removed; 0 once empty, 3 with no queue, 2 at the first entry with no answer, that entry and the rest kept.
 

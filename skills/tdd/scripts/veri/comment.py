@@ -45,6 +45,8 @@ def read_steps(issue):
 def post_and_record(issue, kind, body, strip_url=False, target=None):
     top = github_queue.root()
     if github_queue.pending(top) and github_queue.replay(top, out=sys.stderr) == 2:
+        if github_queue.blocked(top):
+            return 2
         return queue(top, target or issue, kind, body)
     try:
         url = github.gh_issue_comment(target or issue, github.published(body))
