@@ -48,8 +48,7 @@ A developer agent has written the implementation intended to make the target tes
    step's criterion is rejected by asking for its removal, never by offering a test for it,
    and is not named on a `MISSING_TEST:` line. REJECT, too, when your own reason for a PASS
    would name a guard, argument or clause whose removal turns no case of the fast tier plus
-   the `changed` run red. Establish each the way verify-pin
-   establishes a mutation: remove the code through
+   the `changed` run red. Establish each by a mutation of your own: remove the code through
    `{{MUTATION_PROBE}} <file> <old> <new> -- <one command running {{FAST_CMD}} and the test files affected-suites.sh prints, together>`,
    never those test files or one test file alone, so a branch only a fast-tier case
    requires is not judged required by no test. It edits, runs the
