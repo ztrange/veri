@@ -13,7 +13,7 @@ import run_line
 import tidy_first
 import tunables
 from entry import write
-from ledger import BEFORE_STATE_GREEN, INTERFACE_PHASES, carries_mark, trailing_markers
+from ledger import INTERFACE_PHASES, carries_mark, trailing_markers
 from prompt_template import (
     IncludeRefused,
     expand_includes,
@@ -92,9 +92,7 @@ def arguments(argv):
 
     The checks run in this order and the order is part of the behaviour: no argument; unknown phase; too few arguments
     for the phase; (revise) an empty then an unknown phase to revise; the first empty required argument by position;
-    (over-budget) a non-decimal spent or budget; and last, for revise of red, a verify-pin.reason file whose REASON line
-    carries a before-state-green clause. Only that last check reads a file, and it does so before any readability check
-    of the files the prompt is built from.
+    (over-budget) a non-decimal spent or budget. No check reads a file.
     """
     if not argv:
         return Refusal(None)
@@ -139,12 +137,6 @@ def arguments(argv):
         for name, value in zip(names[3:], args[3:], strict=False):
             if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", value):
                 return Refusal(f"build-develop-prompt: {name} '{value}' is not a non-negative decimal number")
-    if (phase == "revise" and revised_phase == "red" and os.path.basename(args[3]) == "verify-pin.reason"
-            and any(BEFORE_STATE_GREEN.search(line)
-                    for line in _read(args[3]).decode("utf-8", "replace").splitlines()
-                    if line.startswith("REASON:"))):
-        return Refusal("build-develop-prompt: a verify-pin rejection with a before-state-green clause is routed "
-                       "by pin-reject-route.sh, not revised")
     return Arguments(phase, revised_phase, names, args)
 
 
