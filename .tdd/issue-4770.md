@@ -37,7 +37,7 @@
 - [x] Prose: `skills/tdd/SKILL.md#Green — minimum implementation (developer leaf), then verify-green (blind)`: as the issue's `## Requirements` states it, rows reworded and added, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
 - [x] Prose: `skills/tdd/SKILL.md#2. Scope & plan → the ledger`: as the issue's `## Requirements` states it, rows reworded and added, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
 - [x] Prose: `skills/tdd/PIN.md`: states the `HOLDS` path, the reduced verify-pin and the straight-to-revise REJECT, and names no hand break, no fail-at-base and no unpinnable retire, as the issue's `## Requirements` states it, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
-- [ ] Prose: `skills/tdd/BAIL.md`: drops the retired cause, as the issue's `## Requirements` states it, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
+- [x] Prose: `skills/tdd/BAIL.md`: drops the retired cause, as the issue's `## Requirements` states it, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
 - [ ] Prose: `skills/tdd/REVISE.md`: a verify-pin REJECT goes straight to the revise loop, as the issue's `## Requirements` states it, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
 - [ ] Prose: `CONTEXT.md`: as the issue's `## Requirements` states it, the unit regraded PASS and signed in `GRADED` inside this step ⟦criterion 1⟧
 - [ ] Prose: `skills/tdd/scripts/prompts/develop-red.md`: as the issue's `## Requirements` states it, the unit regraded PASS and signed in `skills/tdd/GRADED` inside this step ⟦criterion 1⟧
