@@ -1287,7 +1287,10 @@ def test_4310_a_leg_with_veri_pytest_workers_set_reads_neither_the_core_count_no
     monkeypatch.setattr(os, "cpu_count", read("cpu_count", 16))
     monkeypatch.setattr(os, "process_cpu_count", read("process_cpu_count", 16), raising=False)
     monkeypatch.setattr(os, "sched_getaffinity", read("sched_getaffinity", set(range(16))), raising=False)
-    monkeypatch.setattr(pytest_leg, "registered_legs", read("registered_legs", [(str(os.getppid()), 16)]))
+    # The leg reads the registry both through its own registered_legs and through leg_registry.registered_workers,
+    # which looks registered_legs up in leg_registry, so the spy sits on both names.
+    for module in (pytest_leg, importlib.import_module("leg_registry")):
+        monkeypatch.setattr(module, "registered_legs", read("registered_legs", [(str(os.getppid()), 16)]))
     monkeypatch.setattr(sys, "platform", "linux")
     monkeypatch.delenv("PYTEST_XDIST_WORKER", raising=False)
     legs = tmp_path / "legs"
