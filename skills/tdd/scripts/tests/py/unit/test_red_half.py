@@ -244,7 +244,7 @@ def test_4770_holds_whose_covering_ids_covering_tests_refuses_stops_it_with_exit
     code, out, err, fake = red(fake=Fake({("git", "ls-files"): (0, HOLDS_TRACKED)}, report=report))
 
     assert code == 2, (out, err)
-    assert out.splitlines()[-1].startswith("stopped at 2 ")
+    assert out.splitlines()[-1].split(" ", 3)[:3] == ["stopped", "at", "2"]
     assert "verdict-red" not in fake.launched()
 
 
