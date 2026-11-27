@@ -1,4 +1,5 @@
-"""A pytest plugin the launcher loads: no case may reach a non-loopback address or start a gh or curl it did not plant under its basetemp."""
+"""A pytest plugin the launcher loads: no case may reach a non-loopback address or start a gh or curl it did not plant
+under its basetemp."""
 import ipaddress
 import os
 import shutil
@@ -25,7 +26,8 @@ def faked(command, kwargs, basetemp):
 
 
 def refusal_dirs(tmp_path_factory):
-    """One directory per guarded command holding its refusing stub, made once per pytest run (a factory lives as long as the run) and shared by its cases."""
+    """One directory per guarded command holding its refusing stub, made once per pytest run (a factory lives as long
+    as the run) and shared by its cases."""
     made = getattr(tmp_path_factory, "veri_refusal_dirs", None)
     if made is None:
         made = {}

@@ -1,4 +1,5 @@
-"""When a case in the current tree is "the same case" as one a frozen record names, and the digest of the helpers it calls.
+"""When a case in the current tree is "the same case" as one a frozen record names,
+and the digest of the helpers it calls.
 
 "The same case" is decided by the record's body digest, never by position: a case is the one recorded when
 its body (or one of its `parents[N]` root-lookup variants, for a file that moved to another depth) hashes to
@@ -14,7 +15,8 @@ Interface (a function says what it touches: text only, the tree's files, or case
   checked_lines(body)                     assertion_lines(body), but a t.Fatal or t.Error line whose previous non-blank
                                           line is an `if <cond> {` guard is that guard, squeezed, then the call's name
                                           (its text before the first `(`), message dropped: a changed condition changes
-                                          the line, a reworded message does not. An unguarded line stays whole. Text only.
+                                          the line, a reworded message does not. An unguarded line stays whole.
+                                          Text only.
   bodies_of(text, case)                   every body of the cases named `case` in test source `text`, in file
                                           order; [] when none. Text only; UnclosedCase from case_reader.cut_cases
                                           when a JS call never closes.
@@ -34,14 +36,16 @@ Interface (a function says what it touches: text only, the tree's files, or case
   as_recorded(body, digests)              the first of root_variants(body) whose digest is in `digests`, else
                                           `body`. Text only.
 
-  path_holding(case, digests, only=None) the first file under the current directory (hidden directories skipped; only the
+  path_holding(case, digests, only=None) the first file under the current directory
+                                          (hidden directories skipped; only the
                                           basename `only` when given) one of whose `case` bodies, or a root variant of
                                           one, hashes into `digests`, as os.walk spells it ("./tests/x.py"); None when
                                           none does. Reads the tree's files; OSError when one cannot be opened.
   moved_path(name, case, digests)         `name` while that file holds a body of `case`, whatever its digest (a case
                                           changed in place is judged there, never at a copy elsewhere); else the
                                           path_holding of a file of the same basename, else of any file, else `name`.
-                                          Reads the tree's files; UnclosedCase from case_reader when `name` cannot be cut.
+                                          Reads the tree's files; UnclosedCase from case_reader when `name` cannot be
+                                          cut.
 
   renamed_to(name, case, digest, text, consumed)
                                           the case of `text` that is the recorded `case` of file `name` but for its
@@ -105,7 +109,8 @@ def bodies_of(text, case):
     return [b for c, b in cut_cases(text) if c == case]
 
 
-_HELPER_NAME = r"^(?:(?:function|func|def)\s+(?:\([^)]*\)\s*)?(\w+)|const\s+(\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>)"
+_HELPER_NAME = (r"^(?:(?:function|func|def)\s+(?:\([^)]*\)\s*)?(\w+)"
+                r"|const\s+(\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>)")
 
 
 def _named_helpers(text, body, legacy=False):

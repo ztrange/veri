@@ -33,10 +33,13 @@ from replaces_case import is_replaces_case_step
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff", "surround", "break")
 VERIFY_ONLY_PHASES = ("beside", "dual-stub", "branch")
 WANT_PHASES = "|".join(PHASES + INTERFACE_PHASES)
-NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "break": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
-         "transform": {"fast-cmd", "base-sha"}, **dict.fromkeys(INTERFACE_PHASES + VERIFY_ONLY_PHASES, {"fast-cmd", "base-sha"})}
+NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "break": {"fast-cmd", "base-sha"},
+         "diff": {"fast-cmd"},
+         "transform": {"fast-cmd", "base-sha"},
+         **dict.fromkeys(INTERFACE_PHASES + VERIFY_ONLY_PHASES, {"fast-cmd", "base-sha"})}
 HERE = paths.scripts_of(__file__)
-USAGE = ("usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>|--frozen-edit <sha>]"
+USAGE = ("usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>']"
+         " [--supersede-base <sha>|--frozen-edit <sha>]"
          " [--branch-base <sha>] [--step-green <sha>]"
          " <phase> <issue-spec-file> <test-path> [<target-test-id>]"
          "\n       build-verify-prompt.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>")
@@ -65,7 +68,8 @@ def _spec_rows_at(spec_text, branch_base):
         try:
             shown = git.out("show", f"{branch_base}:{path}")
         except git.GitFailed:
-            sys.stderr.write(f"build-verify-prompt: {path} is not at the branch base {branch_base}; its rows are left out\n")
+            sys.stderr.write(f"build-verify-prompt: {path} is not at the branch base {branch_base}; "
+                             "its rows are left out\n")
             continue
         rows = "\n".join(line for line in shown.splitlines()
                          if line.startswith("|") and line.split("|")[1].strip() in wanted)
@@ -280,7 +284,8 @@ def _sha_slots(step_arg, phase, test_path, fourth, branch_base):
     slots = {"BASE_SHA": fourth, "STEP_BASE_SHA": "", "ONTO_SHA": "", "PRE_REBASE_SHA": ""}
     for label, slot, value in shas:
         if not HEX_SHA.fullmatch(value):
-            return None, f"build-verify-prompt: {phase} needs {label} as 7-40 lowercase hex characters, got '{value}'"
+            return None, (f"build-verify-prompt: {phase} needs {label} as 7-40 lowercase hex characters, "
+                          f"got '{value}'")
         slots[slot] = value
     return slots, None
 
@@ -390,7 +395,9 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
         written = (b"**one replacement case per named case** (judge each of them, not only the target test)")
     number = 5 if phase in ("expand", "cover-new", "migrate") else 4
     out = fill(out, ((b"LAST_PHASE_CHECK", _last_phase_check(step_arg, phase, number)),
-                               (b"RED_WRITTEN", written), (b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec) + (_spec_rows_at(_read(spec), branch_base) if phase == "branch" else b"")),
+                               (b"RED_WRITTEN", written), (b"SHARED", shared), (b"STEP", step_block),
+                               (b"ISSUE_SPEC",
+                                _read(spec) + (_spec_rows_at(_read(spec), branch_base) if phase == "branch" else b"")),
                                *((placeholder.encode(), value) for placeholder, value in values.items()),
                                (b"TEST_PATH", os.fsencode(test_path)),
                                (b"TARGET_TEST", os.fsencode(fourth or "the target test")),

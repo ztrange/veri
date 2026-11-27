@@ -23,7 +23,8 @@ GH_LINE = re.compile(r"^[^\t]*\t[^\t]*" + STAMP.pattern + " ?(.*)$")
 
 
 def runner_text(log):
-    """The runner's own output in a `--log-failed` log: each line without gh's prefix or colour codes. ValueError naming the first
+    """The runner's own output in a `--log-failed` log: each line without gh's prefix or colour codes.
+    ValueError naming the first
     non-empty line that is not one gh line (no prefix, or two lines glued into one), so such a log is no answer."""
     lines = []
     for number, line in enumerate(log.splitlines(), 1):

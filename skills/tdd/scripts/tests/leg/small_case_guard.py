@@ -1,4 +1,5 @@
-"""A pytest plugin the launcher loads: an unmarked (small) case may not start git, or python3 on anything but a veri/ module."""
+"""A pytest plugin the launcher loads: an unmarked (small) case may not start git, or python3 on anything but a veri/
+module."""
 import os
 import subprocess
 

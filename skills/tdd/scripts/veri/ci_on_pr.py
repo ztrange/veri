@@ -76,6 +76,7 @@ def triggers_on_pull_request():
 
 
 def runs_on_pull_requests():
-    """True when declared() says 1 or, empty, a workflow of the current directory triggers on pull_request. ValueError as declared()."""
+    """True when declared() says 1 or, empty, a workflow of the current directory triggers on pull_request.
+    ValueError as declared()."""
     raw = declared()
     return raw == "1" or not raw and triggers_on_pull_request()

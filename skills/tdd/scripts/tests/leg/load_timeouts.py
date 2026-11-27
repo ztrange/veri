@@ -50,7 +50,8 @@ def held():
 
 
 def window():
-    """VERI_LOAD_WINDOW: the seconds a timeouts line counts toward a load timeout; 600 for anything but a whole number."""
+    """VERI_LOAD_WINDOW: the seconds a timeouts line counts toward a load timeout; 600 for anything but a whole
+    number."""
     raw = tunables.get("VERI_LOAD_WINDOW", unless_empty=True)
     return int(raw) if raw.isascii() and raw.isdigit() else 600
 

@@ -41,7 +41,8 @@ SUITE_REPAIR = "suite-repair"
 REPAIR_MARKS = ("ci-repair", SUITE_REPAIR, "branch-repair", "quality-repair")
 BYTES = "surrogateescape"
 INSTEAD_OF = "instead-of"
-USAGE = "usage: add-ledger-step.sh [--planned] [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]  (--planned goes with --criterion <k>)"
+USAGE = ("usage: add-ledger-step.sh [--planned] [--criterion <k>] <ledger-file> after|before|instead-of "
+         "<anchor-substring> <text> [<text> …]  (--planned goes with --criterion <k>)")
 
 
 @dataclass(frozen=True)
@@ -82,7 +83,8 @@ def added_step(text, k, planned=False):
 
 
 def repair_following(steps, anchor, mark):
-    return next((following for line, following in zip(steps, steps[1:], strict=False) if anchor in line and is_one_per_run(following, mark)), None)
+    return next((following for line, following in zip(steps, steps[1:], strict=False)
+                 if anchor in line and is_one_per_run(following, mark)), None)
 
 
 class UnreadableLog(Exception):
@@ -151,7 +153,8 @@ def restates_list(path, unit):
 
 
 def verified_plan_size(path):
-    """The steps the ledger at `path` held at the commit `ledger-growth.sh plan-sha` prints; None when git names none."""
+    """The steps the ledger at `path` held at the commit `ledger-growth.sh plan-sha` prints;
+    None when git names none."""
     directory = os.path.dirname(os.path.abspath(path))
     log = git("log", "--format=%H %s", cwd=directory, capture_output=True, text=True, errors=BYTES)
     sha = ledger_growth.plan_sha(log.stdout) if log.returncode == 0 else None
@@ -182,7 +185,8 @@ def record_insertions(path, steps, awake):
 
 
 def commit_amendment(path):
-    NOT_DURABLE = "add-ledger-step.sh: the added step is not durable (uncommitted, so a bail's revert would drop it until someone commits it)"
+    NOT_DURABLE = ("add-ledger-step.sh: the added step is not durable "
+                   "(uncommitted, so a bail's revert would drop it until someone commits it)")
     tree = os.path.dirname(os.path.dirname(os.path.abspath(path)))
     live = pid_file.recorded_started(tree)
     if live is None or int(live) in pid_file.ancestors():
@@ -193,7 +197,8 @@ def commit_amendment(path):
                  ["commit", "-q", "-m", "plan: step added while the conductor is live", "--", *paths]):
         done = subprocess.run(["git", *argv], cwd=tree, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if done.returncode == 0:
-        head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=tree, capture_output=True, text=True).stdout.strip()
+        head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=tree,
+                              capture_output=True, text=True).stdout.strip()
         print(f"add-ledger-step.sh: the added step is durable (committed in {head})", file=sys.stderr)
     else:
         print(NOT_DURABLE, file=sys.stderr)
@@ -251,18 +256,21 @@ def skill_edit_refusal(path, texts):
         if unit is None and "`" in text:
             return "add-ledger-step.sh: no unit path was found in step: " + text.replace("\n", " ")
         if unit is None:
-            return "add-ledger-step.sh: a skill-edit step must name its unit path in backticks: " + text.replace("\n", " ")
+            return ("add-ledger-step.sh: a skill-edit step must name its unit path in backticks: "
+                    + text.replace("\n", " "))
         try:
             restated = restates_list(path, unit)
         except MissingUnit:
             return f"add-ledger-step.sh: {unit}: the unit file does not exist"
         if restated:
-            return f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs from the unit's list; a requirements row is needed"
+            return (f"add-ledger-step.sh: {unit}: the issue's Requirements restate no row that differs "
+                    "from the unit's list; a requirements row is needed")
     return None
 
 
 def one_per_run_exit(request, lines):
-    # The marks of which one run inserts at most one step: the second is refused (exit 1). Not REPAIR_MARKS, which only exempts.
+    # The marks of which one run inserts at most one step: the second is refused (exit 1).
+    # Not REPAIR_MARKS, which only exempts.
     ONE_PER_RUN = (SUITE_REPAIR, "lint-repair")
     steps = [line for line in lines if ledger_steps(line)]
     for mark in ONE_PER_RUN:
@@ -272,7 +280,8 @@ def one_per_run_exit(request, lines):
         except UnreadableLog as unreadable:
             return entry.refuse(str(unreadable))
         if this_run and any(is_one_per_run(text, mark) for text in request.texts):
-            warn(f"add-ledger-step.sh: this run already inserted a {mark} step: " + (earlier[0] if this_run is True else this_run))
+            warn(f"add-ledger-step.sh: this run already inserted a {mark} step: "
+                 + (earlier[0] if this_run is True else this_run))
             return 1
     return None
 
@@ -312,7 +321,8 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
     `criterion` is the criterion number as a string (None: each step inherits the anchor's); `planned` (needs a
     criterion) inserts steps the spec already lists, outside the VERI_STEP_GROWTH_PERCENT budget.
     Returns 0 inserted; 1 clean negative (growth budget spent, the texts parked under "## Owed steps"; an
-    unreadable replaces-case step; a second suite-repair or lint-repair step this run); 2 refused (stderr says why) or no answer.
+    unreadable replaces-case step; a second suite-repair or lint-repair step this run);
+    2 refused (stderr says why) or no answer.
     Writes the ledger, its added-steps record and events.jsonl (step-added, plan); commits the amendment when a
     conductor is live. Prints refusals and notes to stderr, as the script does; an empty path, position or anchor
     is refused with the usage line (exit 2), as on the command line.
@@ -367,7 +377,8 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
         if where == "before":
             out.append(line)
     kept = [line for line in lines if where != INSTEAD_OF or not is_anchor_step(line, anchor)]
-    added = sum(record.added == "1" for record in ledger_steps("\n".join(kept))) + sum(not is_repair(text) for text in texts)
+    added = (sum(record.added == "1" for record in ledger_steps("\n".join(kept)))
+             + sum(not is_repair(text) for text in texts))
     plan_size = verified_plan_size(path) if added and not planned else 0
     if plan_size is None:
         return entry.refuse("add-ledger-step.sh: no plan commit holds " + os.path.basename(path)
@@ -375,7 +386,8 @@ def add(path, where, anchor, texts, *, criterion=None, planned=False):
     if not planned and added > ledger_growth.growth_cap(int(percent), plan_size):
         write_owed_steps(request, lines, terminated)
         return 1
-    bare = next((line for line in inserted_lines if has_kind(line, "⟦diff-checked⟧") and CRITERION_TAG not in line), None)
+    bare = next((line for line in inserted_lines
+                 if has_kind(line, "⟦diff-checked⟧") and CRITERION_TAG not in line), None)
     if bare:
         return entry.refuse("add-ledger-step.sh: a diff-checked step needs a ⟦criterion k⟧ tag: " + bare)
     awake = event.awake_reading()

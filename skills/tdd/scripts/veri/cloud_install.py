@@ -15,7 +15,8 @@ def main(argv):
     root = argv[0] if argv else os.getcwd()
     real_root = os.path.realpath(root)
     if real_root != os.path.realpath(os.path.join(SCRIPTS, "..", "..", "..")):
-        return entry.refuse("cloud-install: cloud setup supports only veri's own repository for now; " + root + " is not it")
+        return entry.refuse(
+            "cloud-install: cloud setup supports only veri's own repository for now; " + root + " is not it")
     setup = '"$CLAUDE_PROJECT_DIR"/' + os.path.relpath(os.path.join(SCRIPTS, "cloud-setup.sh"), real_root)
     command = '[ "$CLAUDE_CODE_REMOTE" != true ] || ' + setup
     settings = os.path.join(root, ".claude", "settings.json")

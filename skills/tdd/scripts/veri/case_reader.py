@@ -41,7 +41,8 @@ def is_js_test_file(name, root=""):
     return in_tests and re.search(JS_EXT, name) is not None
 
 
-_CASE = re.compile(r"^\s*(?:(?:async\s+)?def\s+(?=test)|func\s+(?=Test))(\w+)|^\s*" + CALL + r"([\"'`])((?:\\.|.)+?)\2", re.M)
+_CASE = re.compile(
+    r"^\s*(?:(?:async\s+)?def\s+(?=test)|func\s+(?=Test))(\w+)|^\s*" + CALL + r"([\"'`])((?:\\.|.)+?)\2", re.M)
 
 
 _DECORATORS = re.compile(r"(?:\n[ \t]*(?:@[^\n]*)?)+\Z")
@@ -71,7 +72,8 @@ def _spans(text):
 
 def old_cut_cases_all(text, call_form_only=False):
     found, starts, ends = _spans(text)
-    return [(m.group(1) or m.group(3), text[start:end].rstrip()) for m, start, end in zip(found, starts, ends, strict=False)
+    return [(m.group(1) or m.group(3), text[start:end].rstrip())
+            for m, start, end in zip(found, starts, ends, strict=False)
             if m.group(3) or not call_form_only or text.startswith("func", start)]
 
 
@@ -223,7 +225,8 @@ def defines_helper(name, text, py_file, go_file):
     elif go_file:
         pattern = r"^func %s\(" % escaped
     else:
-        pattern = r"^\s*(?:export\s+)?(?:(?:async\s+)?function\s+{0}\(|const\s+{0}\s*=\s*(?:async\s+)?(?:function\b|\([^)]*\)\s*=>))".format(escaped)
+        pattern = (r"^\s*(?:export\s+)?(?:(?:async\s+)?function\s+{0}\("
+                   r"|const\s+{0}\s*=\s*(?:async\s+)?(?:function\b|\([^)]*\)\s*=>))").format(escaped)
     return re.search(pattern, text, re.M) is not None
 
 

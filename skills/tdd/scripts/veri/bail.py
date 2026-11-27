@@ -39,7 +39,8 @@ def _commit_metrics(here, issue):
         with open(path, "w") as f:
             f.write(metrics.stdout)
         _run("git add", ["git", "add", "-f", path])
-        _run("git commit", ["git", "commit", "-m", "metrics: what bailing on #%s cost (#%s)" % (issue, issue), "--", path])
+        _run("git commit",
+             ["git", "commit", "-m", "metrics: what bailing on #%s cost (#%s)" % (issue, issue), "--", path])
     return metrics
 
 
