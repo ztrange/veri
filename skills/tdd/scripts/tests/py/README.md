@@ -127,9 +127,9 @@ read as if it had collected everything; a target naming a case (`::`), or no rec
 
 **The idle window.** A per-case timeout cannot fire once no case runs, so a leg in which no case starts or reports for
 `VERI_PYTEST_IDLE` seconds (default 1200, above the longest timeout mark, 900) ends itself (#4254): it writes its own threads'
-stacks and, through SIGUSR1, each worker's to stderr, ends its workers (TERM, then KILL by pid after 5 s), prints one stderr
-line naming the idle time and the last case it saw, and exits 2; a leg sent TERM or HUP ends its workers the same way and
-exits 128 + the signal's number without waiting on xdist's worker teardown. Either way it removes its `~/.veri-pytest-legs`
+stacks and, through SIGUSR1, each worker's to stderr, ends its workers (TERM, then KILL by pid after `VERI_PYTEST_TERM_GRACE`
+seconds, default 5), prints one stderr line naming the idle time and the last case it saw, and exits 2; a leg sent TERM or
+HUP ends its workers the same way and exits 128 + the signal's number without waiting on xdist's worker teardown. Either way it removes its `~/.veri-pytest-legs`
 entry and releases the full-run lock first. A case may run silently for as long as its timeout, so a `VERI_PYTEST_TIMEOUT`
 (or a timeout mark) above `VERI_PYTEST_IDLE` lets the idle window end a leg whose slow case is still running; keep the window
 above every timeout.
