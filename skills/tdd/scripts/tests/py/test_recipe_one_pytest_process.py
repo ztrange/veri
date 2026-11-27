@@ -89,27 +89,6 @@ def make(tree, log, target, timeout=None, **veri):
     return ran.returncode, sorted(log.read_text().splitlines()), ran.stdout + ran.stderr
 
 
-@pytest.mark.timeout(120)
-@pytest.mark.process("make test and make unit started for real over a planted tree holding a small case, a medium case and a bash suite each")
-def test_make_test_and_make_unit_each_run_one_pytest_and_no_bash_suite_unit_the_small_cases_and_test_the_small_and_medium_cases(tmp_path):
-    tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
-    unit = make(tree, log, "unit")
-    full = make(tree, log, "test")
-    assert (unit[0], unit[1]) == (0, ["pytest small"]), unit[2]
-    assert (full[0], full[1]) == (0, ["pytest medium", "pytest small", "pytest small"]), full[2]
-
-
-@pytest.mark.timeout(120)
-@pytest.mark.process("make unit and make test started for real over a planted tree whose small case fails")
-def test_a_failing_case_fails_make_unit_and_make_test_with_no_bash_suite_run(tmp_path):
-    failing = PLANTED_CASES.split("@pytest.mark.process")[0].replace('note("pytest small")', 'note("pytest small")\n    assert False')
-    tree, log = planted_tree(tmp_path, small=failing), tmp_path / "ran.log"
-    unit = make(tree, log, "unit")
-    full = make(tree, log, "test")
-    assert (unit[0], unit[1]) == (2, ["pytest small"]), unit[2]
-    assert (full[0], full[1]) == (2, ["pytest medium", "pytest small", "pytest small"]), full[2]
-
-
 @pytest.mark.timeout(60)
 @pytest.mark.process("make unit started for real over a planted tree whose only unit case is medium, so its selection collects nothing")
 def test_a_selection_that_collects_nothing_fails_make_unit_with_no_bash_suite_run(tmp_path):
@@ -197,12 +176,12 @@ def test_with_no_worker_count_set_make_unit_runs_min_4_and_the_available_cores_a
 
 
 @pytest.mark.timeout(120)
-@pytest.mark.process("make unit and make test started for real over a planted tree holding no serial-marked case")
-def test_make_unit_and_make_test_over_a_tree_with_no_serial_marked_case_start_one_pytest_session_each_2092(tmp_path):
+@pytest.mark.process("make unit and make test started for real over a planted tree holding a small case, a medium case and a bash suite each, none serial-marked")
+def test_make_unit_and_make_test_over_a_tree_with_no_serial_marked_case_start_one_pytest_session_each_and_no_bash_suite_unit_the_small_cases_and_test_the_small_and_medium_cases_2092(tmp_path):
     tree, log = planted_tree(tmp_path), tmp_path / "ran.log"
-    for target in ("unit", "test"):
+    for target, noted in (("unit", ["pytest small"]), ("test", ["pytest medium", "pytest small", "pytest small"])):
         code, ran, output = make(tree, log, target, VERI_PYTEST_WORKERS="2")
-        assert (target, code, output.count("test session starts")) == (target, 0, 1), output
+        assert (target, code, ran, output.count("test session starts")) == (target, 0, noted, 1), output
 
 
 @pytest.mark.timeout(60)
