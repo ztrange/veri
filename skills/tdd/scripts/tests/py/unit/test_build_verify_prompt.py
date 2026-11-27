@@ -10,6 +10,7 @@ import pytest
 from conftest import SCRIPTS
 
 USAGE = (b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>|--frozen-edit <sha>] [--branch-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]"
+         b"\n       build-verify-prompt.sh [--step '<STEP>'] --branch-base <sha> pin <issue-spec-file> <test-id>..."
          b"\n       build-verify-prompt.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>\n")
 
 
@@ -2174,6 +2175,7 @@ def test_the_refactor_phase_without_step_green_refuses_with_the_usage_line_it_ha
     assert (code, out, err) == (2, b"", b"build-verify-prompt: refactor needs --step-green <sha>, the step's green tick\n"
                                 b"usage: build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] [--supersede-base <sha>|--frozen-edit <sha>]"
                                 b" [--branch-base <sha>] [--step-green <sha>] <phase> <issue-spec-file> <test-path> [<target-test-id>]"
+                                b"\n       build-verify-prompt.sh [--step '<STEP>'] --branch-base <sha> pin <issue-spec-file> <test-id>..."
                                 b"\n       build-verify-prompt.sh --fast-cmd '<CMD>' --branch-base <sha> branch <issue-spec-file>\n")
 
 
