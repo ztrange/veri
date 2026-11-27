@@ -67,6 +67,7 @@ EVENTS = {
     "merged": "pr:url tag:text,empty message:text,empty",
     "metrics-cut": "pr:url wall_seconds?:whole awake_seconds?:whole lane?:text",
     "pin": "",
+    "pr-body-deferred": "",
     "record-refreshed": "stage:(green-half|refactor-half|reroute|revise|step-close) key:text old:text,empty new:text",
     "plan": "steps:whole",
     "prediction-diverged": "",

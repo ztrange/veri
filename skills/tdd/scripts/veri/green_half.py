@@ -7,6 +7,7 @@ import sys
 import event_log
 import fused
 import fused_step
+import github_queue
 import ledger
 import plan_publish
 import replaces_case
@@ -140,7 +141,7 @@ def finish(n, wt, step, values):
     fused.checked("3", "git", "commit", "-m", "%s: %s (#%s)" % (kind(wt, n), fused_step.summary(step), n), cwd=wt)
     green_sha = fused.checked("3", "git", "rev-parse", "HEAD", cwd=wt).strip()
     fused.checked("3", fused.script("push-branch.sh"), cwd=wt)
-    pr_body(n, wt)
+    pr_body(n, wt, step)
     code, said, _ = fused.call(fused.script("stop-requested.sh"), cwd=wt)
     if code != 3:
         raise fused.Stop("3", "stop-requested.sh exit %d%s" % (code, " " + said.strip() if said.strip() else ""), code)
@@ -153,7 +154,22 @@ def kind(wt, n):
         return "fix" if "## Bug" in f.read().splitlines() else "feat"
 
 
-def pr_body(n, wt):
+def pr_body(n, wt, step):
+    """Green 3's PR body, unless GitHub is down (#4803): with `.tdd/github-outage` in the main working tree the PR read
+    and the body are skipped, and a read or write that gets no answer during a github-status incident is too; either
+    marks `pr-body-deferred`, and the next answered refresh rewrites the whole body, since it is counted afresh."""
+    top = github_queue.root(wt)
+    if top is not None and github_queue.outage(top):
+        return fused.mark("3", wt, n, step, "pr-body-deferred")
+    try:
+        refresh(n, wt)
+    except fused.Stop as stop:
+        if stop.code != 2 or top is None or not github_queue.incident():
+            raise
+        fused.mark("3", wt, n, step, "pr-body-deferred")
+
+
+def refresh(n, wt):
     """Green 3's PR body, `<done> of <total>` counted from the ticked ledger, on the PR read from the branch as
     RESUME.md sub-step 4 reads it (GH10)."""
     branch = fused.checked("3", "git", "branch", "--show-current", cwd=wt).strip()

@@ -615,3 +615,48 @@ def test_4709_a_step_only_quoting_ci_repair_in_its_prose_is_not_refused_as_a_ste
                                  answers={("wait-leaf.sh", "verdict-green"): (3, "")})
 
     assert "a step its prose runs" not in err
+
+
+def _main_tree(tmp_path):
+    """Make <tmp_path> the main working tree, holding the run's branch-base record as the conductor's does."""
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".tdd" / "issue-12-branch-base").write_text(BRANCH_BASE + "\n")
+
+
+def _deferred(fake):
+    """The calls green-half made after the push: what it read and wrote of the PR body while GitHub was down."""
+    return [(c[0], c[1], (c[3] or {}).get("VERI_STEP")) for c in _after(fake, "push-branch.sh")]
+
+
+def test_4803_with_the_outage_file_it_skips_the_pr_read_and_the_body_marks_it_deferred_and_exits_0(
+        green, tmp_path):
+    _main_tree(tmp_path)
+    (tmp_path / ".tdd" / "github-outage").write_text("")
+
+    code, out, err, fake = green()
+
+    assert code == 0, err
+    assert _deferred(fake) == [("event.sh", ("pr-body-deferred",), STEP), ("stop-requested.sh", (), None)]
+
+
+def test_4803_a_failed_pr_read_during_an_incident_marks_the_body_deferred_and_exits_0(
+        green, tmp_path, monkeypatch):
+    _main_tree(tmp_path)
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: True)
+
+    code, out, err, fake = green(answers={("gh", None): (2, "")})
+
+    assert code == 0, err
+    assert [c[:2] for c in _deferred(fake)][-3:] == [
+        ("gh", ("api", "repos/{owner}/{repo}/pulls?head={owner}:tdd/12-a-thing", "-q", ".[0].html_url // empty")),
+        ("event.sh", ("pr-body-deferred",)), ("stop-requested.sh", ())]
+
+
+def test_4803_a_failed_pr_read_with_no_incident_still_stops_it_with_exit_2(green, tmp_path, monkeypatch):
+    _main_tree(tmp_path)
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: False)
+
+    code, out, err, fake = green(answers={("gh", None): (2, "")})
+
+    assert (code, fake.names()[-1]) == (2, "gh")
+    assert "pr-body-deferred" not in [a for c in fake.calls for a in c[1]]
