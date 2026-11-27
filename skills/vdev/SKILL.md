@@ -23,7 +23,9 @@ Invoked as `/vdev [<lane>] [N] [--auto] [--resume <file>]`.
   `VERI_LABEL=ready-for-agent:mu`; with no lane word, plain `ready-for-agent`. The session does
   not state the lane in its output: the lane is in the role state and the `taken:<lane>` label.
 
-- **N** is how many conductors to keep running; it defaults to 1.
+- **N** is how many conductors to keep running; it defaults to 1. N may also be the word `auto`:
+  `auto` lets `dispatch.sh` set N at every poll from what the test-worker budget T has left
+  (*The slot decision*), and the session records it with `$S/role-state.sh dev [--lane <lane>] set n auto`.
 - **`--auto`** opts this session into autonomous mode: parked issues go to `vjudge` (*Parked
   issues*). On a `/vdev` turn the human typed, write `$S/role-state.sh dev [--lane <lane>] set
   auto on` when the invocation carries `--auto`, and `set auto off` when it does not, so autonomy
@@ -124,6 +126,12 @@ conductor exit:
    `role-state.sh dev set n` writes this lane's need, max(N, live conductors) × `VERI_CONDUCTOR_TEST_WORKERS`
    (default 2), and prints the T it leaves, beside the other lanes' needs and the ceiling, so you weigh N's test cost
    before you apply it; `dispatch.sh` rewrites the need at each poll.
+   Under `auto`, `dispatch.sh` sets the target at each poll to `floor((T - W_other)/d)`, at least 1 and at
+   most the live conductors plus the launchable queue, where d is `VERI_CONDUCTOR_TEST_WORKERS` and W_other is the
+   workers held by the pytest legs no conductor's leaf started; this lane's need is then C, the ceiling, so
+   it never narrows T. `role-state.sh dev set n auto` prints that target with each term, so you can explain each
+   target you report. A timed N wins over `auto` while it lasts. `auto` may run more than 5 conductors and spend
+   the weekly limit faster: the human picks `auto` knowing this, and the session never picks it on its own.
    Write the change to the role state file (*Role state*): `dispatch.sh`, run without `--target`,
    reads N, an unexpired timed N and the order overrides from `.tdd/role-dev.state` (`.tdd/role-dev-<lane>.state` in a lane) at each slot
    decision, so an N change or an override needs no restart. An N of 0 in that file holds

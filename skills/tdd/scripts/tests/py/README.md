@@ -174,7 +174,7 @@ the leg says so in one stderr line naming the file and `make ceiling` (PRD 036.4
   `VERI_CONDUCTOR_TEST_WORKERS` (default 2), written by `dispatch.sh` at each poll and by `role-state.sh dev set n`, and kept
   under `~/.veri-test-budget` (`VERI_TEST_BUDGET_DIR`) for `VERI_TEST_BUDGET_TTL` seconds (default 3600) after the last
   write; an expired, malformed or unreadable entry adds nothing, and a wait below the ceiling names each lane and its need
-  (PRD 036.5).
+  (PRD 036.5). An `auto` lane's need (`n=auto`, PRD 036.6) is C, the capacity before this narrowing, so it never narrows T.
 - A narrower T never ends or shrinks a running leg: it binds the next leg to start.
 
 **The core wait.** Cases run across pytest-xdist workers out of T: `make unit` and a `make test TESTS=…` subset min(4, the
@@ -190,7 +190,10 @@ lock before it waits for cores.
 **Leg registration.** Each leg registers its pid, count and start time under `~/.veri-pytest-legs` (`VERI_PYTEST_LEGS`), and
 an entry holds a share only while its pid runs under that start time: a dead or reused pid, an entry with no start time (an
 older leg's), a malformed one and one whose start time ps cannot read hold none, and only one whose pid is gone or proven
-reused is removed. `VERI_PYTEST_WORKERS=<n>` exported by the caller overrides both, used as given, never waiting,
+reused is removed. An entry carries line 3 `leaf` when the leg was claimed with `PYTEST_LEG_LOCK_WAIT_MARKER` set, a
+supervised leaf's leg; W_other, the workers of the live entries without it, includes every 2-line entry (an older leg's
+too, which errs low on an `auto` lane's N, the safe side), and is what `dispatch.sh` subtracts from T under `auto`.
+`VERI_PYTEST_WORKERS=<n>` exported by the caller overrides both, used as given, never waiting,
 registering or reading the record or the cap; `1` runs serially (#2053). A waiting leg also registers its wait, until it
 starts, under `~/.veri-pytest-legs.waiting` (`VERI_PYTEST_WAITERS`): its pid's start time and the workers it waits for,
 holding no share of T, read by the same start-time rule, and removed when it registers, exits or is ended by TERM or HUP.
