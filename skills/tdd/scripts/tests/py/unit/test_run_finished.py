@@ -414,3 +414,23 @@ def test_a_resumed_run_whose_only_comment_after_further_work_is_not_a_done_comme
     activity = json.loads(status.run_activity(str(repo / ".tdd" / "wt" / "4242"), True))
 
     assert (code, out.startswith("not-done stale"), activity["state"]) == (1, True, "stale")
+
+
+def test_a_resumed_run_that_reposts_its_done_comment_after_two_earlier_done_events_reports_the_latest_done_events_pr_4792(
+        tmp_path, run_cli, fake_processes):
+    done_comment = '{"ts":%s,"event":"comment","kind":"done","url":"https://github.com/o/r/issues/4242#issuecomment-%s"}'
+    repo = make_run(tmp_path, [
+        LAUNCH % 1000, DONE, done_comment % (1002, 1),
+        '{"ts":1100,"event":"resume"}',
+        LAUNCH % 1101,
+        '{"ts":1102,"event":"done","pr":"https://github.com/o/r/pull/8"}',
+        done_comment % (1103, 2),
+        '{"ts":1200,"event":"resume"}',
+        LAUNCH % 1201,
+        done_comment % (1202, 3)])
+
+    code, out, _ = finish(run_cli, fake_processes, repo, "Closes #4242")
+    status = importlib.import_module("veri.status")
+    activity = json.loads(status.run_activity(str(repo / ".tdd" / "wt" / "4242"), True))
+
+    assert (code, out, activity["state"], activity["pr"]) == (0, "", "done", "https://github.com/o/r/pull/8")
