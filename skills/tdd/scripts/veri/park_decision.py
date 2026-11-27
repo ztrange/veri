@@ -13,7 +13,8 @@ def own_words(body):
     """<body> without its quoted lines (`>`) and its code fences, stripped; "" when nothing else is left. A quote or a
     fence holds someone else's words (the park's own question, a leaf's output), never the decision."""
     fenced = markdown_sections.fenced_lines(body)
-    lines = [line for line, f in zip(body.splitlines(), fenced, strict=True) if not f and not line.lstrip().startswith(">")]
+    lines = [line for line, f in zip(body.splitlines(), fenced, strict=True)
+             if not f and not line.lstrip().startswith(">")]
     return "\n".join(lines).strip("\n")
 
 
@@ -24,7 +25,8 @@ def records(number):
         comments = github.issue_comments(number)
     except github.NoAnswer:
         comments = None
-    if not (isinstance(comments, list) and all(isinstance(c, dict) and isinstance(c.get("body"), str) for c in comments)):
+    if not (isinstance(comments, list)
+            and all(isinstance(c, dict) and isinstance(c.get("body"), str) for c in comments)):
         sys.stderr.write("park-decision.sh: no answer from gh to reading the comments of issue #%s\n" % number)
         return None
     return comments
@@ -46,7 +48,8 @@ def main(argv):
     answers = [c["body"] for c in comments[parks[-1] + 1:] if not c["body"].startswith(github.VERI_COMMENT_PREFIXES)]
     after = [words for words in (own_words(body) for body in answers) if words.strip()]
     if not after:
-        sys.stderr.write("park-decision.sh: issue #%s has no trusted comment after its newest parked comment\n" % number)
+        sys.stderr.write(
+            "park-decision.sh: issue #%s has no trusted comment after its newest parked comment\n" % number)
         return 3
     sys.stdout.write("\n".join(words + "\n" for words in after))
     return 0

@@ -56,7 +56,8 @@ def conductors():
 
 
 def cwd_of(pid):
-    lsof = subprocess.run(["lsof", "-a", "-d", "cwd", "-Fn", "-p", pid], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    lsof = subprocess.run(["lsof", "-a", "-d", "cwd", "-Fn", "-p", pid], stdout=subprocess.PIPE,
+                          stderr=subprocess.DEVNULL, text=True)
     return next((line[1:] for line in lsof.stdout.splitlines() if line.startswith("n")), None)
 
 
@@ -73,7 +74,8 @@ def conductor_processes():
 
 
 def _with_run_directory(root):
-    return [(pid, issue) for pid, issue in conductors() if os.path.isdir(run_dir.run_file(run_dir.worktree(root, issue), ""))]
+    return [(pid, issue) for pid, issue in conductors()
+            if os.path.isdir(run_dir.run_file(run_dir.worktree(root, issue), ""))]
 
 
 def runs_with_directory(root):
@@ -112,8 +114,8 @@ def recorded_alive(path):
 
 def ps_field(field, pid):
     try:
-        ps = subprocess.run(["ps", "-o", field + "=", "-p", str(int(pid))], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                            text=True, env=ps_env())
+        ps = subprocess.run(["ps", "-o", field + "=", "-p", str(int(pid))], stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL, text=True, env=ps_env())
     except OSError:
         return False
     return ps.stdout.strip() if ps.returncode == 0 else None
@@ -186,7 +188,8 @@ def same_start(started, pid):
 
 
 def caller_start(pid):
-    """<pid>'s start time as `ps -o lstart=` prints it under the caller's own environment, or None when ps cannot read it."""
+    """<pid>'s start time as `ps -o lstart=` prints it under the caller's own environment, or None when ps cannot read
+    it."""
     try:
         caller = subprocess.run(["ps", "-o", "lstart=", "-p", str(int(pid))], stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL, text=True)

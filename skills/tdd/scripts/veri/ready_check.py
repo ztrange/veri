@@ -150,7 +150,8 @@ def placed(tier, wt, tip, command):
     if ours and ours[1:] == (tip, command):
         return "reuse"
     if ours and not removable(wt, tier):
-        return f"no answer was obtained: an earlier run for another tip or command still runs, or may, in {wt}; wait for it to end"
+        return ("no answer was obtained: an earlier run for another tip or command still runs, or may, in "
+                f"{wt}; wait for it to end")
     if ours and git.git("worktree", "remove", "--force", wt, capture_output=True, text=True).returncode == 0:
         return "fresh"
     return f"no answer was obtained: {wt} is in the way and is not a tier worktree this check made; move it aside"
@@ -175,7 +176,8 @@ def tier_run_row(tier, command, wt, deadline, state):
         state[wt] = "started"
         known = run_state(wt, tier)
         if known == "unknown":
-            return f"{tier} tier run", f"no answer was obtained: a run started in {wt} left no pid file and no exit, so it may still run; wait for it to end"
+            return f"{tier} tier run", (f"no answer was obtained: a run started in {wt} left no pid file and no exit, "
+                                        "so it may still run; wait for it to end")
         if known == "dead":
             return f"{tier} tier run", f"no answer was obtained: the run in {wt} ended without recording an exit"
     if how == "fresh" and deadline - time.monotonic() <= 0:
@@ -274,11 +276,14 @@ def one_test_file_row():
 
 def pull_request_row():
     holds = bool(ci_on_pr.declared()) or triggers_on("pull_request")
-    return "pull_request", None if holds else "add a workflow under .github/workflows/ that triggers on pull_request, add a `veri: ci on pr: 0|1` line to CLAUDE.md, or set VERI_CI_ON_PR"
+    return "pull_request", None if holds else (
+        "add a workflow under .github/workflows/ that triggers on pull_request, add a `veri: ci on pr: 0|1` line "
+        "to CLAUDE.md, or set VERI_CI_ON_PR")
 
 
 def push_row():
-    return "push", None if triggers_on("push") else "add a workflow under .github/workflows/ that triggers on push to the default branch"
+    return "push", None if triggers_on("push") else (
+        "add a workflow under .github/workflows/ that triggers on push to the default branch")
 
 
 def test_file_row():
@@ -287,7 +292,8 @@ def test_file_row():
 
 
 def tdd_ignored_row():
-    return ".tdd/", None if git.git("check-ignore", "-q", ".tdd/issue-0-spec.md", capture_output=True, text=True).returncode == 0 else "add `.tdd/` to .gitignore"
+    return ".tdd/", None if git.git("check-ignore", "-q", ".tdd/issue-0-spec.md", capture_output=True,
+                                    text=True).returncode == 0 else "add `.tdd/` to .gitignore"
 
 
 def gh_auth_row():
@@ -415,16 +421,18 @@ def run_state_ignore_row():
             present = ensure_run_state_ignored.has_rule(path)
         if present is None:
             shown = " ".join("-e " + shlex.quote(line) for line in ensure_run_state_ignored.RULE)
-            return "run-state ignore", Fix(f"grep -nF {shown} {shlex.quote(path)}",
-                                           f"{path} carries veri's run-state rule only in part, or out of order: complete "
-                                           "those lines, in that order, or remove them")
+            return "run-state ignore", Fix(
+                f"grep -nF {shown} {shlex.quote(path)}",
+                f"{path} carries veri's run-state rule only in part, or out of order: complete "
+                "those lines, in that order, or remove them")
         if not present and not writable(path):
             return "run-state ignore", f"chmod u+w {shlex.quote(path)}"
     return "run-state ignore", None
 
 
 def ssh_chosen():
-    """Whether the user already chose how git runs ssh: GIT_SSH_COMMAND or GIT_SSH set, or core.sshCommand configured."""
+    """Whether the user already chose how git runs ssh: GIT_SSH_COMMAND or GIT_SSH set, or core.sshCommand
+    configured."""
     if os.environ.get("GIT_SSH_COMMAND") or os.environ.get("GIT_SSH"):
         return True
     return bool(git.git("config", "--get", "core.sshCommand", capture_output=True, text=True).stdout.strip())
@@ -473,7 +481,8 @@ def leaf_env():
 
 def probe_bypass(scratch):
     nonce = secrets.token_hex(8)
-    prompt = (f"Permission probe, nonce {nonce}. First use the Bash tool to run `printf %s {nonce} > {PROBE_FILES[0]}`. "
+    prompt = (f"Permission probe, nonce {nonce}. First use the Bash tool to run "
+              f"`printf %s {nonce} > {PROBE_FILES[0]}`. "
               f"Then use the Write tool to create {PROBE_FILES[1]} whose whole content is {nonce}. "
               "Then use the Bash tool to run this one command, exactly as written over two lines:\n"
               f"T=$'{nonce}'\nprintf '%s\\n' \"${{T/#/}}\" > shape-probe.txt\nDo nothing else.")
@@ -493,7 +502,8 @@ def probe_bypass(scratch):
         path = os.path.join(scratch, name)
         if os.path.exists(path):
             with open(path) as probe:
-                content = probe.read().strip().split("\n")[0].strip() if name == PROBE_FILES[2] else probe.read().strip()
+                content = (probe.read().strip().split("\n")[0].strip() if name == PROBE_FILES[2]
+                           else probe.read().strip())
                 written.append(content == nonce)
         else:
             written.append(False)
@@ -540,7 +550,8 @@ def subagent_permissions_row():
     missing = [rule for rule in wanted if rule not in allowed]
     if not missing:
         return "subagent permissions", None
-    return "subagent permissions", "the dev session's subagents would prompt; add to permissions.allow: " + ", ".join(missing)
+    return "subagent permissions", ("the dev session's subagents would prompt; add to permissions.allow: "
+                                    + ", ".join(missing))
 
 
 def bash_row():
@@ -550,13 +561,16 @@ def bash_row():
 
 def python_row():
     holds = launch_floor.python_refusal("ready-check") == 0
-    return "Python", None if holds else f"install Python {launch_floor.python_floor()} or newer and put it first on PATH"
+    return "Python", (None if holds
+                      else f"install Python {launch_floor.python_floor()} or newer and put it first on PATH")
 
 
-CHECKS = (tier_row("fast"), tier_row("all"), one_test_file_row, pull_request_row, push_row, test_file_row, tdd_ignored_row,
-          gh_auth_row, push_access_row, label_row, *map(state_label_row, STATE_LABELS), token_scopes_row, priority_label_row, bug_label_row,
-          actions_read_row, run_state_ignore_row, push_dry_run_row, bypass_permissions_row, subagent_permissions_row, bash_row, python_row)
-# The permission rows (PRD 016.6a-c), which --no-permissions skips: RD7's rows are cheap and refuse a run, these only warn.
+CHECKS = (tier_row("fast"), tier_row("all"), one_test_file_row, pull_request_row, push_row, test_file_row,
+          tdd_ignored_row, gh_auth_row, push_access_row, label_row, *map(state_label_row, STATE_LABELS),
+          token_scopes_row, priority_label_row, bug_label_row, actions_read_row, run_state_ignore_row,
+          push_dry_run_row, bypass_permissions_row, subagent_permissions_row, bash_row, python_row)
+# The permission rows (PRD 016.6a-c), which --no-permissions skips: RD7's rows are cheap and refuse a run, these only
+# warn.
 PERMISSION_CHECKS = (token_scopes_row, priority_label_row, bug_label_row, actions_read_row, run_state_ignore_row,
                      push_dry_run_row, bypass_permissions_row)
 # The permission rows' check version, which preflight's .tdd/permissions-checked record carries: raise it whenever a

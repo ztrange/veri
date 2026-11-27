@@ -92,7 +92,8 @@ def take_bits(path, bits):
 
 
 def change_mode(path, new_mode):
-    """Set the mode of <path> to new_mode(its mode), through a descriptor of it; a symlink is left as it is, never followed."""
+    """Set the mode of <path> to new_mode(its mode), through a descriptor of it; a symlink is left as it is, never
+    followed."""
     if stat.S_ISLNK(os.lstat(path).st_mode):
         return
     handle = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
@@ -138,7 +139,8 @@ def parse_digest(text):
     """The entries of the file form <text>; ValueError for any text digest_text does not write."""
     pairs = json.loads(text)
     if not isinstance(pairs, list) or not all(
-            isinstance(pair, list) and len(pair) == 2 and all(isinstance(part, str) for part in pair) for pair in pairs):
+            isinstance(pair, list) and len(pair) == 2 and all(isinstance(part, str) for part in pair)
+            for pair in pairs):
         raise ValueError("not a snapshot digest")
     return [tuple(pair) for pair in pairs]
 

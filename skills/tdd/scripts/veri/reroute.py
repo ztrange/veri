@@ -21,9 +21,9 @@ LEDGER = run_dir.ledger("", "%s")
 REASON = ".tdd/verify-%s.reason"
 
 # The $S/ scripts this call makes, in the order each is first made.
-CALLS = ("wrong-test-route.sh", "event.sh", "build-develop-prompt.sh", "restore-production.sh", "stop-requested.sh", "detach-leaf.sh",
-         "supervise.sh", "run-leaf.sh", "wait-leaf.sh", "step-cost.sh", "step-budget.sh", "extract-result.sh",
-         "run-verdict.sh", "tests-frozen.sh")
+CALLS = ("wrong-test-route.sh", "event.sh", "build-develop-prompt.sh", "restore-production.sh", "stop-requested.sh",
+         "detach-leaf.sh", "supervise.sh", "run-leaf.sh", "wait-leaf.sh", "step-cost.sh", "step-budget.sh",
+         "extract-result.sh", "run-verdict.sh", "tests-frozen.sh")
 # The answers this stage runs (S12) -> the rerouted red's prompt phase, its leaf being `develop-<phase>`.
 RUNS = {"red": "red-contradicted", "repair": "red-repair", "supersede": "red-supersede", "missing": "red-missing"}
 
@@ -218,8 +218,8 @@ def launch(n, wt, settled, step, report, own, red):
                       *dict.fromkeys(case.partition("::")[0] for case in cases), cwd=wt)
     fused.launch("launch", wt, leaf, "run-leaf.sh", ".tdd/%s.prompt" % leaf, "--permission-mode", "bypassPermissions",
                  env=fused.step_env(n, step, VERI_TEST_CMD=fast), out=".tdd/%s.out" % leaf, err=".tdd/%s.err" % leaf)
-    values = {"step": step, "kind": kind, "cases": rest.split(), "report": report, "own": own, "own_path": red["test_path"],
-              "leaf": leaf}
+    values = {"step": step, "kind": kind, "cases": rest.split(), "report": report, "own": own,
+              "own_path": red["test_path"], "leaf": leaf}
     fused.save_wait(wt, n, NAME, leaf, values)
     return leaf, values
 

@@ -13,7 +13,8 @@ A library module (no shim, no main). Everything is bytes: a template or spec is 
   value)`; a value is bytes, or a callable returning bytes that is called only when its placeholder is still in
   the text at its turn (and may raise `IncludeRefused`). A later pair therefore sees what an earlier value inserted.
 
-The verifier's blindness checks are not here: they stay in `build_verify_prompt`, which decides what its prompt is built from.
+The verifier's blindness checks are not here: they stay in `build_verify_prompt`, which decides what its prompt is built
+from.
 """
 import os
 import re

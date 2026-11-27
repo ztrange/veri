@@ -18,8 +18,8 @@ BYTE_LIMIT = 120000  # the body goes to gh as one argument; Linux refuses a sing
 
 
 # Room left under both limits: the body is redacted before it is cut, so what is measured is what github.bounded posts;
-# redacting it again there replaces nothing more, and these 256 characters (and bytes) absorb any secret a cut join could
-# still form, each replacement ([redacted], 10 characters) at most 2 longer than the shortest value it hides (8).
+# redacting it again there replaces nothing more, and these 256 characters (and bytes) absorb any secret a cut join
+# could still form, each replacement ([redacted], 10 characters) at most 2 longer than the shortest value it hides (8).
 MARGIN = 256
 
 
@@ -28,7 +28,8 @@ def fits(body):
 
 
 def cut_at(head, question, cut):
-    """<head> + <question> with <cut> characters taken from the question's middle and a line in their place saying so."""
+    """<head> + <question> with <cut> characters taken from the question's middle and a line in their place saying
+    so."""
     marker = ("\n[%d characters of the question file cut here: a comment is kept within %d characters and %d bytes]\n"
               % (cut, COMMENT_LIMIT, BYTE_LIMIT))
     keep = (len(question) - cut) // 2
@@ -36,9 +37,9 @@ def cut_at(head, question, cut):
 
 
 def fit(head, question):
-    """<head> + <question>, both as github.published posts them, the question cut in its middle, on a character boundary,
-    by the fewest characters that keep the whole MARGIN within COMMENT_LIMIT characters and BYTE_LIMIT UTF-8 bytes: its
-    opening (the question) and its end (the recommendation) stay."""
+    """<head> + <question>, both as github.published posts them, the question cut in its middle, on a character
+    boundary, by the fewest characters that keep the whole MARGIN within COMMENT_LIMIT characters and BYTE_LIMIT UTF-8
+    bytes: its opening (the question) and its end (the recommendation) stay."""
     head, question = github.published(head), github.published(question)
     if fits(head + question):
         return head + question
@@ -66,7 +67,8 @@ def split_blocker(argv):
 
 
 def block_on(number, blockers):
-    """List each of <blockers> under <number>'s `## Blocked by`, so selection waits on them and it inherits <number>'s band."""
+    """List each of <blockers> under <number>'s `## Blocked by`, so selection waits on them and it inherits <number>'s
+    band."""
     body = github.gh_issue_view(number, "body").rstrip("\n")
     new = [b for b in blockers if int(b) not in blocked_by.blockers(body, "")]
     if not new:
@@ -97,7 +99,8 @@ def read_question(argv):
     except OSError as e:
         return None, "cannot read the --question-file %s: %s" % (argv[at + 1], e.strerror or e)
     except UnicodeDecodeError as e:
-        return None, "cannot read the --question-file %s: not UTF-8 text (byte %d: %s)" % (argv[at + 1], e.start, e.reason)
+        return None, ("cannot read the --question-file %s: not UTF-8 text (byte %d: %s)"
+                      % (argv[at + 1], e.start, e.reason))
 
 
 def main(argv):
@@ -105,7 +108,8 @@ def main(argv):
     if argv is None:
         sys.stderr.write("park-issue.sh: %s\n" % question)
         return 2
-    unfenced = [line for line, f in zip(question.splitlines(), markdown_sections.fenced_lines(question), strict=True) if not f]
+    unfenced = [line for line, f in zip(question.splitlines(), markdown_sections.fenced_lines(question), strict=True)
+                if not f]
     missing = [h for h in QUESTION_HEADINGS if question and h not in unfenced]
     if missing:
         sys.stderr.write("park-issue.sh: the question file lacks the heading %s\n" % ", ".join(missing))
@@ -147,7 +151,10 @@ def main(argv):
     writes += [
         ("label", lambda: (github.gh_issue_add_label(number, "parked"),
                            github.gh_issue_remove_label(number, "bailed"))),
-        ("comment", lambda: github.gh_issue_comment(number, github.published(fit(github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n%s" % (cause, pr, unblock, "Blocked by: %s\n" % ", ".join("#" + b for b in blocker) if blocker else ""), question)))),
+        ("comment", lambda: github.gh_issue_comment(number, github.published(fit(
+            github.PARKED_HEADING + "\nCause: %s\n%sUnblock: %s\n%s"
+            % (cause, pr, unblock, "Blocked by: %s\n" % ", ".join("#" + b for b in blocker) if blocker else ""),
+            question)))),
     ]
     if len(argv) == 4:
         writes.append(("PR write", lambda: github.gh_issue_add_label(argv[3].rsplit("/", 1)[-1], "parked")))
@@ -155,7 +162,8 @@ def main(argv):
         try:
             write()
         except github.NoAnswer:
-            sys.stderr.write("park-issue.sh: no answer from gh to the %s%s\n" % (name, "" if name.endswith("write") else " call"))
+            sys.stderr.write("park-issue.sh: no answer from gh to the %s%s\n"
+                             % (name, "" if name.endswith("write") else " call"))
             return 2
     return 0
 

@@ -76,5 +76,6 @@ else:
     else:
         sys.pycache_prefix = None
         sys.dont_write_bytecode = True  # with no prefix, a write would land beside the source, in the repository
-        sys.stderr.write("veri: not using the bytecode cache %s: %s; compiling veri's modules from source\n" % (prefix, reason))
+        sys.stderr.write("veri: not using the bytecode cache %s: %s; compiling veri's modules from source\n"
+                         % (prefix, reason))
         from_source()

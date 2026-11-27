@@ -281,8 +281,8 @@ CARRIED = {}
 
 
 def handed_back(n, wt, ledger):
-    """PREFLIGHT.md step 3's block for a worktree issue-worktree.sh handed back: discard a killed leaf's leftovers, rebase
-    onto the default branch and, when that moved the branch, mark it and re-record the frozen tests (RP4)."""
+    """PREFLIGHT.md step 3's block for a worktree issue-worktree.sh handed back: discard a killed leaf's leftovers,
+    rebase onto the default branch and, when that moved the branch, mark it and re-record the frozen tests (RP4)."""
     stray = checked(3, script("resume-clean.sh"), cwd=wt)
     CARRIED["stray"] = [line[3:] for line in stray.splitlines() if line.strip()]
     code, out, _ = call(script("rebase-onto-default.sh"), cwd=wt)
@@ -329,7 +329,8 @@ def recorded_base(n, wt, main):
 
 def fresh_base(wt):
     """The merge base of HEAD and the branch the run was cut from: origin/<stack> when its cut recorded a stack, as
-    rebase-onto-default.sh re-records it, else origin/HEAD. Exit 2 when it cannot be told, never an empty record (#4374)."""
+    rebase-onto-default.sh re-records it, else origin/HEAD. Exit 2 when it cannot be told, never an empty record
+    (#4374)."""
     try:
         # run_base checks the cut's record against the named stack; with no record it would ask git for the default.
         ref = "origin/" + stack_branch.run_base(wt)[0] if stack_branch.recorded_base(wt) else "origin/HEAD"
@@ -360,10 +361,10 @@ def set_up(n, slug, detect):
     body_file = issue_body(n, wt)
     checked(3, script("requirements-preflight.sh"), body_file, *([ledger] if resume else []), cwd=wt)
     # The fast command every leaf and verifier is handed is read at the branch base, the merge base of HEAD and
-    # origin/HEAD (origin/<stack> on a stacked run) a verifier reads its run lines at, so a CLAUDE.md a leaf committed on a resumed branch never sets
-    # it; with no base, detect-test-command.sh refuses (exit 2), never reading the working tree (#4263). A fresh run
-    # records it in the main working tree once the branch is cut, and a resume reads it back from there, never
-    # recomputing it from refs a leaf can rewrite (#4374).
+    # origin/HEAD (origin/<stack> on a stacked run) a verifier reads its run lines at, so a CLAUDE.md a leaf committed
+    # on a resumed branch never sets it; with no base, detect-test-command.sh refuses (exit 2), never reading the
+    # working tree (#4263). A fresh run records it in the main working tree once the branch is cut, and a resume reads
+    # it back from there, never recomputing it from refs a leaf can rewrite (#4374).
     main = run_dir.main_tree_from_files(wt)
     if resume:
         base = recorded_base(n, wt, main)
@@ -471,7 +472,8 @@ def finish(n, wt, baseline, full, fast, alone, reused, full_secs):
               for leaf in ("develop-red", "revise-green", "verify-green")]
     timeout = checked(7, script("leaf-timeout.sh"), str(baseline), "--full", str(full_secs), cwd=wt)
     lines = ["worktree=" + wt, "fast_cmd=" + fast, "full_cmd=" + full, "alone_cmd=" + alone,
-             "baseline=%d" % baseline, "full=%d" % full_secs, "full_tier_mode=" + ("reuse" if reused is not None else "run"),
+             "baseline=%d" % baseline, "full=%d" % full_secs,
+             "full_tier_mode=" + ("reuse" if reused is not None else "run"),
              "default_branch=" + branch.strip(), "model_develop_red=" + models[0],
              "model_revise_green=" + models[1], "model_verify_green=" + models[2], "timeout=" + timeout.strip(),
              "run=" + CARRIED["run"], *carried_lines()]

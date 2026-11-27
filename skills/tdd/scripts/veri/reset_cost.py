@@ -1,4 +1,5 @@
-"""reset-cost.sh's logic, run in-process: what each recorded restart of a run's conductor cost, read from the files veri writes."""
+"""reset-cost.sh's logic, run in-process: what each recorded restart of a run's conductor cost, read from the files veri
+writes."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
 import math
@@ -69,7 +70,8 @@ def _count_ok(value):
 
 
 def sound(record):
-    """Whether every token count the request's usage carries is a whole number >= 0, the three context counts present."""
+    """Whether every token count the request's usage carries is a whole number >= 0, the three context counts
+    present."""
     usage = record["message"]["usage"]
     if not isinstance(usage, dict) or not all(_count_ok(usage.get(key)) for key in CONTEXT_KEYS):
         return False
@@ -80,7 +82,8 @@ def sound(record):
 
 
 def units(record):
-    """The request's price in input-token units at its model's rates, None when the model has no price or a count is unsound."""
+    """The request's price in input-token units at its model's rates, None when the model has no price or a count is
+    unsound."""
     message = record["message"]
     model = prices.family(message.get("model") or "") if isinstance(message.get("model") or "", str) else None
     if model is None or not sound(record):
@@ -109,7 +112,8 @@ def per_request(window):
 
 
 def cache_read_rate(measured):
-    """The cache-read rate in input-token units of the model of the last priced request in `measured`, None when none is."""
+    """The cache-read rate in input-token units of the model of the last priced request in `measured`, None when none
+    is."""
     for record in reversed(measured):
         model = record["message"].get("model")
         model = prices.family(model) if isinstance(model, str) else None

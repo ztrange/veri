@@ -24,8 +24,8 @@ PAIRS = ".tdd/develop-refactor.pairs"
 # The $S/ scripts this call makes, in the order each is first made (git aside); unit/test_refactor_half.py fails when
 # one is a script SKILL.md's Refactor loop section does not name, save one it exempts by name (FC19).
 CALLS = ("event.sh", "refactor-budget.sh", "refactor-touched.sh", "near-duplicates.sh", "build-develop-prompt.sh",
-         "stop-requested.sh", "detach-leaf.sh", "supervise.sh", "run-leaf.sh", "wait-leaf.sh", "extract-result.sh", "refactor-triage.sh",
-         "run-verdict.sh", "comment.sh", "refactor-owed.sh")
+         "stop-requested.sh", "detach-leaf.sh", "supervise.sh", "run-leaf.sh", "wait-leaf.sh", "extract-result.sh",
+         "refactor-triage.sh", "run-verdict.sh", "comment.sh", "refactor-owed.sh")
 
 
 def main(argv):

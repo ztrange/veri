@@ -13,7 +13,8 @@ USAGE = "usage: pin-reject-route.sh [--missing-reroute] <reason-file> <ledger-fi
 
 
 def red_case(ledger_file, case):
-    """<case>, or a bare case name joined to the TEST_PATH of develop-red.out beside the ledger when that file holds it."""
+    """<case>, or a bare case name joined to the TEST_PATH of develop-red.out beside the ledger when that file holds
+    it."""
     if "::" in case or "/" in case:
         return case
     red_out = os.path.join(os.path.dirname(ledger_file), "develop-red.out")

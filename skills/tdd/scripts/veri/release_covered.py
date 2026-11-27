@@ -1,4 +1,5 @@
-"""release-covered.sh's work, run in-process: put back on the queue the refactor issue a legacy coverage issue blocked."""
+"""release-covered.sh's work, run in-process: put back on the queue the refactor issue a legacy coverage issue
+blocked."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import json
 import re
@@ -15,7 +16,8 @@ TITLE = re.compile(r"Cover the behaviour #([1-9][0-9]*) refactors")
 
 
 def issue(number):
-    """Issue <number>'s REST record; None once gh has given no answer, or one that is not a JSON object (stderr written)."""
+    """Issue <number>'s REST record; None once gh has given no answer, or one that is not a JSON object (stderr
+    written)."""
     run = github.gh_api("repos/{owner}/{repo}/issues/%s" % number, stderr=subprocess.PIPE)
     try:
         record = json.loads(run.stdout) if run.returncode == 0 else None
@@ -36,7 +38,8 @@ def main(argv):
         return 2
     match = TITLE.fullmatch(covering.get("title") or "")
     if not match:
-        sys.stderr.write("release-covered.sh: #%s is not a coverage issue a refactor run filed; nothing to release\n" % argv[0])
+        sys.stderr.write("release-covered.sh: #%s is not a coverage issue a refactor run filed; nothing to release\n"
+                         % argv[0])
         return 3
     refactor = match.group(1)
     record = issue(refactor)
