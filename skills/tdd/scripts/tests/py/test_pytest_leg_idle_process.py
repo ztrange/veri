@@ -79,23 +79,21 @@ def run_hanging_leg(tmp_path, idle=IDLE, signal_when_hung=None, **extra):
 @pytest.mark.process("the real leg over a planted suite whose two xdist workers hang after their cases ran")
 @pytest.mark.parametrize("ignore_term", ["", "1"], ids=["workers-end-on-term", "workers-ignore-term"])
 def test_4254_a_leg_whose_workers_hang_after_their_cases_ran_ends_them_and_exits_2_naming_the_idle_time_and_the_last_case(tmp_path, ignore_term):
-    code, err, workers, alive_at_exit, _ = run_hanging_leg(tmp_path, PLANTED_IGNORE_TERM=ignore_term)
+    # The workers-end-on-term launch also holds the stacks assertions, at a window twice the others': a worker that has
+    # not reached its hang when the leg dumps shows no frame there.
+    idle = IDLE if ignore_term else 2 * IDLE
+    code, err, workers, alive_at_exit, _ = run_hanging_leg(tmp_path, idle=idle, PLANTED_IGNORE_TERM=ignore_term)
 
     lines = [line for line in err.splitlines() if line.startswith("pytest leg idle for ")]
     assert (code, len(lines), len(workers)) == (2, 1, 2), err
     assert "with no case running (last case seen: " in lines[0] and "test_one.py::test_" in lines[0]
     assert lines[0].endswith(" ended") and all(str(pid) in lines[0] for pid in workers)
     assert alive_at_exit == []  # ended by the leg, before it exited, not by execnet noticing its leg gone
-
-
-@pytest.mark.process("the real leg over a planted suite whose two xdist workers hang after their cases ran")
-def test_4254_before_it_ends_its_hung_workers_an_idle_leg_writes_its_own_stacks_and_each_worker_s_to_stderr(tmp_path):
-    # A window twice the others': a worker that has not reached its hang when the leg dumps shows no frame there.
-    code, err, workers, alive_at_exit, _ = run_hanging_leg(tmp_path, idle=2 * IDLE)
-
-    hung_frames = [line for line in err.splitlines() if "conftest.py" in line and "pytest_sessionfinish" in line]
-    assert (code, len(hung_frames)) == (2, 2), err  # one per worker, where each hung
-    assert "idle_watch.py" in err.split("pytest leg idle for ")[0]  # the leg's own watch thread, among its stacks
+    if not ignore_term:
+        # before it ends its hung workers, an idle leg writes its own stacks and each worker's to stderr
+        hung_frames = [line for line in err.splitlines() if "conftest.py" in line and "pytest_sessionfinish" in line]
+        assert len(hung_frames) == 2, err  # one per worker, where each hung
+        assert "idle_watch.py" in err.split("pytest leg idle for ")[0]  # the leg's own watch thread, among its stacks
 
 
 @pytest.mark.process("the real leg over a planted suite whose two xdist workers hang, sent TERM or HUP")
