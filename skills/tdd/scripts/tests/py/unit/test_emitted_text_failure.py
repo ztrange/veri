@@ -4,7 +4,7 @@ import test_emitted_text as pins
 
 
 def test_3368_mismatched_pin_failure_names_covered_bytes_and_reproducing_command(run_cli, monkeypatch):
-    monkeypatch.setattr(pins, "USAGE", [("1 1", "tick-ledger.sh", [])])
+    monkeypatch.setattr(pins, "USAGE", [("1 1", "wait-leaf.sh", [])])
     with pytest.raises(AssertionError) as raised:
         pins.test_usage_output_on_a_missing_argument_is_unchanged(run_cli)
     message = str(raised.value)
@@ -15,8 +15,8 @@ def test_3368_mismatched_pin_failure_names_covered_bytes_and_reproducing_command
 
 
 def test_3368_pin_of_the_bare_usage_bytes_still_fails(run_cli, monkeypatch):
-    text = pins.emitted(run_cli, "tick-ledger.sh", [])
+    text = pins.emitted(run_cli, "wait-leaf.sh", [])
     bare = text[len("exit 2\n"):].rstrip("\n")
-    monkeypatch.setattr(pins, "USAGE", [(pins.cksum(bare.encode("utf-8", "surrogateescape")), "tick-ledger.sh", [])])
+    monkeypatch.setattr(pins, "USAGE", [(pins.cksum(bare.encode("utf-8", "surrogateescape")), "wait-leaf.sh", [])])
     with pytest.raises(AssertionError):
         pins.test_usage_output_on_a_missing_argument_is_unchanged(run_cli)

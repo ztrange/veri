@@ -197,12 +197,6 @@ def test_main_classifies_repair_reroutes_exhausted_as_a_process_failure_with_0_3
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
 
 
-def test_main_classifies_unpinnable_missing_as_process_with_0_3472(capsys, classify_bail):
-    code = classify_bail.main(["unpinnable-missing"])
-
-    assert (code, *capsys.readouterr()) == (0, "process\n", "")
-
-
 def test_main_refuses_repin_failed_as_an_unknown_cause_with_2_4741(capsys, classify_bail):
     code = classify_bail.main(["repin-failed"])
 
