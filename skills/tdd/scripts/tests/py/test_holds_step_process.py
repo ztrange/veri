@@ -65,3 +65,15 @@ def test_holds_step_exits_2_running_no_case_when_a_tracked_file_differs_from_the
     code, _, _ = holds_step(repo, "42", sha, "tests/a.sh::case_a")
 
     assert (code, ran.exists()) == (2, False)
+
+
+@pytest.mark.process("holds-step.sh run in a real git repository whose worktree holds an untracked file")
+def test_holds_step_exits_2_when_the_worktree_holds_an_untracked_file(tmp_path):
+    repo, ran = tmp_path / "repo", tmp_path / "ran"
+    sha = step_start(repo, {"a.sh": f"touch '{ran}'\n"})
+    (repo / "tests" / "nested").mkdir()
+    (repo / "tests" / "nested" / "new_test.sh").write_text("exit 0\n")
+
+    code, _, _ = holds_step(repo, "42", sha, "tests/a.sh::case_a")
+
+    assert (code, ran.exists()) == (2, False)
