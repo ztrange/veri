@@ -125,6 +125,7 @@ def main(argv):
         argv = [*argv, ""]
     elif len(argv) < 3 or not all(argv[:3]):
         return refuse()
+    argv, test_ids = pin_ids(argv)
     if len(argv) > 4:
         return refuse("build-verify-prompt: too many arguments")
     if argv[0] == "surround" and options["--ledger"]:
@@ -134,12 +135,20 @@ def main(argv):
         return refuse(f"build-verify-prompt: --supersede-base needs 7-40 lowercase hex characters, got '{base}'")
     code, out = build(options["--step"], options["--fast-cmd"], *argv, branch_base=options["--branch-base"],
                       ledger=options["--ledger"], supersede_base=options["--supersede-base"],
-                      step_green=options["--step-green"], frozen_edit=options["--frozen-edit"])
+                      step_green=options["--step-green"], frozen_edit=options["--frozen-edit"], test_ids=test_ids)
     sys.stdout.buffer.write(out)
     return code
 
 
 HEX_SHA = re.compile(r"[0-9a-f]{7,40}")
+
+
+def pin_ids(words):
+    """<phase> <spec> <id>… as (the positionals `build` takes, the ids): the pin phase's test ids are every word after
+    its spec file, the first two still its <test-path> and <target-test-id>; any other phase names no ids."""
+    if words[:1] != ["pin"]:
+        return words, ()
+    return words[:4], tuple(words[2:])
 
 
 TOUCHING_HEADING = b"### Test cases touching the files the plan names"
@@ -291,7 +300,7 @@ def _sha_slots(step_arg, phase, test_path, fourth, branch_base):
 
 
 def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_base="", ledger="", supersede_base="",
-          root=".", step_green="", frozen_edit=""):
+          root=".", step_green="", frozen_edit="", test_ids=()):
     refused = _option_refusal(phase, branch_base, supersede_base, step_green, frozen_edit)
     if refused is not None:
         return _refused(refused)
@@ -399,6 +408,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id="", branch_bas
                                (b"ISSUE_SPEC",
                                 _read(spec) + (_spec_rows_at(_read(spec), branch_base) if phase == "branch" else b"")),
                                *((placeholder.encode(), value) for placeholder, value in values.items()),
+                               (b"TEST_PATHS", os.fsencode(" ".join(test_ids))),
                                (b"TEST_PATH", os.fsencode(test_path)),
                                (b"TARGET_TEST", os.fsencode(fourth or "the target test")),
                                (b"BASE_SHA", os.fsencode(slots["BASE_SHA"])),

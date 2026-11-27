@@ -3,8 +3,8 @@
 ## Phase: verify-pin
 
 A developer agent has written **one new test** at `{{TEST_PATH}}` (the target test is
-`{{TARGET_TEST}}`) for a criterion the code **already satisfies**, so there is nothing to
-make fail. Confirm the test is a genuine **regression pin** worth committing.
+`{{TARGET_TEST}}`; the test ids under judgement are `{{TEST_PATHS}}`) for a criterion the
+code **already satisfies**, so there is nothing to make fail. Confirm the test is a genuine **regression pin** worth committing.
 
 {{STEP}}### The issue's behavior spec
 

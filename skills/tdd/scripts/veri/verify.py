@@ -315,6 +315,7 @@ def main(argv):
             return 2
     if not all(words[:2 if words[0] == "branch" else 3]):
         return entry.to_contract(build_verify_prompt.refuse())
+    words, test_ids = build_verify_prompt.pin_ids(words)
     if len(words) > 4:
         return entry.to_contract(build_verify_prompt.refuse("build-verify-prompt: too many arguments"))
     # The commit a verifier reads its run lines, and whether it is veri's own tree, at (#4263): the `--branch-base` the
@@ -326,7 +327,7 @@ def main(argv):
                                             root=event.toplevel() or ".",
                                             ledger=ledger, supersede_base=options["--supersede-base"],
                                             step_green=options["--step-green"],
-                                            frozen_edit=options["--frozen-edit"])
+                                            frozen_edit=options["--frozen-edit"], test_ids=test_ids)
     if code:
         return entry.to_contract(code)
     gate = PHASE_GATES.get(words[0])
