@@ -725,6 +725,7 @@ gh access, issue selection (solvable, parked, blocked), claiming and releasing i
 - `capture-spec.sh`: capture an issue as a spec file.
 - `coverage-blocker.sh`: file a coverage issue and block the refactor issue on it.
 - `github-status.sh`: whether GitHub's status page has an incident, open long enough, on the components veri needs; `wait` blocks, polling, until none counts (exit 3: call again).
+- `github-queue.sh`: the issue writes queued while GitHub is down, `.tdd/github-queue` in the main working tree under one lock: `comment.sh` appends comments and step-close ticks, `replay` lands them in file order and stops at the first with no answer.
 - `invisible-work.sh`: sweep for work not visible on its issue. A local branch not on origin is skipped only when its tip equals the head sha of a MERGED or CLOSED PR that used its name; otherwise it is reported under invariant 1, a reused name included.
 - `issue-decisions.sh`: the decisions on an issue, oldest first, each marked `owner:` or `judge:`; a stranger's comment and veri's own are never one.
 - `park-decision.sh`: the owner's answer to a park: the trusted comments after an issue's newest parked comment.
@@ -775,6 +776,19 @@ Every GitHub call goes through `gh`; `VERI_GH_DRIVER` picks the route. A failed 
 - `run_failed_log(run_id, attempt=None)`: the failed-job log of a workflow run (`gh run view <id> --log-failed`, `--attempt <n>` when given) as gh prints it; `NoAnswer` for a run id that is not a whole number, before any call, or a call that fails. `stack-culprit.sh`'s read.
 - `rate_limit_reset(run=subprocess.run)`: the epoch second the core rate limit resets, `None` when unreadable. `refusal_retries()`: how many rate-limit refusals a read waits out (`VERI_GH_REFUSAL_RETRIES`); NoAnswer when invalid. `PARKED_HEADING`: the `### ⏸ Parked` heading.
 - `refusal_kind(text)` and `NoAnswer.kind` (of its `detail`, else its `answer`): what kind of refusal gh's words describe, `"rate-limit"` (`rate limit`, a `Retry-After` or exhausted `X-RateLimit-Remaining` header), `"transient"` (`HTTP 5…`, `error connecting to api.github.com`) or `"refused"`; a rate limit outranks a transient marker. The one marker set: callers ask it and keep their own waiting policy, never matching stderr words themselves. `VERI_GH_REFUSAL_RETRIES` is spent inside `github`'s own reads (60 s sleeps) and again by `dispatch` (waits for the reset), each layer counting on its own.
+
+## github_status
+The read of GitHub's status page behind `github-status.sh`; `github_outage` and `github_queue` share it.
+- `default_read()`: one read over the components `github-status.sh` asks about with none named, with the `VERI_GITHUB_OUTAGE_MIN` threshold and `VERI_GITHUB_STATUS_TIMEOUT`, as `(code, lines)`: 1 with a line per counting incident, else 0.
+- `NoAnswer`: the status page gave no answer, or a knob is not a positive integer or `VERI_GITHUB_STATUS_URL` is not http(s); its message names the cause.
+
+## github_queue
+The issue writes a run queues while GitHub is down, in `.tdd/github-queue` of the main working tree, behind `github-queue.sh replay`.
+- `root(start=None)`: the main working tree the queue lives in, found from <start>; None when a linked worktree's gitdir cannot be read, so nothing is queued.
+- `outage(top)`, `incident()`, `down(top)`: whether `.tdd/github-outage` exists under <top>, whether `github-status.sh`'s default read reports an incident (no answer is none), and either.
+- `pending(top)`: whether the queue holds an entry.
+- `queue_comment(top, issue, kind, body)`, `queue_tick(top, issue, criterion)`: append one entry under `.tdd/github-queue.lock` and answer its key; a comment's body gains the hidden `<!-- veri-queued <key> -->` marker.
+- `replay(top, out=None)`: post the entries in file order, each landed one removed; 0 once empty, 3 with no queue, 2 at the first entry with no answer, that entry and the rest kept.
 
 ## pointer_comment
 - `mirror(issue, pushed_at=None)`: post or edit issue `issue`'s one `### 📍 Run state` comment from the current directory's branch, ledger and journal; `pushed_at` is the push just made, else the comment keeps its last one. Never changes its caller's exit code.
@@ -876,7 +890,6 @@ The conductor loop, parallel conductors, lanes and the operator's views (status,
 - `dispatch_live`: dispatch.sh's real `World` and the helpers only it uses, which look up each name a test patches on dispatch through `dispatch_reads.via`.
 - `dispatch_reads`: dispatch.sh's GitHub, queued-merge and overlap reads, its argument parsing, output and queue order, which look up each name a test patches on dispatch in the namespace dispatch.py hands them (`bind`, `via`).
 - `github-outage.sh`: the dev session's local mode during a GitHub outage: the outage file of held PRs, the merging list and the one detached status wait per main working tree, each verb under one lock; the status read runs in-process through `github_status`.
-- `github-queue.sh`: the issue writes queued while GitHub is down, `.tdd/github-queue` in the main working tree under one lock: `comment.sh` appends comments and step-close ticks, `replay` lands them in file order and stops at the first with no answer.
 - `install-links.sh`: link veri's skills into a project.
 - `cloud-install.sh`: add the `SessionStart` hook that runs `cloud-setup.sh` in a Claude Code cloud session to a project's `.claude/settings.json`.
 - `cloud-setup.sh`: in a Claude Code cloud session, build veri's venv once per lock and put it on the session's PATH.

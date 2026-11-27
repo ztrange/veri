@@ -43,6 +43,7 @@ These writers give their lines no issue (or write the line themselves), so today
 only ever in the worktree's event log, never in the journal:
 
 - `comment` (`comment.sh`)
+- `comment-queued` (`comment.sh`)
 - `diff-leaf-deviation` (`diff-leaf-deviation.sh`)
 - `grading` (`grade-prose.sh`)
 - `prose-owed-waived` (`prose-owed.sh`)

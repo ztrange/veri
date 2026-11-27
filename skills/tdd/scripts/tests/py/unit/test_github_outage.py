@@ -287,12 +287,12 @@ def test_run_refuses_a_bad_verb_or_argument(tmp_path):
         assert outage.run(argv, str(tmp_path), world) is None, argv
 
 
-def test_status_read_refuses_a_bad_poll_knob_before_any_read_so_enter_never_starts_a_wait_that_dies(tmp_path, monkeypatch):
+def test_the_default_status_read_refuses_a_bad_poll_knob_before_any_read_so_enter_never_starts_a_wait_that_dies(tmp_path, monkeypatch):
     monkeypatch.setenv("VERI_GITHUB_STATUS_POLL", "0")
     monkeypatch.setattr(github_status, "read", lambda *a, **k: (1, [INCIDENT]))
 
     with pytest.raises(github_status.NoAnswer) as refused:
-        outage.status_read()
+        github_status.default_read()
 
     assert "VERI_GITHUB_STATUS_POLL" in str(refused.value)
 

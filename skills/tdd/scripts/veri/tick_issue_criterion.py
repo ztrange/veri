@@ -32,8 +32,11 @@ def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2
-    n = argv[0]
-    matcher = argv[1] if len(argv) > 1 else ""
+    return tick(argv[0], argv[1] if len(argv) > 1 else "")
+
+
+def tick(n, matcher):
+    """Tick the first unchecked criterion of issue <n> holding <matcher>: 0 ticked, 3 none matched, 2 no answer."""
     try:
         body = gh_issue_view(n, "body").rstrip("\n")
     except NoAnswer:

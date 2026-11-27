@@ -17,7 +17,6 @@ import sys
 
 import entry
 import github
-import github_outage
 import github_status
 import issue_body
 import ledger
@@ -26,6 +25,7 @@ import tick_issue_criterion
 
 USAGE = "usage: github-queue.sh replay"
 FILE, LOCK = ".tdd/github-queue", ".tdd/github-queue.lock"
+OUTAGE_FILE = ".tdd/github-outage"  # github_outage.FILE; a Conductors module no GitHub one imports
 MARKER = "<!-- veri-queued %s -->"
 
 
@@ -41,14 +41,14 @@ def root(start=None):
 def incident():
     """Whether github-status.sh's read with its default components reports a counting incident; no answer is not one."""
     try:
-        return github_outage.status_read()[0] == 1
+        return github_status.default_read()[0] == 1
     except github_status.NoAnswer:
         return False
 
 
 def outage(top):
     """Whether the dev session's local mode is on: `.tdd/github-outage` exists in the main working tree <top>."""
-    return os.path.exists(os.path.join(top, github_outage.FILE))
+    return os.path.exists(os.path.join(top, OUTAGE_FILE))
 
 
 def down(top):
@@ -134,10 +134,10 @@ def land(e):
         marker = MARKER % e["key"]
         if any(github.trusted_comment(c) and marker in (c.get("body") or "") for c in github.issue_comments(e["issue"])):
             return
-        github.gh_issue_comment(e["issue"], e["body"])
+        github.gh_issue_comment(e["issue"], github.published(e["body"]))
         return
     line = criterion_line(github.gh_issue_view(e["issue"], "body"), int(e["criterion"]))
-    if line is not None and tick_issue_criterion.main([e["issue"], line]) == 2:
+    if line is not None and tick_issue_criterion.tick(e["issue"], line) == 2:
         raise github.NoAnswer("")
 
 
