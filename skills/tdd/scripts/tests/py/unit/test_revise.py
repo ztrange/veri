@@ -442,6 +442,19 @@ def test_4770_a_holds_steps_red_revise_after_its_verify_pin_reject_restores_noth
     assert "restore-production.sh" not in fake.names()
 
 
+def test_4770_a_holds_steps_red_revise_whose_verify_pin_passes_records_the_pass_with_no_test_path(revise):
+    """PRD 044.2: a HOLDS step's red revise wrote no test, so its verify-pin PASS is recorded with no TEST_PATH: the
+    verify-revised comment posted and red-half's wait re-saved at verdict-pin, exit 0."""
+    _red(revise)
+    code, out, err, fake = revise(fake=Fake({("git", "ls-files"): (0, HOLDS_TRACKED)}, report=HOLDS_REPORT),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert code == 0, (out, err)
+    assert ("comment.sh", ("12", "verify-revised", "red")) in [(c[0], c[1]) for c in fake.calls]
+    record = json.loads((revise.wt / ".tdd" / "issue-12-red-half-wait").read_text())
+    assert (record["at"], record["values"]["revised"]) == ("verdict-pin", True)
+
+
 def test_4770_a_revised_red_whose_covering_tests_name_an_untracked_path_stops_with_exit_2(revise):
     """PRD 044.2: a revised red's `COVERING_TESTS:` id whose path `git ls-files` does not list is refused by
     covering_tests, and revise stops with exit 2 naming it, launching no verdict-pin."""

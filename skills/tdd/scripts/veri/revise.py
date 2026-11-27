@@ -317,9 +317,19 @@ def verify(n, wt, settled, step, values, as_phase=None, ids=None):
 
 def recorded(n, wt, step, values):
     """A revised red's PASS records the step's frozen tests and red-setup (REVISE.md sub-step 5); tests-frozen.sh exit
-    1 is a REJECT that spends the attempt, its stdout the reason (False). True for every other phase."""
+    1 is a REJECT that spends the attempt, its stdout the reason (False). A HOLDS step's (no test_path) wrote no test,
+    so only red-setup is recorded (PRD 044.2). True for every other phase."""
     if values["phase"] != "red":
         return True
+    if values["test_path"] is None or frozen(wt, n, step, values):  # a HOLDS step wrote no test to freeze
+        fused.checked("5", fused.script("red-setup.sh"), "record", n, cwd=wt, ok=(0, 2, 3),
+                      stdin=read(wt, ".tdd/revise-red-%d.out" % values["k"]))
+        return True
+    return False
+
+
+def frozen(wt, n, step, values):
+    """tests-frozen.sh record of the step's Red case: True recorded; False its exit 1, its stdout the reason."""
     red_test_id = fused_step.red_test_id(values["test_path"], values["target_test"])
     paths = [values["test_path"]]
     rerouted = rerouted_red(wt, n, step)
@@ -334,8 +344,6 @@ def recorded(n, wt, step, values):
         return False
     if code != 0:
         raise fused.Stop("5", fused.label("tests-frozen.sh", "record", "--step", step) + " exit %d" % code, code)
-    fused.checked("5", fused.script("red-setup.sh"), "record", n, cwd=wt, ok=(0, 2, 3),
-                  stdin=read(wt, ".tdd/revise-red-%d.out" % values["k"]))
     return True
 
 
