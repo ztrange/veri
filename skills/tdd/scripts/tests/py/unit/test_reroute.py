@@ -272,6 +272,17 @@ def test_a_rerouted_red_that_does_not_fail_stops_with_exit_1_naming_the_line_lau
     assert (fake.launched(), fake.all("tests-frozen.sh")) == ([], [])
 
 
+def test_4770_a_rerouted_red_reporting_against_unmodified_holds_stops_with_exit_1_naming_the_line_never_2(reroute):
+    """PRD 044.2: a HOLDS report writes no test, so its TEST_PATH: and TARGET_TEST: lines are empty; it is stopped on
+    as PASSES is, an answer (exit 1), never a missing line (exit 2)."""
+    reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
+    holds = "TEST_PATH:\nTARGET_TEST:\nAGAINST_UNMODIFIED: HOLDS\nCOVERING_TESTS: tests/test_b.py::test_two\n"
+    code, out, err, fake = reroute(files={"develop-red-contradicted.out": holds})
+
+    assert (code, out.splitlines()[-1]) == (1, "stopped at leaf AGAINST_UNMODIFIED: HOLDS")
+    assert (fake.launched(), fake.all("tests-frozen.sh")) == ([], [])
+
+
 def test_a_rerouted_red_report_missing_a_line_is_exit_2_4434(reroute):
     reroute(answers={**ROUTE_RED, ("wait-leaf.sh", "develop-red-contradicted"): (3, "")})
     code, out, err, fake = reroute(files={"develop-red-contradicted.out": "TEST_PATH: tests/test_b.py\n"})
