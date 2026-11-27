@@ -280,6 +280,9 @@ def hermetic_environment(request, monkeypatch, tmp_path, tmp_path_factory):
         monkeypatch.setenv("VERI_POLL", SUPERVISOR_POLL)
     monkeypatch.setenv("VERI_HOME", str(tmp_path))
     monkeypatch.setenv("VERI_EVENT_STRICT", "1")
+    # A case whose fake GitHub gives no answer asks the status page whether GitHub is down (#4803): a closed local
+    # port answers at once, so no case reaches the network.
+    monkeypatch.setenv("VERI_GITHUB_STATUS_URL", "http://127.0.0.1:9")
     monkeypatch.setenv("VERI_VENV", INTERPRETER_VENV)
     inherited = os.path.realpath(tempfile.tempdir or os.environ.get("TMPDIR") or "/tmp")
     basetemp = os.path.realpath(tmp_path_factory.getbasetemp())

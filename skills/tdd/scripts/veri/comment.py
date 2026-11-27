@@ -9,6 +9,7 @@ import detect_test_command
 import event
 import event_log
 import github
+import github_queue
 import metrics as metrics_module
 import paths
 import restart_marker
@@ -42,10 +43,24 @@ def read_steps(issue):
 
 
 def post_and_record(issue, kind, body, strip_url=False, target=None):
-    url = github.gh_issue_comment(target or issue, github.published(body))
+    top = github_queue.root()
+    try:
+        url = github.gh_issue_comment(target or issue, github.published(body))
+    except github.NoAnswer:
+        if top is None or not github_queue.down(top):
+            raise
+        return queue(top, target or issue, kind, body)
     if strip_url:
         url = url.rstrip("\n")
     return event.append("", {}, "comment", [f"kind={kind}", f"url={url}"])
+
+
+def queue(top, issue, kind, body):
+    """Queue the comment GitHub gave no answer to while down, print `queued <key>` and journal it."""
+    key = github_queue.queue_comment(top, issue, kind, body)
+    sys.stdout.write("queued %s\n" % key)
+    sys.stdout.flush()
+    return event.append("", {}, "comment-queued", [f"kind={kind}", f"key={key}"])
 
 
 def render_metrics(issue):
