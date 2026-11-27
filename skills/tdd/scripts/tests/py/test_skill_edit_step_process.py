@@ -5,6 +5,7 @@ import subprocess
 import pytest
 
 from conftest import INTERPRETER_VENV, SCRIPTS
+from repo_builder import new_repo
 
 STEP = SCRIPTS / "skill-edit-step.sh"
 OWED = SCRIPTS / "prose-owed.sh"
@@ -34,7 +35,7 @@ def git(repo, *args):
 def test_changed_ids_that_already_pass_launch_no_author_and_commit_the_list_and_graded_line_exiting_3(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -96,7 +97,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 def test_a_failing_changed_id_launches_an_author_leaf_under_the_author_role_whose_prompt_has_the_unit_requirements_and_fail_reasons_but_no_why_cell(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -154,7 +155,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 def test_changed_ids_that_pass_with_an_unchanged_id_failing_make_no_commit_before_the_author_and_do_not_exit_3(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -206,7 +207,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 def test_a_grader_that_gives_no_parseable_verdict_exits_2(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -254,7 +255,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 def test_an_author_leaf_whose_supervisor_exits_2_exits_2_without_grading_again_or_relaunching(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -305,7 +306,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 def test_an_attempt_that_grades_pass_but_whose_author_touched_graded_is_rejected_spending_the_attempt_and_commits_nothing(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -339,7 +340,7 @@ STUB_AUTHOR_EDITS_PROSE = STUB_AUTHOR_TOUCHES_GRADED.replace(
 def test_an_attempt_that_grades_pass_and_passes_the_guard_commits_list_prose_and_graded_in_one_commit_exiting_0_leaving_nothing_owed(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -369,7 +370,7 @@ def test_an_attempt_that_grades_pass_and_passes_the_guard_commits_list_prose_and
 def test_a_bad_veri_skill_edit_budget_exits_2_from_validating_it_when_every_other_call_before_launching_succeeds(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -399,7 +400,7 @@ ROWS = "| ID | Requirement | Why |\n|---|---|---|\n| A1 | The widget is blue. | 
 def test_a_unit_holding_its_own_requirements_table_with_no_list_beside_it_has_the_table_moved_into_a_new_requirements_md_in_the_same_commit_1959(tmp_path):
     repo = tmp_path / "repo"
     (repo / "skills" / "vdev").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     unit = repo / "skills" / "vdev" / "SKILL.md"
     unit.write_text("The widget is blue.\nIt stays silent.\n\n## Requirements\n\n" + ROWS)
@@ -427,7 +428,7 @@ def test_a_unit_holding_its_own_requirements_table_with_no_list_beside_it_has_th
 def test_a_requirements_heading_naming_no_existing_unit_and_not_marked_new_exits_2_naming_the_heading_1959(tmp_path):
     repo = tmp_path / "repo"
     (repo / "skills" / "vdev").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "skills" / "vdev" / "SKILL.md").write_text("The widget is blue.\n")
     git(repo, "add", "-A")
@@ -447,7 +448,7 @@ def test_a_rejected_author_attempts_edits_to_the_unit_are_reset_before_the_next_
     import importlib
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / "unit.md").write_text("The widget is painted a deep blue.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
     git(repo, "add", "-A")
@@ -483,7 +484,7 @@ def test_each_author_attempts_leaf_is_named_author_skill_edit_k_for_its_attempt_
     import types
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / "unit.md").write_text("The widget is painted a deep blue.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
     git(repo, "add", "-A")
@@ -518,7 +519,7 @@ def test_each_author_attempts_leaf_is_named_author_skill_edit_k_for_its_attempt_
 def test_a_unit_with_no_requirements_list_against_an_issue_with_no_requirements_section_exits_3_leaving_the_unit_unchanged_and_creating_no_requirements_md_1959(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\n")
     git(repo, "add", "-A")
@@ -541,7 +542,7 @@ def test_a_unit_with_no_requirements_list_against_an_issue_with_no_requirements_
 def test_an_issue_rewording_one_row_of_a_unit_below_the_root_with_its_path_section_leaves_one_row_per_id_reworded_in_place_and_no_basename_section_1959(tmp_path):
     repo = tmp_path / "repo"
     (repo / "skills" / "vdev").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "skills" / "vdev" / "SKILL.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     beside = repo / "skills" / "vdev" / "REQUIREMENTS.md"
@@ -571,7 +572,7 @@ def test_an_issue_rewording_one_row_of_a_unit_below_the_root_with_its_path_secti
 def test_a_new_unit_from_a_path_new_heading_gets_a_requirements_md_section_headed_by_its_repo_relative_path_1959(tmp_path):
     repo = tmp_path / "repo"
     (repo / "skills" / "new-skill").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "README.md").write_text("hello\n")
     (repo / "issue.md").write_text(
@@ -596,7 +597,7 @@ def test_a_new_unit_from_a_path_new_heading_gets_a_requirements_md_section_heade
 def test_a_new_unit_from_a_path_new_heading_is_graded_and_signed_exiting_0_or_3_with_a_clean_tree_1959(tmp_path):
     repo = tmp_path / "repo"
     (repo / "skills" / "new-skill").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "README.md").write_text("hello\n")
     (repo / "issue.md").write_text(
@@ -623,7 +624,7 @@ def test_a_new_unit_from_a_path_new_heading_is_graded_and_signed_exiting_0_or_3_
 def test_a_unit_with_no_table_beside_a_requirements_md_holding_only_another_units_section_against_an_issue_stating_no_rows_exits_3_launching_no_grader_leaving_the_tree_clean_1959(tmp_path):
     repo = tmp_path / "repo"
     (repo / "skills" / "vdev").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "skills" / "vdev" / "SKILL.md").write_text("The widget is painted a deep blue.\n")
     beside = repo / "skills" / "vdev" / "REQUIREMENTS.md"
@@ -651,7 +652,7 @@ def test_a_unit_with_no_table_beside_a_requirements_md_holding_only_another_unit
 def test_a_path_new_heading_for_a_unit_in_a_directory_that_does_not_exist_yet_is_not_refused_and_creates_the_unit_1959(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "README.md").write_text("hello\n")
     (repo / "issue.md").write_text(
@@ -675,7 +676,7 @@ def test_a_path_new_heading_for_a_unit_in_a_directory_that_does_not_exist_yet_is
 def test_an_issue_rewording_and_adding_rows_edits_only_the_path_section_leaving_a_following_basename_section_byte_identical_1959(tmp_path):
     repo = tmp_path / "repo"
     (repo / "skills" / "vdev").mkdir(parents=True)
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "skills" / "vdev" / "SKILL.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     beside = repo / "skills" / "vdev" / "REQUIREMENTS.md"
@@ -741,7 +742,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 def test_a_new_empty_unit_launches_the_author_before_any_grader_call_2072(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "README.md").write_text("hello\n")
     (repo / "issue.md").write_text("## Requirements\n\n### skills/new-skill/SKILL.md (new)\n\n" + ROWS)
@@ -772,7 +773,7 @@ STUB_WRITES_UNIT = STUB_ROLE_LOG.replace(
 def run_on_a_new_skill(tmp_path, stub, extra_env=None):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "README.md").write_text("hello\n")
     (repo / "issue.md").write_text("## Requirements\n\n### skills/new-skill/SKILL.md (new)\n\n" + ROWS)
@@ -805,7 +806,7 @@ def test_a_new_empty_unit_the_author_then_writes_exits_zero_and_is_committed_207
 def test_a_non_empty_existing_unit_is_graded_first_and_a_grader_that_passes_every_row_launches_no_author_exiting_3_2072(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -838,7 +839,7 @@ STUB_AUTHOR_EDITS_PROSE_AND_PIN = STUB_AUTHOR_EDITS_PROSE.replace(
 def test_an_attempt_that_edits_the_unit_and_a_named_pin_file_commits_the_pin_file_with_the_unit_list_and_graded_in_one_commit_exiting_0_2232(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "pin.txt").write_text("pinned-blue\n")
@@ -872,7 +873,7 @@ STUB_AUTHOR_EDITS_PROSE_AND_REPINS = STUB_AUTHOR_EDITS_PROSE.replace(
 def test_a_step_that_changes_a_checksum_pinned_unit_sentence_leaves_the_pin_matching_at_the_base_and_every_commit_it_makes_2232(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "pin.txt").write_text(subprocess.run(["cksum"], input=(repo / "unit.md").read_text(), capture_output=True, text=True).stdout)
@@ -908,7 +909,7 @@ def test_a_step_that_changes_a_checksum_pinned_unit_sentence_leaves_the_pin_matc
 def test_an_added_step_refused_with_exit_2_leaves_git_status_porcelain_empty_2236(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -939,7 +940,7 @@ def test_an_added_step_refused_with_exit_2_leaves_git_status_porcelain_empty_223
 def test_an_added_step_on_a_unit_whose_own_table_has_no_rows_refused_with_exit_2_leaves_git_status_porcelain_empty_2236(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text(
         "The widget is painted a deep blue.\n\n## Requirements\n\n| ID | Requirement | Why |\n|---|---|---|\n")
@@ -963,7 +964,7 @@ def test_a_grader_that_keeps_rejecting_relaunches_the_author_three_times_by_defa
     import importlib
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
     git(repo, "add", "-A")
@@ -998,7 +999,7 @@ def test_a_grader_that_keeps_rejecting_relaunches_the_author_exactly_veri_skill_
     import importlib
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
     git(repo, "add", "-A")
@@ -1034,7 +1035,7 @@ def test_a_relaunched_author_prompt_carries_the_fail_reasons_of_the_latest_gradi
     import importlib
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt hums.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
     git(repo, "add", "-A")
@@ -1074,7 +1075,7 @@ def test_a_relaunched_author_prompt_carries_the_fail_reasons_of_the_latest_gradi
 def test_the_skill_edit_step_insert_appends_for_a_graded_pinned_red_amends_the_list_regrades_and_commits_exiting_0_3009(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -1123,7 +1124,7 @@ def test_an_added_step_on_a_pass_unit_signs_it_when_graded_has_only_another_unit
     for name, graded in (("other_line", "other.md 0123456789ab 2020-01-01 g1 t1\n"), ("no_file", None)):
         repo = tmp_path / name
         repo.mkdir()
-        git(repo, "init", "-q", "-b", "main")
+        new_repo(repo)
         (repo / ".gitignore").write_text(".tdd/\n")
         (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
         (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -1150,7 +1151,7 @@ BUILD = SCRIPTS / "build-verify-prompt.sh"
 def test_a_unit_whose_prose_and_requirements_are_already_present_exits_3_and_the_diff_prompt_built_afterwards_names_it_as_already_present_3404(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is painted a deep blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -1195,7 +1196,7 @@ def test_the_trace_prompt_reaches_the_stub_after_the_author_prompt_and_before_th
 def test_an_added_step_that_runs_no_author_sends_the_trace_prompt_to_the_stub_before_the_grader_prompt_4759(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -1247,7 +1248,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
 def test_a_run_that_goes_to_the_author_sends_no_trace_prompt_to_the_stub_before_the_author_prompt_4759(tmp_path, flags, fails):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
@@ -1303,7 +1304,7 @@ UNTRACED_ROWS = trace_answering(r"s/^CLAIM \(S[0-9]*\) .*/NOT-CODE \1/p; s/^CLAI
 def run_added_with_no_author(tmp_path, stub, extra_env=None):
     repo = tmp_path / "repo"
     repo.mkdir()
-    git(repo, "init", "-q", "-b", "main")
+    new_repo(repo)
     (repo / ".gitignore").write_text(".tdd/\n")
     (repo / "unit.md").write_text("The widget is blue.\nIt stays silent.\n")
     (repo / "REQUIREMENTS.md").write_text(LIST % "blue")
