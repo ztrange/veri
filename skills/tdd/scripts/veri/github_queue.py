@@ -217,26 +217,30 @@ AUTHORED = "%an%x1f%ae%x1f%at%x1f%B"
 
 
 def _authored(*revs):
-    """The (author, email, author time, message) of each commit <revs> name: what a rebase or a cherry-pick keeps."""
-    log = git.out("log", "--format=%x1e" + AUTHORED, *revs, "--")
-    return {tuple(record.rstrip("\n").split("\x1f")) for record in log.split("\x1e")[1:]}
+    """[(author, email, author time, message, sha, short sha, subject)] of the commits <revs> name, oldest first: the
+    first four are what a rebase or a cherry-pick keeps, so they find a commit's landed copy."""
+    log = git.out("log", "--reverse", "--format=%x1e" + AUTHORED + "%x1f%H%x1f%h%x1f%s", *revs, "--")
+    return [tuple(record.rstrip("\n").split("\x1f")) for record in log.split("\x1e")[1:]]
+
+
+def _trailer(key):
+    return "%%(trailers:key=%s,valueonly,unfold,separator=%%x1d)" % key
 
 
 def joined_runs(tip, default):
     """The offline joins `<tip>..origin/<default>` landed, oldest first: (issue, pull request url, api path,
-    [(sha, short sha, subject)]) each. Only the stack's own commits count: a landed commit whose author, author time
-    and message no commit of <tip>'s history outside origin's carries (a held pull request merged first) is no run's.
-    A run's commits are those after the previous Veri-Joined commit up to its own; commits after the last are no
-    run's. ValueError naming the commit when its Veri-Joined trailer cannot be read as one run's."""
-    stack = _authored(tip, "^refs/remotes/origin/%s" % default)
-    log = git.out("log", "--reverse", "--format=%x1e%H%x1f%h%x1f%s%x1f%(trailers:key=Veri-Joined,valueonly,unfold,"
-                  "separator=%x1d)%x1f" + AUTHORED, "%s..refs/remotes/origin/%s" % (tip, default), "--")
-    runs, commits = [], []
+    [(sha, short sha, subject)]) each. A run is a commit of <tip>'s history outside origin's carrying a Veri-Joined
+    trailer, and its commits are only those its own join added: the landed copies of `<onto>..<that commit>`, <onto>
+    being its Veri-Joined-Onto trailer, the stack's tip the join was made onto. So a run joined online before the
+    outage, a repair committed between two joins and a held pull request merged first are no run's. A run whose
+    Veri-Joined commit did not land is left out. ValueError naming the commit when its Veri-Joined or Veri-Joined-Onto
+    trailer cannot be read as one run's."""
+    landed = {record[:4]: record[4:] for record in _authored("%s..refs/remotes/origin/%s" % (tip, default))}
+    log = git.out("log", "--reverse", "--format=%x1e%H%x1f%h%x1f%s%x1f" + _trailer("Veri-Joined") + "%x1f"
+                  + _trailer("Veri-Joined-Onto"), tip, "^refs/remotes/origin/%s" % default, "--")
+    runs = []
     for record in log.split("\x1e")[1:]:
-        sha, short, subject, trailers, *authored = record.rstrip("\n").split("\x1f")
-        if tuple(authored) not in stack:
-            continue
-        commits.append((sha, short, subject))
+        sha, short, subject, trailers, ontos = record.rstrip("\n").split("\x1f")
         values = [value for value in trailers.split("\x1d") if value]
         if not values:
             continue
@@ -244,8 +248,18 @@ def joined_runs(tip, default):
         issue = found and run_dir.branch_issue(found[3])
         if len(values) > 1 or not issue:
             raise ValueError("%s %s: Veri-Joined %r is not one `<pr-url> tdd/<n>-<slug>`" % (short, subject, trailers))
-        runs.append((issue, found[0].split(" ")[0], "repos/%s/pulls/%s" % (found[1], found[2]), commits))
-        commits = []
+        bases = [value.strip() for value in ontos.split("\x1d") if value.strip()]
+        if len(bases) != 1 or not re.fullmatch(r"[0-9a-f]{40}", bases[0]):
+            raise ValueError("%s %s: Veri-Joined-Onto %r is not the one commit sha the join was made onto"
+                             % (short, subject, ontos))
+        try:
+            own = _authored("%s..%s" % (bases[0], sha))
+        except git.GitFailed as error:
+            raise ValueError("%s %s: cannot read %s..%s from its Veri-Joined-Onto trailer (%s)"
+                             % (short, subject, bases[0][:12], short, (error.stderr or "").strip())) from error
+        if own and own[-1][:4] in landed:
+            commits = [landed[record[:4]] for record in own if record[:4] in landed]
+            runs.append((issue, found[0].split(" ")[0], "repos/%s/pulls/%s" % (found[1], found[2]), commits))
     return runs
 
 

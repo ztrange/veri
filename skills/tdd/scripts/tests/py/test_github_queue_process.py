@@ -24,12 +24,19 @@ def joined(issue):
     return "Veri-Joined: %s tdd/%s-a-run" % (pull_url(issue), issue)
 
 
-def landed_world(tmp_path, runs=RUNS, trailers=None, held=()):
-    """The clone `work` of a bare origin whose default branch is trunk, its stack holding <runs> ((issue, subjects)
-    pairs), each run's last commit carrying the run's Veri-Joined trailer, or the trailer block <trailers> maps its
-    (issue, index) to. A second clone first commits each subject of <held> on trunk (a held pull request merged
-    before the landing), then lands the stack on origin's trunk under new shas; `work` never fetches it.
-    Returns (work, the stack's tip, [(issue, [(short sha, subject)])] as landed, origin's trunk tip)."""
+def onto(sha):
+    return "Veri-Joined-Onto: %s" % sha
+
+
+def landed_world(tmp_path, runs=RUNS, trailers=None, held=(), before=(), after=None, unlanded=0):
+    """The clone `work` of a bare origin whose default branch is trunk, its stack holding first each subject of
+    <before> (a run joined online before the outage, no trailer), then <runs> ((issue, subjects) pairs), each run's
+    last commit carrying the run's Veri-Joined trailer and the Veri-Joined-Onto trailer naming the stack's tip it was
+    joined onto, or the trailer block <trailers> maps its (issue, index) to, each followed by the subjects <after> maps
+    its issue to (a repair committed on the stack between two joins). A second clone first commits each subject of
+    <held> on trunk (a held pull request merged before the landing), then lands the stack but its last <unlanded>
+    commits on origin's trunk under new shas; `work` never fetches it. Returns (work, the stack's tip, [(issue, [(short sha, subject)])] as landed,
+    origin's trunk tip)."""
     origin, work, lander = tmp_path / "origin.git", tmp_path / "work", tmp_path / "lander"
     new_repo(work, "trunk")
     commit_all(work, "docs: the base", **{".gitignore": ".tdd/\n"})
@@ -38,23 +45,29 @@ def landed_world(tmp_path, runs=RUNS, trailers=None, held=()):
     git(work, "fetch", "-q", "origin")
     git(work, "remote", "set-head", "origin", "trunk")
     git(work, "checkout", "-q", "-b", "stack")
+    for index, subject in enumerate(before):
+        commit_all(work, subject, **{"before-%d.txt" % index: "b\n"})
     for number, (issue, subjects) in enumerate(runs):
+        base = git(work, "rev-parse", "HEAD")
+        last = len(subjects) - 1
         for index, subject in enumerate(subjects):
-            block = (trailers or {}).get((issue, index), joined(issue) if index == len(subjects) - 1 else "")
+            block = (trailers or {}).get((issue, index), joined(issue) + "\n" + onto(base) if index == last else "")
             commit_all(work, subject + ("\n\n" + block if block else ""), **{"f%d-%d.txt" % (number, index): "x\n"})
+        for index, subject in enumerate((after or {}).get(issue, ())):
+            commit_all(work, subject, **{"after-%d-%d.txt" % (number, index): "a\n"})
     tip = git(work, "rev-parse", "HEAD")
     subprocess.run(["git", "clone", "-q", str(origin), str(lander)], cwd=tmp_path, check=True)
     git(lander, "fetch", "-q", str(work), "stack:stack")
     for index, subject in enumerate(held):
         commit_all(lander, subject, **{"held-%d.txt" % index: "h\n"})
-    git(lander, "-c", "user.name=lander", "cherry-pick", "trunk..stack")
+    git(lander, "-c", "user.name=lander", "cherry-pick", "trunk..stack~%d" % unlanded)
     git(lander, "push", "-q", "origin", "trunk")
     shown = [tuple(line.split("\t")) for line in
-             git(lander, "log", "--reverse", "--format=%h%x09%s", "origin/trunk@{1}..trunk").splitlines()][len(held):]
-    landed, at = [], 0
+             git(lander, "log", "--reverse", "--format=%h%x09%s", "origin/trunk@{1}..trunk").splitlines()]
+    landed, at = [], len(held) + len(before)
     for issue, subjects in runs:
         landed.append((issue, shown[at:at + len(subjects)]))
-        at += len(subjects)
+        at += len(subjects) + len((after or {}).get(issue, ()))
     return work, tip, landed, git(lander, "rev-parse", "trunk")
 
 
@@ -148,6 +161,35 @@ def test_4823_close_landed_lists_no_commit_trunk_gained_before_the_landing_in_an
     for issue, commits in landed:
         lists_exactly(hub.bodies(issue)[0], commits, [])
         assert [subject for subject in held if subject in hub.bodies(issue)[0]] == [], hub.bodies(issue)[0]
+
+
+@pytest.mark.process(PROCESS)
+def test_4823_close_landed_credits_a_run_only_the_commits_its_own_join_added(tmp_path, monkeypatch, run_cli):
+    before = ["feat: a run joined online before the outage (#9)", "test: its pin (#9)"]
+    repair = ["fix: a repair committed on the stack between two joins"]
+    work, tip, landed, _ = landed_world(tmp_path, before=before, after={"11": repair})
+    hub = Hub(monkeypatch)
+
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
+
+    assert code == 0, err
+    assert [number for number, _ in hub.posted] == ["11", "12"], err
+    for issue, commits in landed:
+        body = hub.bodies(issue)[0]
+        lists_exactly(body, commits, [])
+        assert [subject for subject in before + repair if subject in body] == [], body
+
+
+@pytest.mark.process(PROCESS)
+def test_4823_close_landed_comments_on_no_run_whose_join_has_not_landed_yet(tmp_path, monkeypatch, run_cli):
+    work, tip, landed, _ = landed_world(tmp_path, unlanded=len(RUNS[1][1]))
+    hub = Hub(monkeypatch)
+
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
+
+    assert code == 0, err
+    assert [number for number, _ in hub.posted] == ["11"], err
+    lists_exactly(hub.bodies("11")[0], landed[0][1], [])
 
 
 @pytest.mark.process(PROCESS)
@@ -312,6 +354,20 @@ def test_4823_close_landed_over_a_garbled_veri_joined_trailer_queues_nothing_and
 
     assert code == 2, err
     assert "not a pull request" in err, err
+    assert hub.posted == [] and not (work / ".tdd" / "github-queue").exists(), err
+
+
+@pytest.mark.process(PROCESS)
+@pytest.mark.parametrize("block", ["", "\nVeri-Joined-Onto: HEAD~1", "\nVeri-Joined-Onto: " + "a" * 40])
+def test_4823_close_landed_over_a_join_without_a_readable_veri_joined_onto_queues_nothing_and_exits_2(
+        tmp_path, monkeypatch, run_cli, block):
+    work, tip, _, _ = landed_world(tmp_path, trailers={("12", 2): joined("12") + block})
+    hub = Hub(monkeypatch)
+
+    code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
+
+    assert code == 2, err
+    assert "feat: add bravo (#12)" in err and "Veri-Joined-Onto" in err and "Traceback" not in err, err
     assert hub.posted == [] and not (work / ".tdd" / "github-queue").exists(), err
 
 

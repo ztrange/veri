@@ -321,7 +321,8 @@ def test_the_rebased_tip_is_amended_with_one_veri_joined_trailer_before_the_stac
     moved = [c for c in world.calls if c.startswith(wt + "update-ref")]
     assert (code, out, world.local) == (0, "joined offline, no tag %s\n" % AMENDED, AMENDED), err
     assert amended == [["git", "-C", world.wt, "commit", "--amend", "--no-edit", "--no-verify", "--allow-empty",
-                        "--trailer", "Veri-Joined: %s %s" % (PR, BRANCH), "--trailer", "Veri-Suite: passed"]], err
+                        "--trailer", "Veri-Joined: %s %s" % (PR, BRANCH), "--trailer", "Veri-Joined-Onto: " + LOCAL_STACK,
+                        "--trailer", "Veri-Suite: passed"]], err
     assert moved == [wt + "update-ref refs/heads/stack %s %s" % (AMENDED, LOCAL_STACK)], err
 
 
@@ -511,7 +512,8 @@ def test_with_no_all_tier_command_the_amend_writes_veri_suite_not_gated(tmp_path
 
     code, _, err = join(run_cli, world)
 
-    assert (code, trailers(world)) == (0, ["Veri-Joined: %s %s" % (PR, BRANCH), "Veri-Suite: not gated"]), err
+    assert (code, trailers(world)) == (0, ["Veri-Joined: %s %s" % (PR, BRANCH), "Veri-Joined-Onto: " + LOCAL_STACK,
+                                              "Veri-Suite: not gated"]), err
 
 
 @pytest.mark.parametrize("model", ["claude-opus-5-5", "Claude-Fable-1"])
@@ -523,7 +525,8 @@ def test_skip_suite_on_an_offline_join_runs_no_gate_and_the_amend_writes_veri_su
 
     gated = [c for c in world.calls if c.startswith(("sh -c", "detect-test-command.sh --tier all"))]
     assert (code, out, gated, world.local) == (0, "joined offline, no tag %s\n" % AMENDED, ["sh -c make unit"], AMENDED), err
-    assert trailers(world) == ["Veri-Joined: %s %s" % (PR, BRANCH), "Veri-Suite: skipped %s the hardware is slow" % model], err
+    assert trailers(world) == ["Veri-Joined: %s %s" % (PR, BRANCH), "Veri-Joined-Onto: " + LOCAL_STACK,
+                               "Veri-Suite: skipped %s the hardware is slow" % model], err
 
 
 def test_the_offline_join_runs_stack_red_sh_in_the_worktree_before_its_rebase(tmp_path, fake_processes, monkeypatch, run_cli):
