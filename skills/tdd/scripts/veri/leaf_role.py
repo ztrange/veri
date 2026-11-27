@@ -6,7 +6,8 @@ import sys
 from entry import write
 
 USAGE = "usage: leaf-role.sh <leaf-name>"
-ACTORS = {"develop": "developer", "revise": "developer", "verify": "verifier", "grade": "grader", "author": "author", "conductor": "conductor", "adjudicate": "adjudicator"}
+ACTORS = {"develop": "developer", "revise": "developer", "verify": "verifier", "grade": "grader", "author": "author",
+          "conductor": "conductor", "adjudicate": "adjudicator"}
 SHAPES = "(want develop-*|revise-*|verify-*|conductor-*)"
 
 

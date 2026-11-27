@@ -15,7 +15,8 @@ from ledger import handed_out
 NAME = "go-red-step"
 USAGE = "usage: go-red-step.sh <n>"
 LEDGER = run_dir.ledger("", "%s")
-# The untracked receipt a probe exit 0 leaves: line 1 the step's probe clause as the ledger writes it, line 2 HEAD's sha.
+# The untracked receipt a probe exit 0 leaves:
+# line 1 the step's probe clause as the ledger writes it, line 2 HEAD's sha.
 RECEIPT = ".tdd/go-red-probed"
 
 # The $S/ scripts this call makes, in the order each is first made.
@@ -44,7 +45,8 @@ def run(n):
     before = read_bytes(wt, path)
     if before is not None and old.encode() not in before:
         raise fused.Stop("probe", "%s no longer holds `%s`" % (path, old), 1)
-    code = fused.call(fused.script("mutation-probe.sh"), path, old, new, "--", *command(wt, committed_case(wt, case)), cwd=wt,
+    code = fused.call(fused.script("mutation-probe.sh"), path, old, new, "--",
+                      *command(wt, committed_case(wt, case)), cwd=wt,
                       out=".tdd/go-red-probe.out")[0]
     if code == 1:
         raise fused.Stop("probe", "%s stayed green with %s→%s in %s" % (case, old, new, path), 1)
@@ -116,7 +118,8 @@ def defining_file(wt, case):
     if len(found) == 1:
         return found[0]
     if found:
-        sys.stderr.write("go-red-step.sh: the case %s is defined by more than one test file: %s\n" % (case, ", ".join(found)))
+        sys.stderr.write("go-red-step.sh: the case %s is defined by more than one test file: %s\n"
+                         % (case, ", ".join(found)))
         raise fused.Stop("probe", "%d test files define %s" % (len(found), case), 2)
     if "::" in case or not (re.fullmatch(r"\w+", case) or re.search(r"\s", case)):
         return case
@@ -131,7 +134,8 @@ def command(wt, case):
     if code == 0:
         return ("sh", "-c", alone.strip(), "sh", defining_file(wt, case))
     if code == 3:
-        sys.stderr.write("go-red-step.sh: no `veri: one test file:` line, so the case %s cannot be probed alone\n" % case)
+        sys.stderr.write("go-red-step.sh: no `veri: one test file:` line, so the case %s cannot be probed alone\n"
+                         % case)
     raise fused.Stop("probe", "detect-test-command.sh --tier one test file exit %d" % code, 2)
 
 

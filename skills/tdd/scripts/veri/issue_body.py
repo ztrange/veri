@@ -1,4 +1,5 @@
-"""The one reading of a GitHub issue's markdown body: its `## <heading>` sections, its acceptance criteria and its blockers.
+"""The one reading of a GitHub issue's markdown body:
+its `## <heading>` sections, its acceptance criteria and its blockers.
 
 Interface: spans (where a section's lines sit), section (its text), criteria (its checkbox lines with their line
 indexes, so the k-th can be read or ticked), blockers (the numbers under `## Blocked by`) and add_blocker.
@@ -43,7 +44,8 @@ def _chosen(found, occurrence):
 
 
 def spans(body, heading, *, prefix=False):
-    """(start, end) of the lines under each `heading` of body, in order: start the line after the heading, end exclusive."""
+    """(start, end) of the lines under each `heading` of body, in order:
+    start the line after the heading, end exclusive."""
     lines, fenced = _scan(body)
     return _spans(lines, fenced, heading, prefix)
 

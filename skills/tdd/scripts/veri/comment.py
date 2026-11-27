@@ -17,7 +17,8 @@ import run_pins
 from ledger import handed_out, is_retired, ledger_steps
 from report import report_values
 
-USAGE = "usage: comment.sh <issue> <kind> [--note-file <path>] [--pr]  (kinds include bailed, stopped, revise <phase> <k>; --pr only with bailed)"
+USAGE = ("usage: comment.sh <issue> <kind> [--note-file <path>] [--pr]  "
+         "(kinds include bailed, stopped, revise <phase> <k>; --pr only with bailed)")
 
 
 def read_or_empty(path):
@@ -189,7 +190,8 @@ def post_pin(issue):
 
 
 def post_retire(issue):
-    """PIN.md's REJECT mirror once pin-reject-route.sh retired a step: the last retired step, and the verifier's reason."""
+    """PIN.md's REJECT mirror once pin-reject-route.sh retired a step:
+    the last retired step, and the verifier's reason."""
     retired = [r for r in read_steps(issue) if r.state == "done" and is_retired(r.text)]
     if not retired:
         print(f"comment.sh: the ledger of #{issue} holds no retired step", file=sys.stderr)

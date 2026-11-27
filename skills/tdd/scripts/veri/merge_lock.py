@@ -1,4 +1,5 @@
-"""merge-lock.sh's verbs, run in-process. It reads ps itself rather than through pid_file: queued_merge releases the lock from a release copy holding only RELEASE_FILES."""
+"""merge-lock.sh's verbs, run in-process. It reads ps itself rather than through pid_file:
+queued_merge releases the lock from a release copy holding only RELEASE_FILES."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import glob
 import os
@@ -184,7 +185,8 @@ def _take(lock, record, args):
                 print(f"stale lock: {text.strip()}; clear it with merge-lock.sh release --force", file=sys.stderr)
                 return 2
             if _clock() - started >= limit:
-                print(f"merge-lock.sh: lock still held by {text.strip()} after VERI_MERGE_LOCK_WAIT={limit} seconds; not taken",
+                print(f"merge-lock.sh: lock still held by {text.strip()} after VERI_MERGE_LOCK_WAIT={limit} seconds; "
+                      "not taken",
                       file=sys.stderr)
                 return 2
             _poll_wait()
@@ -229,7 +231,8 @@ def _holder(lock, record, args):
 def _gate(lock, record, args):
     head = args[:args.index("--")] if "--" in args else args
     value = head[head.index("--pid") + 1:][:1] if "--pid" in head else []
-    if not (value and value[0].isdigit() and int(value[0]) > 0) or "--" not in args or args.index("--") == len(args) - 1:
+    if (not (value and value[0].isdigit() and int(value[0]) > 0) or "--" not in args
+            or args.index("--") == len(args) - 1):
         print("usage: merge-lock.sh gate [--keep] --pid <pid> [--owner <token>] -- <cmd>", file=sys.stderr)
         return 2
     owner = _owner(head)
@@ -244,13 +247,15 @@ def _gate(lock, record, args):
     fields = text.split()
     if fields[:1] != value or fields[3:4] != ([owner] if owner else []):
         print(f"merge-lock.sh: gate refused: the lock is held by {text.strip() or 'an unreadable holder record'}, "
-              f"not --pid {value[0]}" + (f" --owner {owner}" if owner else "") + f"; {command[0]} not run", file=sys.stderr)
+              f"not --pid {value[0]}" + (f" --owner {owner}" if owner else "") + f"; {command[0]} not run",
+              file=sys.stderr)
         return 2
     code = subprocess.run(command).returncode
     if code in (0, 3):
         return code
     if "--keep" in args:
-        print(f"merge-lock.sh: command exited {code}; lock kept, clear it with merge-lock.sh release --force", file=sys.stderr)
+        print(f"merge-lock.sh: command exited {code}; lock kept, clear it with merge-lock.sh release --force",
+              file=sys.stderr)
         return code
     _release(lock, record, head)
     return code

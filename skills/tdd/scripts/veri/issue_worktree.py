@@ -79,7 +79,8 @@ def remote_issue_branch(issue):
 
 
 def github_origin(url):
-    """Whether GitHub can be asked about origin's pull requests: a fixture directory is set, or <url> is a remote URL."""
+    """Whether GitHub can be asked about origin's pull requests:
+    a fixture directory is set, or <url> is a remote URL."""
     return bool(tunables.read("VERI_GH_JSON") or re.match(r"^(\w+://(?!/)|[^/@]+@[^/]+:)", url.strip()))
 
 
@@ -147,7 +148,8 @@ def main(argv):
                 sys.stderr.write("issue-worktree: could not remove the snapshot %s: %s\n" % (snapshot, error))
                 return 2
         elif removed.returncode == 0 and snapshot and not pinned_scripts.snapshot_gone(snapshot):
-            sys.stderr.write("issue-worktree: %s is not a snapshot veri made for %s — left in place\n" % (snapshot, path))
+            sys.stderr.write("issue-worktree: %s is not a snapshot veri made for %s — left in place\n"
+                             % (snapshot, path))
         return entry.to_contract(removed.returncode)
     path = run_dir.worktree(main_tree, argv[0])
     if "worktree " + path in registry.stdout.split("\n"):
@@ -241,7 +243,8 @@ def take_over_cut(path, branch):
     remote_ref = "refs/remotes/origin/" + branch
     fetched = git_module.network("fetch", "-q", "origin", "+refs/heads/%s:%s" % (branch, remote_ref))
     if fetched.returncode != 0:
-        return entry.refuse("git fetch origin %s got no answer (%s) — refusing to take over a run from a stale origin/%s"
+        return entry.refuse("git fetch origin %s got no answer (%s) — refusing to take over a run from a stale "
+                            "origin/%s"
                             % (branch, " ".join((fetched.stderr or "").split()), branch), prefix=PREFIX)
     if ref_exists("refs/heads/" + branch):
         local, remote = (git("rev-parse", "--verify", "-q", ref, stdout=subprocess.PIPE, text=True).stdout.strip()
@@ -276,10 +279,12 @@ def stack_cut(path, branch, stack):
         default, refusal = default_branch_name(True)
         if not default:
             return entry.refuse(refusal, prefix=PREFIX)
-        fetched = git_module.network("fetch", "-q", "origin", "+refs/heads/%s:refs/remotes/origin/%s" % (default, default))
+        fetched = git_module.network("fetch", "-q", "origin",
+                                     "+refs/heads/%s:refs/remotes/origin/%s" % (default, default))
         if fetched.returncode != 0:
             return entry.refuse("git fetch origin %s got no answer (%s) — refusing to create the stack branch %s from a"
-                                " stale origin/%s" % (default, " ".join((fetched.stderr or "").split()), stack, default),
+                                " stale origin/%s"
+                                % (default, " ".join((fetched.stderr or "").split()), stack, default),
                                 prefix=PREFIX)
         pushed = git_module.network("push", "origin", "refs/remotes/origin/%s:refs/heads/%s" % (default, stack))
         if pushed.returncode != 0 and not created_meanwhile(stack):

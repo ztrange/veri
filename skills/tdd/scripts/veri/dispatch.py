@@ -44,7 +44,12 @@ from dispatch_reads import (
     transient,
 )
 
-USAGE = "usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= line (a whole number, or auto: floor((T - W_other)/d), at least 1, at most live + the launchable queue), overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)"
+USAGE = ("usage: dispatch.sh [--target <N>]  (N a whole number >= 0; --target 0 holds dispatch: keeps watching and "
+         "reporting exits, launches nothing; with no --target, N and the launch order come from .tdd/role-dev.state in "
+         "the main working tree (.tdd/role-dev-<lane>.state under a VERI_LABEL of ready-for-agent:<lane>): its last n= "
+         "line (a whole number, or auto: floor((T - W_other)/d), at least 1, at most live + the launchable queue), "
+         "overridden by an unexpired timed-n line, and each override line pulls the issue it names to the front; "
+         "exit 2 if that file is unreadable, has no n= line, or has a malformed n=, timed-n or override line)")
 
 
 solvable_issues = watch_runs.solvable_issues
@@ -182,7 +187,8 @@ def _role_state_target(state, world):
             if world.clock() < expiry:
                 target = value
     except role_state.Malformed as why:
-        said = {"n-missing": "no n= line", "n": f"malformed n line: {why.line}"}.get(why.kind, f"malformed {why.kind} line: {why.line}")
+        said = {"n-missing": "no n= line",
+                "n": f"malformed n line: {why.line}"}.get(why.kind, f"malformed {why.kind} line: {why.line}")
         world.complain(f"dispatch.sh: {said} in {world.role_state_file()}\n")
         return 2
     state.auto = target == role_state.AUTO_N
@@ -223,7 +229,8 @@ def _stalled(state, world):
 
 # The .tdd/dispatch-notified line the queue-blocked rule owns: the last line it printed, so a restarted dispatch.sh
 # prints it again only for a different set of blocking PRs. A new line is a closing line: it ends the watch (exit 0),
-# since vdev reads advice only when a closing line ends it, and a fully blocked queue with no live run ends no other way.
+# since vdev reads advice only when a closing line ends it,
+# and a fully blocked queue with no live run ends no other way.
 BLOCKED_LINE = "queue-blocked "
 
 
@@ -286,7 +293,8 @@ QUEUE_NOTIFIED = "queue-notified"
 
 
 def queue_polls():
-    """VERI_QUEUE_POLLS: how many polls' waiter counts the queueing rule reads; main refuses a bad one before any poll."""
+    """VERI_QUEUE_POLLS: how many polls' waiter counts the queueing rule reads;
+    main refuses a bad one before any poll."""
     return int(tunables.get("VERI_QUEUE_POLLS", unless_empty=True))
 
 
@@ -306,7 +314,8 @@ def _queueing(state, world):
     world.record_notified(others + queue + ([QUEUE_NOTIFIED] if notified or growing else []))
     if growing and not notified:
         total, in_use = world.test_budget()
-        world.say(f"queueing {waiting} waiting for T={total}, {in_use} workers in use: a lower N would shorten the wait\n")
+        world.say(f"queueing {waiting} waiting for T={total}, {in_use} workers in use: "
+                  "a lower N would shorten the wait\n")
 
 
 STRETCHED = "stretched "
@@ -385,7 +394,8 @@ def step(state, world):
     live = world.live_runs()
     if state.logged is None:
         # a run an earlier call already reported is neither watched nor called stalled
-        state.logged = [issue for issue in _logged_runs(world) if issue not in state.seen and not _reported(issue, world)]
+        state.logged = [issue for issue in _logged_runs(world)
+                        if issue not in state.seen and not _reported(issue, world)]
         state.seen += state.logged
     state.logged = [issue for issue in state.logged if issue not in live]
     code = _merge_failed(state, world)

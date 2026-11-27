@@ -105,7 +105,8 @@ def decide(tier, issue, root, claude_md=None):
         if declares(at("package.json"), rb'"scripts"\s*:\s*\{[^}]*"test"\s*:\s*"[^"]*\bjest\b'):
             raise Answer(b"npx jest --silent")
         return
-    if has("package.json") and re.search(rb'"scripts":\{[^}]*"test":', bytes(b for b in read(at("package.json")) if b not in SPACE)):
+    if has("package.json") and re.search(rb'"scripts":\{[^}]*"test":',
+                                         bytes(b for b in read(at("package.json")) if b not in SPACE)):
         if has("pnpm-lock.yaml"):
             raise Answer(b"pnpm test")
         if has("yarn.lock"):

@@ -54,8 +54,10 @@ def write(stream, text, *, before=True, after=True, end="\n"):
 
 
 def whole_number(text, minimum=1):
-    """The int of `text` when it is ASCII digits only (leading zeros allowed, no sign, space or other digits) and at least `minimum`, else None.
-    Never raises: digits past the interpreter's int-conversion limit (4300 by default) are not an answer either, so None."""
+    """The int of `text` when it is ASCII digits only (leading zeros allowed, no sign, space or other digits)
+    and at least `minimum`, else None.
+    Never raises: digits past the interpreter's int-conversion limit (4300 by default) are not an answer either,
+    so None."""
     if not (text.isascii() and text.isdigit()):
         return None
     try:
@@ -79,7 +81,8 @@ def refuse(*lines, usage=None, prefix=""):
 
 
 def no_arguments(argv, usage):
-    """Return None when argv is empty; else refuse the first argument, naming the script usage opens with, and return 2."""
+    """Return None when argv is empty; else refuse the first argument, naming the script usage opens with,
+    and return 2."""
     if not argv:
         return None
     script = usage[usage.index("usage: ") + len("usage: "):].split()[0]

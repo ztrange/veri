@@ -86,7 +86,8 @@ PR_URL = re.compile(r"https://github\.com/[^/\s]+/[^/\s]+/pull/\d+")
 
 
 def queued_merges():
-    """The PR urls of this clone's queued merges for the target repo; one clone serves several repos (#3877); with no readable origin it counts them all, a merge never goes unseen."""
+    """The PR urls of this clone's queued merges for the target repo; one clone serves several repos (#3877);
+    with no readable origin it counts them all, a merge never goes unseen."""
     urls = []
     repo = via("target_repo")()
     mine = os.path.realpath(os.path.join(paths.scripts_of(__file__), "queued-merge.sh"))
@@ -128,7 +129,8 @@ def transient(detail):
 
 def answered(what, read, *args, **kwargs):
     """<read>(*args), a gh read; no answer is an unreadable queue naming <what>. A rate limit waits for the reset
-    (the caller's), but a read still rate-limited after VERI_GH_REFUSAL_RETRIES waits in a row is a RateLimitPersists."""
+    (the caller's), but a read still rate-limited after VERI_GH_REFUSAL_RETRIES waits in a row
+    is a RateLimitPersists."""
     retries = 0
     limited = via("_reads").setdefault("limited", {})
     while True:

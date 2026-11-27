@@ -250,19 +250,20 @@ def strict_refusal(args, context=None):
     context = context or {}
     name = os.fsdecode(args[0])
     if name not in event_table.EVENTS:
-        return ("event.sh: VERI_EVENT_STRICT=1 refuses event %s, which veri/event_table.py does not hold; declare it with"
-                " the line  %s" % (name, event_table.declaring(name, None)))
+        return ("event.sh: VERI_EVENT_STRICT=1 refuses event %s, which veri/event_table.py does not hold; declare it "
+                "with the line  %s" % (name, event_table.declaring(name, None)))
     for arg in args[1:]:
         key = os.fsdecode(arg.partition(b"=")[0])
         if key not in event_table.keys(name):
-            return ("event.sh: VERI_EVENT_STRICT=1 refuses event %s key %s, which veri/event_table.py does not declare for"
-                    " it; declare it with the line  %s" % (name, key, event_table.declaring(name, key)))
+            return ("event.sh: VERI_EVENT_STRICT=1 refuses event %s key %s, which veri/event_table.py does not "
+                    "declare for it; declare it with the line  %s" % (name, key, event_table.declaring(name, key)))
     missing = sorted(event_table.required(name) - {os.fsdecode(arg.partition(b"=")[0]) for arg in args[1:]})
     if missing:
         return ("event.sh: VERI_EVENT_STRICT=1 refuses event %s without its required key %s (veri/event_table.py)"
                 % (name, missing[0]))
     pairs = [(None, os.fsdecode(key), os.fsdecode(context.get(key, b""))) for key, source in CONTEXT if source]
-    pairs += [(name, os.fsdecode(key), os.fsdecode(value)) for key, _, value in (arg.partition(b"=") for arg in args[1:])]
+    pairs += [(name, os.fsdecode(key), os.fsdecode(value))
+              for key, _, value in (arg.partition(b"=") for arg in args[1:])]
     for owner, key, value in pairs:
         if not event_table.valid(owner, key, value):
             return ("event.sh: VERI_EVENT_STRICT=1 refuses event %s key %s value %r, which its declared format %s"
@@ -305,7 +306,8 @@ def append(directory, context, event, fields=(), ts=None):
 
 
 def state_labels(event, issue):
-    """Mirror a bail, a stop, a resume or a launch (start) onto issue <issue>'s labels; no issue, no call; a refusal is named, never fatal."""
+    """Mirror a bail, a stop, a resume or a launch (start) onto issue <issue>'s labels; no issue, no call;
+    a refusal is named, never fatal."""
     if not issue:
         return
     import github  # pulls run_records (about 20 ms), and only a labelled run state needs it
@@ -331,11 +333,12 @@ def state_labels(event, issue):
 
 def add_state_label(issue, label):
     """Label <issue> <label> only when the repository has that label: REST's add-labels call would create a missing
-    one, and veri creates no state label (ready-check.sh reports it). A missing label is one stderr line, never fatal."""
+    one, and veri creates no state label (ready-check.sh reports it).
+    A missing label is one stderr line, never fatal."""
     import github
     if not github.gh_label_exists(label):
-        sys.stderr.write("event: the repository has no `%s` label, so #%s is not labelled %s (ready-check.sh reports it)\n"
-                         % (label, issue, label))
+        sys.stderr.write("event: the repository has no `%s` label, so #%s is not labelled %s "
+                         "(ready-check.sh reports it)\n" % (label, issue, label))
         return
     github.gh_issue_add_label(issue, label)
 

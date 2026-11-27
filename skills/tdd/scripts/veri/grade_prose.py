@@ -26,19 +26,28 @@ EFFORTS = ("low", "medium", "high", "xhigh", "max")
 BAD_GRADE = re.compile(GRADE_KEY + r"(?!PASS\b|FAIL\b)\S", re.M)
 
 
-GRADER_INSTRUCTIONS = """You grade a piece of prose against a list of requirements. You judge only what the prose states or instructs, read as its reader (an AI agent following it) would read it. You do not judge whether the instructions are wise, and you do not judge behaviour.
+GRADER_INSTRUCTIONS = """You grade a piece of prose against a list of requirements. You judge only what the prose \
+states or instructs, read as its reader (an AI agent following it) would read it. You do not judge whether the \
+instructions are wise, and you do not judge behaviour.
 
 Rules:
-- `{{NAME}}` and `{{INCLUDE:...}}` are template slots filled in later. Never fail a requirement because of a slot; judge the literal text around it.
-- A requirement PASSES when the prose clearly states or instructs it, in any wording. It FAILS when the prose omits it, contradicts it, or states something that would lead the reader to act against it.
-- A requirement row that names a concrete artefact (a file, a section heading or an identifier) FAILS when the prose does not name that artefact too; substance alone does not discharge a named reference. A row that names no artefact passes on meaning alone, in any wording, so a unit wording such a row differently keeps PASS; the artefact rule is not substring matching.
+- `{{NAME}}` and `{{INCLUDE:...}}` are template slots filled in later. Never fail a requirement because of a slot; \
+judge the literal text around it.
+- A requirement PASSES when the prose clearly states or instructs it, in any wording. It FAILS when the prose omits \
+it, contradicts it, or states something that would lead the reader to act against it.
+- A requirement row that names a concrete artefact (a file, a section heading or an identifier) FAILS when the prose \
+does not name that artefact too; substance alone does not discharge a named reference. A row that names no artefact \
+passes on meaning alone, in any wording, so a unit wording such a row differently keeps PASS; the artefact rule is \
+not substring matching.
 - Judge each requirement independently.
 - Answer from the text given here. Do not call any tool.
 - An empty unit is graded FAIL on every requirement row without using any reading tool.
 
-First, analyse each requirement against the prose in free text — quote the prose you rely on. Change your mind here if you need to.
+First, analyse each requirement against the prose in free text — quote the prose you rely on. Change your mind here \
+if you need to.
 
-Then end your reply with this block and nothing after it. Inside the block, one line per requirement, in the order given, starting with the requirement's ID exactly as written in the list (e.g. `DR4`), and no corrections:
+Then end your reply with this block and nothing after it. Inside the block, one line per requirement, in the order \
+given, starting with the requirement's ID exactly as written in the list (e.g. `DR4`), and no corrections:
 BEGIN GRADES
 <ID>: PASS — <reason, at most 20 words>
 <ID>: FAIL — <reason, at most 20 words, quoting the failing prose when it exists>
@@ -241,7 +250,8 @@ def requirements_beside(unit):
 def signed_units(base, head):
     """The units a branch signed, as `(requirements file, unit)` pairs, from two `{GRADED path: text}` maps (the merge
     base's and HEAD's): each unit, decoded by graded_fields and listed once, whose line at head its file at base lacks,
-    so a line a conflict resolution duplicated from the default branch is not the branch's, and a blank line is no unit."""
+    so a line a conflict resolution duplicated from the default branch is not the branch's,
+    and a blank line is no unit."""
     listed = []
     for path in sorted(head):
         held = set(base.get(path, "").splitlines())
@@ -255,7 +265,8 @@ def signed_units(base, head):
 def graded_at(rev):
     """{GRADED path: text} for every GRADED file of the tree at `rev`, read with git (GitFailed when it cannot)."""
     import git
-    paths = [p for p in git.out("ls-tree", "-r", "-z", "--name-only", rev).split("\0") if os.path.basename(p) == "GRADED"]
+    paths = [p for p in git.out("ls-tree", "-r", "-z", "--name-only", rev).split("\0")
+             if os.path.basename(p) == "GRADED"]
     return {p: git.out("show", "%s:%s" % (rev, p)) for p in paths}
 
 
@@ -373,7 +384,8 @@ def convert(path):
             try:
                 tree = formula.signature(p, unit, units=units)
             except Exception as e:
-                print("grade-prose.sh: signature-formula-disagreement: %s: the tree's formula gave none (%s)" % (unit, e),
+                print("grade-prose.sh: signature-formula-disagreement: %s: the tree's formula gave none (%s)"
+                      % (unit, e),
                       file=sys.stderr)
                 return 2
             own = tree if formula is sys.modules[__name__] else signature(p, unit, units=units)
@@ -407,7 +419,8 @@ def grade_unit(path, unit, read=None):
     `read(file)` answers the text of the unit's file (None: `read`, the working tree). Launches the grader leaf
     (retrying a reply without a verdict, and re-grading failed rows), signs the unit into its GRADED file on PASS,
     appends a `grading` event, and returns a `Grading`: code 0 PASS; 1 REJECT; 2 no answer (a grader model naming
-    no version, a grader.conf key repeated or effort level unknown, no requirements list, a reply that breaks the protocol, a signature disagreement), whose reason is
+    no version, a grader.conf key repeated or effort level unknown, no requirements list, a reply that breaks the
+    protocol, a signature disagreement), whose reason is
     on stderr."""
     try:
         model = grader_model()
@@ -457,7 +470,8 @@ def grade_unit(path, unit, read=None):
         live = os.path.join(".tdd", "grade-prose.log")
         with open(live, encoding="utf-8") as log:
             text = log.read()
-        shutil.copyfile(live, os.path.join(".tdd", "grade-prose-" + re.sub(r"[^A-Za-z0-9._-]", "_", unit) + retry + ".log"))
+        shutil.copyfile(live, os.path.join(
+            ".tdd", "grade-prose-" + re.sub(r"[^A-Za-z0-9._-]", "_", unit) + retry + ".log"))
         return text
 
     def launch_rows(ids):
@@ -555,7 +569,8 @@ def grade_unit(path, unit, read=None):
         else:
             sig = own.signature(path, unit) if read is None else own.signature(path, unit, text)
     except Exception as e:
-        print("grade-prose.sh: signature-formula-disagreement: %s: the running grader signs %s, the tree's formula gave none (%s)"
+        print("grade-prose.sh: signature-formula-disagreement: %s: the running grader signs %s, the tree's formula "
+              "gave none (%s)"
               % (unit, ours, e), file=sys.stderr)
         return Grading(2)
     answered = dict(verdict=said[-1], failing=tuple(line.split(":")[0] for line in failed), cost=cost,

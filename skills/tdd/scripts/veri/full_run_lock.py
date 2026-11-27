@@ -69,7 +69,8 @@ def acquire():
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
         lock.seek(0)
-        sys.stderr.write("waiting for the full run holding the lock: %s\n" % " ".join(lock.read().split("\n")[0].split("\t")))
+        sys.stderr.write("waiting for the full run holding the lock: %s\n"
+                         % " ".join(lock.read().split("\n")[0].split("\t")))
         sys.stderr.flush()
         waitfile = os.environ.get("PYTEST_LEG_LOCK_WAIT_MARKER", "")
         try:

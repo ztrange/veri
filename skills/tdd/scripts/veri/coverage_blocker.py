@@ -45,13 +45,15 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     n = argv[0]
-    text = ("## Problem\n\nRefactor #%s refused: its Cover probe found the code it would move uncovered (`COVERED: no`). "
+    text = ("## Problem\n\nRefactor #%s refused: its Cover probe found the code it would move uncovered "
+            "(`COVERED: no`). "
             "Find a seam and surround the behaviour with tests, then #%s can be retaken." % (n, n))
     try:
         with open(".tdd/develop-cover.out") as f:
             report = f.read()
         uncovered = "no" in report_values(report, "COVERED", strip=True)
-        mutations = ["MUTATION:" + m for m in report_values(report, "MUTATION", space="kept", strip=True)] if uncovered else []
+        mutations = (["MUTATION:" + m for m in report_values(report, "MUTATION", space="kept", strip=True)]
+                     if uncovered else [])
     except OSError as error:
         print("coverage-blocker.sh: cannot read .tdd/develop-cover.out: %s" % error.strerror, file=sys.stderr)
         return 2
@@ -66,7 +68,8 @@ def main(argv):
         return 2
     text += "\n\n## Region\n\n" + step.text
     if mutations:
-        text += "\n\n## Acceptance criteria\n\n" + "".join("- [ ] %s: add a case that goes red under this mutation\n" % m for m in mutations)
+        text += "\n\n## Acceptance criteria\n\n" + "".join(
+            "- [ ] %s: add a case that goes red under this mutation\n" % m for m in mutations)
     text += "\n\n## Blocked by\n\nNone.\n"
     command = resolved("all", "", ".")
     if command is not None:

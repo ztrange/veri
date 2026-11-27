@@ -18,7 +18,8 @@ def records(number):
         comments = github.issue_comments(number)
     except github.NoAnswer:
         comments = None
-    if not (isinstance(comments, list) and all(isinstance(c, dict) and isinstance(c.get("body"), str) for c in comments)):
+    if not (isinstance(comments, list)
+            and all(isinstance(c, dict) and isinstance(c.get("body"), str) for c in comments)):
         sys.stderr.write("issue-decisions.sh: no answer from gh to reading the comments of issue #%s\n" % number)
         return None
     return comments
