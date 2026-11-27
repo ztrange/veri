@@ -1564,11 +1564,17 @@ SPEC = "slugify must lowercase the title and join words with hyphens."
 
 
 def answering_leaf(monkeypatch, fake_processes, *leaf_outs, supervised=None):
+    """Fake the verifier's processes: supervise.sh answers <leaf_outs> in turn, git merge-base FAKE_BASE, git ls-files
+    every file under the cwd (a pin's test ids name tracked files), any other git 128."""
     launches = []
 
-    def fake(args, *_, **__):
+    def fake(args, *_, **kwargs):
         words = [str(a) for a in args]
         name = os.path.basename(words[0])
+        if name == "git" and "ls-files" in words:
+            root = kwargs.get("cwd") or os.getcwd()
+            names = sorted(os.path.relpath(os.path.join(top, file), root) for top, _, files in os.walk(root) for file in files)
+            return subprocess.CompletedProcess(args, 0, "".join(n + "\0" for n in names).encode(), None)
         if name == "supervise.sh":
             launches.append((words[1], pathlib.Path(words[3]).read_text()))
             if supervised is not None:
@@ -1608,13 +1614,15 @@ AMBIENT_STEP = "AMBIENT-STEP-must-not-appear"
                  [AMBIENT_STEP], id="step-flag-not-ambient"),
     *[pytest.param([*(FAST if phase in ("green", "refactor") else []),
                     *(["--step-green", "0123abc"] if phase == "refactor" else [])], phase,
-                   "0123abc" if phase == "refactor" else "test_lowercases", GREEN, 0, 1, [SPEC, "VERDICT:"], [],
-                   id="no-step-" + phase) for phase in ("red", "green", "refactor", "pin", "surround")],
+                   {"refactor": "0123abc", "pin": "tests/test_slugify.py::test_lowercases"}.get(phase, "test_lowercases"),
+                   GREEN, 0, 1, [SPEC, "VERDICT:"], [], id="no-step-" + phase) for phase in ("red", "green", "refactor", "pin", "surround")],
 ])
 def test_verify_sh_hands_every_launch_the_builders_own_prompt_for_its_arguments_carrying_base_sha_and_step_flag_not_ambient_veri_step_with_no_unfilled_placeholder(
         flags, phase, fourth, leaf_out, expected_code, launches, present, absent, run_cli, tmp_path, monkeypatch, fake_processes):
     monkeypatch.setenv("VERI_STEP", AMBIENT_STEP)
     (tmp_path / "spec.md").write_text(SPEC)
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_slugify.py").write_text("def test_lowercases():\n    pass\n")
     argv = [*BRANCH, *flags, phase, str(tmp_path / "spec.md"), "tests/test_slugify.py", fourth]
     launched = answering_leaf(monkeypatch, fake_processes, leaf_out)
     verify = importlib.import_module("veri.verify")

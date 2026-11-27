@@ -386,7 +386,8 @@ def test_4692_a_revised_red_reporting_against_unmodified_passes_with_a_why_re_ve
     assert "red-divergence.sh" not in fake.names()
     assert code == 0, err
     verdict = next(c for c in fake.calls if c[0] == "detach-leaf.sh" and c[1][1] == "verdict-pin")
-    assert verdict[1][-3:] == (".tdd/issue-12-spec.md", "tests/test_b.py", "tests/test_b.py::test_two")
+    words = list(verdict[1])
+    assert words[words.index("pin") + 1:words.index("pin") + 2] == [".tdd/issue-12-spec.md"], words
 
 
 def test_4692_a_revised_red_reporting_bare_against_unmodified_passes_re_verifies_as_pin_not_exit_1(revise):

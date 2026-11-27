@@ -346,6 +346,7 @@ def test_main_resolves_includes_recursively_before_substitution_in_the_template_
     spec.write_bytes(b"spec\n")
     ledger = tmp_path / "ledger.md"
     ledger.write_bytes(b"ledger {{INCLUDE:_b.md}}\n")
+    (tmp_path / "t").write_bytes(b"the pin id's tracked test file\n")
     p = str(prompts).encode()
     closed = []
 
@@ -503,12 +504,14 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
     spec = tmp_path / "spec.md"
     spec.write_bytes(b'slugify("Hello & World/Foo") must return "hello-world-foo" \xe2\x80\x94 see {ref}\\n done.\n')
     s, testpath = str(spec), "tests/test_slugify.py"
+    (tmp_path / "tests").mkdir()
+    (tmp_path / testpath).write_text("def test_slugify_lowercases():\n    pass\n")
     prediction = 'the second assert fires: want "hello-world-foo", got "Hello & World/Foo"'
     calls = {
         "red": ["red", s, testpath, "test_slugify_lowercases"],
         "green": ["--fast-cmd", "make unit", "green", s, testpath, "test_slugify_lowercases"],
         "refactor": ["--step-green", "0123abc", "--fast-cmd", "make unit", "refactor", s, testpath, "0123abc"],
-        "pin": ["--branch-base", "3f9a1c0", "pin", s, testpath, "test_slugify_lowercases"],
+        "pin": ["--branch-base", "3f9a1c0", "pin", s, testpath, testpath + "::test_slugify_lowercases"],
     }
 
     def run(argv):
@@ -521,9 +524,9 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
     monkeypatch.setenv("VERI_TEST_CMD", "pytest -k leaked_channel")
     monkeypatch.setenv("VERI_PREDICTED_FAILURE", prediction)
     ambient = {phase: run(argv) for phase, argv in calls.items()}
-    fifth = {phase: run(argv + [prediction]) for phase, argv in calls.items()}
+    fifth = {phase: run(argv + [prediction]) for phase, argv in calls.items() if phase != "pin"}
     bogus = run(["bogus", s, testpath])
-    no_base = run(["pin", s, testpath, "test_slugify_lowercases"])
+    no_base = run(["pin", s, testpath, testpath + "::test_slugify_lowercases"])
     prompts = {phase: out.decode("utf-8", "surrogateescape") for phase, (_, out, _) in plain.items()}
     folded = {phase: " ".join(text.split("\n")) for phase, text in prompts.items()}
 
@@ -549,7 +552,7 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
         "verdict format": True,
         "pin checks": True,
         "no prediction": True,
-        "fifth positional": {p: (2, b"") for p in every},
+        "fifth positional": {p: (2, b"") for p in every if p != "pin"},
         "unknown phase": True,
         "pin without a branch base": (2, b"", True),
     }
@@ -560,6 +563,8 @@ def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_s
     spec = tmp_path / "spec.md"
     spec.write_bytes(b'slugify("Hello & World/Foo") must return "hello-world-foo" \xe2\x80\x94 see {ref}\\n done.\n')
     s, testpath, base_sha = str(spec), "tests/test_slugify.py", "3f9a1c07e2b4"
+    (tmp_path / "tests").mkdir()
+    (tmp_path / testpath).write_text("def test_slugify_lowercases():\n    pass\n")
     step = "frobnicate --dry-run prints the plan and writes nothing ⟦criterion 3⟧"
     ambient_step = "frobnicate --dry-run prints the plan and writes nothing ⟦criterion 9⟧"
     fast_cmd = 'make unit ZORBLAT=fast -- --only "frob & nitz/quux"'
@@ -572,7 +577,7 @@ def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_s
     def call(phase, step_args=()):
         fast = ["--fast-cmd", "make unit"] if phase in ("green", "refactor") else []
         fast += ["--step-green", "0123abc"] if phase == "refactor" else []
-        slot4 = "0123abc" if phase == "refactor" else "test_slugify_lowercases"
+        slot4 = {"refactor": "0123abc", "pin": testpath + "::test_slugify_lowercases"}.get(phase, "test_slugify_lowercases")
         base = ["--branch-base", "3f9a1c0"] if phase == "pin" else []
         return [*step_args, *fast, *base, phase, s, testpath, slot4]
 
@@ -813,12 +818,14 @@ def test_main_states_the_signal_only_processes_you_started_rule_in_every_phase_f
     spec, ledger = tmp_path / "spec.md", tmp_path / "ledger.md"
     spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
     ledger.write_bytes("# Plan for #1223\n\n- [ ] zorblat frobs a nitz ⟦criterion 1⟧\n".encode())
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "zorblat.test.sh").write_text("zorblat frobs a nitz\n")
     s, sha, fast = str(spec), "0123abc", ["--fast-cmd", "make unit"]
     argvs = {
         "red": ["red", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
         "green": [*fast, "green", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
         "refactor": [*fast, "--step-green", sha, "refactor", s, "tests/zorblat.test.sh", sha],
-        "pin": ["--branch-base", "3f9a1c0", "pin", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
+        "pin": ["--branch-base", "3f9a1c0", "pin", s, "tests/zorblat.test.sh", "tests/zorblat.test.sh::zorblat_frobs_a_nitz"],
         "plan": ["plan", s, str(ledger)],
         "rebase": ["rebase", s, sha, "4567def"],
         "transform": ["--fast-cmd", "m", "transform", s, str(tmp_path / "predicate.md"), sha],
@@ -1209,8 +1216,10 @@ def test_verify_plan_carries_only_the_issue_spec_and_the_ledger_and_no_cycle_pha
         fast += ["--step-green", "0123abc"] if phase == "refactor" else []
         fast += ["--branch-base", "3f9a1c0"] if phase == "pin" else []
         slot = "0123abc" if phase == "refactor" else "test_slugify_lowercases"
-        _, cycle, _ = run_cli(build_verify_prompt, [*fast, phase, spec, str(ledger), slot])
-        if str(ledger) not in cycle:
+        path = ledger.name if phase == "pin" else str(ledger)
+        slot = path + "::" + slot if phase == "pin" else slot
+        _, cycle, _ = run_cli(build_verify_prompt, [*fast, phase, spec, path, slot], cwd=tmp_path)
+        if path not in cycle:
             problems.append(f"verify-{phase} drops the path it was given")
         if "LEDGER-BODY-MARKER" in cycle:
             problems.append(f"verify-{phase} carries the ledger's text")
@@ -1465,12 +1474,14 @@ def test_main_fills_the_pin_prompts_branch_base_slot_from_branch_base_with_only_
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"slugify must lowercase.\n")
     base = "3f9a1c07e2b4"
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_slugify.py").write_text("def test_slugify_lowercases():\n    pass\n")
 
     def run(argv):
         code = build_verify_prompt.main(argv)
         return (code, *capsysbinary.readouterr())
 
-    pin = ["pin", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"]
+    pin = ["pin", str(spec), "tests/test_slugify.py", "tests/test_slugify.py::test_slugify_lowercases"]
     filled = run(["--branch-base", base, *pin])
     prompt = filled[1].decode("utf-8", "surrogateescape")
     refused = {value: run(["--branch-base", value, *pin])[::2] for value in ("nothex", "3f9a1C0", "3f9a1c0\n")}
@@ -1491,8 +1502,10 @@ def test_main_refuses_a_pin_call_whose_branch_base_is_absent_with_exit_2_and_its
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"slugify must lowercase.\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_slugify.py").write_text("def test_slugify_lowercases():\n    pass\n")
 
-    code = build_verify_prompt.main(["pin", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"])
+    code = build_verify_prompt.main(["pin", str(spec), "tests/test_slugify.py", "tests/test_slugify.py::test_slugify_lowercases"])
     out, err = capsysbinary.readouterr()
 
     assert {"exit": code, "names --branch-base": b"--branch-base" in err, "prompt": out} == {
@@ -1722,11 +1735,13 @@ def test_main_ends_every_phases_verify_prompt_with_the_output_contract_fragment_
     spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
     ledger.write_bytes("# Plan for #3621\n\n- [ ] zorblat frobs a nitz ⟦criterion 1⟧\n".encode())
     s, sha, fast, test = str(spec), "0123abc", ["--fast-cmd", "make unit"], "tests/py/test_zorblat.py"
+    (tmp_path / "tests" / "py").mkdir(parents=True)
+    (tmp_path / test).write_text("def test_zorblat_frobs_a_nitz():\n    pass\n")
     argvs = {
         "red": ["red", s, test, "zorblat frobs a nitz"],
         "green": [*fast, "green", s, test, "zorblat frobs a nitz"],
         "refactor": [*fast, "--step-green", sha, "refactor", s, test, sha],
-        "pin": ["--branch-base", "3f9a1c0", "pin", s, test, "zorblat frobs a nitz"],
+        "pin": ["--branch-base", "3f9a1c0", "pin", s, test, test + "::test_zorblat_frobs_a_nitz"],
         "plan": ["plan", s, str(ledger)],
         "rebase": ["rebase", s, sha, "4567def"],
         "transform": ["--fast-cmd", "m", "transform", s, str(tmp_path / "predicate.md"), sha],

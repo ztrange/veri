@@ -85,6 +85,12 @@ def branch_base_is_veris_own_tree(monkeypatch):
     monkeypatch.setattr(run_line, "_at_base", at_base)
 
 
+@pytest.fixture(autouse=True)
+def tracked_test_file(fake_processes):
+    """git ls-files lists the test file every roster prompt names, the pin's test id among them."""
+    return fake_processes.answers({"git ls-files": (0, "tests/zorblat.test.sh\0", "")})
+
+
 @pytest.fixture
 def build_develop_prompt():
     return importlib.import_module("veri.build_develop_prompt")
@@ -149,7 +155,7 @@ def roster_of(problems, spec, reason, run_cli, build_develop_prompt, build_verif
         ("verify-red", verify("red", spec, "tests/zorblat.test.sh", "zorblat case")),
         ("verify-green", verify("--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")),
         ("verify-refactor", verify("--fast-cmd", "make unit", "--step-green", sha, "refactor", spec, "tests/zorblat.test.sh", sha)),
-        ("verify-pin", verify("--branch-base", "abc1234", "pin", spec, "tests/zorblat.test.sh", "zorblat case")),
+        ("verify-pin", verify("--branch-base", "abc1234", "pin", spec, "tests/zorblat.test.sh", "tests/zorblat.test.sh::zorblat_case")),
         ("verify-transform", verify("--fast-cmd", "make unit", "transform", spec, "tests/zorblat.test.sh", sha)),
         ("verify-diff", verify("--step", step, "--fast-cmd", "make unit", "--branch-base", sha, "diff", spec, "4567def")),
     ]
