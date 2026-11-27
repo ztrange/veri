@@ -94,7 +94,8 @@ Every other step takes the verdict as follows:
   fresh leaf which way to go: the tests do not cover the criterion, the added test is weak
   (trivial or over-coupled), or a genuinely failing test exists after all. Re-verify with the phase the
   revise leaf's own `AGAINST_UNMODIFIED` line selects — `pin` on `PASSES` or `HOLDS`, `red` on `FAILS`;
-  on `HOLDS` only after `$S/holds-step.sh` over the `HEAD` the revise leaf launched on passes, the first-try gate.
+  on `HOLDS` only after `$S/holds-step.sh` over the step's start (the `HEAD` its Red leaf launched on) passes, the
+  first-try gate.
   On a recovered `PASS` from `pin`, do the PASS bullet's tick above, or the deletion path
   on a `⟦replaces-case⟧` step; from `red`,
   continue to Green. On budget-exhausted, **bail** as a **process** failure.
