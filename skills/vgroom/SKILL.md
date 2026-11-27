@@ -68,9 +68,11 @@ No other reason is allowed: an issue that fits none is groomed until it is ready
 
 **A `draft` issue is only reported.** The sweep never adds the opt-in label to, rewrites, splits
 or closes an issue carrying the `draft` label, and none of the outcomes in the steps below is
-applied to it. Triage reads the reason under its `## Not ready`, and its report line names it as
-a draft; when that reason no longer holds (a blocker it names closed, a PR it names merged), the
-line also names it as promotable.
+applied to it. A draft is changed only by a `/vplan` the human said yes to under
+`### The plan offer`; the sweep's "go" is not that yes. Triage reads the reason under its
+`## Not ready`, and its report line names it as a draft; when that reason no longer holds (a
+blocker it names closed, a PR it names merged), its reason becomes not planned now and
+`### The plan offer` offers it a `/vplan`.
 
 1. **Triage** each issue (below).
 2. **`needs-rewrite`**: a subagent rewrites the body into the issue body `../vfile/SKILL.md`
@@ -114,6 +116,17 @@ no other author's comment is read as its cause.
 - **Not released.** Every other `parked` or `bailed` issue is only reported: the sweep never adds
   the opt-in label to, rewrites, splits or closes it, and its report line and table row name the
   cause its comment states.
+
+### The plan offer
+
+After the report's table and tally, ask the human one question that names, by number and title,
+every `draft` issue whose `## Not ready` condition no longer holds (a blocker it names closed, a
+PR it names merged), and offers each a `/vplan <issue>`. A sweep with no such draft asks nothing.
+
+- **Yes** — plan each draft the human says yes to with `/vplan <issue>`, in this same session,
+  after the sweep's report, one draft at a time.
+- **No, or no answer about it** — do not plan that draft. Its row in the report's table keeps the
+  reason not planned now, and the next sweep offers it again.
 
 ## Triage
 
@@ -206,8 +219,8 @@ subagents; never lift the limit.
 
 ## Applying outcomes
 
-In the sweep, nothing in this section opts in, rewrites, splits or closes a `draft` issue
-(*The sweep*).
+In the sweep, nothing in this section opts in, rewrites, splits, closes or otherwise changes a
+`draft` issue (*The sweep*).
 
 **Mechanical outcomes are applied at once, without asking** (P14), and reported in one line:
 
