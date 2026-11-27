@@ -64,7 +64,9 @@ def standing_mark(events, ends=MARKS):
 
 
 def _reposted_done(events):
-    if not standing_mark([e for e in events if e.get("event") != "comment" or e.get("kind") == "done"], ("comment",)):
+    """The first done event when a kind=done comment stands after the last resume (a re-posted Done); {} otherwise."""
+    without_other_comments = [e for e in events if e.get("event") != "comment" or e.get("kind") == "done"]
+    if not standing_mark(without_other_comments, ("comment",)):
         return {}
     return next((e for e in events if e.get("event") == "done"), {})
 
