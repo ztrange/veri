@@ -460,6 +460,51 @@ def test_4770_a_holds_steps_red_revise_whose_verify_pin_passes_records_the_pass_
     assert (record["at"], record["values"]["revised"]) == ("verdict-pin", True)
 
 
+HEAD_SHA = "c0ffee1234567890c0ffee1234567890c0ffee12"
+
+
+def test_4779_a_revised_holds_runs_the_holds_step_gate_on_the_revise_leafs_launch_head_before_verify_pin(revise):
+    """CY425, PRD 044 D9: a revised red answering HOLDS goes through holds-step.sh, the same empty-diff gate a first-try
+    HOLDS does, over the HEAD the revise leaf launched on and its COVERING_TESTS: ids, before verdict-pin."""
+    _red(revise)
+    code, out, err, fake = revise(fake=Fake({("git", "ls-files"): (0, HOLDS_TRACKED),
+                                             ("git", "rev-parse"): (0, HEAD_SHA + "\n")}, report=HOLDS_REPORT),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert (code, fake.launched()) == (0, ["revise-red-1", "verdict-pin"]), (out, err)
+    gate = fake.call("holds-step.sh")
+    assert gate[1] == ("12", HEAD_SHA, "tests/test_b.py::test_two")
+    assert fake.names().index("holds-step.sh") < [c[1][1] if c[0] == "detach-leaf.sh" else None
+                                                  for c in fake.calls].index("verdict-pin")
+
+
+def test_4779_a_revised_holds_whose_worktree_differs_from_its_launch_head_stops_with_exit_2_and_no_verify_pin(revise):
+    """CY425: holds-step.sh exit 2 (the revise leaf edited a file, or a case never ran) bails: no verdict-pin, so a
+    production edit is never retired uncommitted on verify-pin's word."""
+    _red(revise)
+    code, out, err, fake = revise(fake=Fake({("git", "ls-files"): (0, HOLDS_TRACKED),
+                                             ("git", "rev-parse"): (0, HEAD_SHA + "\n"),
+                                             ("holds-step.sh", None): (2, "")}, report=HOLDS_REPORT),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert (code, fake.launched()) == (2, ["revise-red-1"]), (out, err)
+    assert "holds-step.sh" in out.splitlines()[-1]
+
+
+def test_4779_a_revised_holds_whose_covering_case_fails_spends_the_attempt_and_launches_the_next(revise):
+    """CY425: holds-step.sh exit 1 (a named case fails) is a REJECT spending the attempt, its reason the failing gate:
+    no verdict-pin, attempt 2 launched on REVISE_BUDGET."""
+    _red(revise)
+    code, out, err, fake = revise(fake=Fake({("git", "ls-files"): (0, HOLDS_TRACKED),
+                                             ("git", "rev-parse"): (0, HEAD_SHA + "\n"),
+                                             ("holds-step.sh", None): (1, ""),
+                                             ("wait-leaf.sh", "revise-red-2"): (3, "")}, report=HOLDS_REPORT),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert (code, fake.launched()) == (3, ["revise-red-1", "revise-red-2"]), (out, err)
+    assert "holds-step.sh" in (revise.wt / ".tdd" / "verify-red-2.reason").read_text()
+
+
 HOLDS_THEN_WRITTEN = "TEST_PATH: tests/test_n.py\nTARGET_TEST: tests/test_n.py::test_new\n" \
                      "AGAINST_UNMODIFIED: PASSES\nOUTCOME: REWRITTEN\n"
 
