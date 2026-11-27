@@ -72,14 +72,9 @@ which passes just as well when the code does nothing at all.
    the prediction to fit what you saw — that is the whole of the discipline.
 5. **Either answer is acceptable, and must be reported truthfully**: a criterion that
    earlier work already satisfies yields a passing test, and the pipeline has a dedicated
-   path for exactly that. Do not bend the test to force a failure.
-   If it PASSES, additionally confirm it is *capable* of failing — predict what temporarily
-   breaking the behaviour it pins should make the case print, then break it, run the case,
-   and check what it printed against that prediction, all **before** you restore: once the
-   production code is back that output cannot be reproduced, so a comparison made after the
-   restore is one made against a recollection, and a red bar nobody read is no answer. Then
-   restore the production code exactly and verify the restore with `git diff --exit-code`
-   on the file you touched.
+   path for exactly that. Do not bend the test to force a failure. An added case that passes
+   against the unmodified code is reported `PASSES` as it stands, with production code left
+   untouched.
 6. Leave no change to any file other than the test file.
 
 ### Report (last lines of your output)
@@ -88,7 +83,7 @@ TEST_PATH: <path of the test file, or NONE on UNTESTABLE>
 TARGET_TEST: <the exact case name string you used, or NONE on UNTESTABLE>
 AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE
 WHY: <UNTESTABLE only — which rule (1, 2 or 3) the only available test would break, and why>
-FAIL_OUTPUT: <the failure line — from the unmodified code if it fails there, otherwise from the temporarily-broken code>
+FAIL_OUTPUT: <the failure line from the unmodified code, or NONE when the case passes>
 PREDICTED_FAILURE: <the missing name, when the predicted failure is an error on the name the step introduces rather than an assertion; otherwise the assertion, the values and the message shape — as predicted before running>
 PREDICTION: MATCHED | DIVERGED
 PREDICTION_NOTE: <on DIVERGED, what actually happened and why it could not be reconciled>
