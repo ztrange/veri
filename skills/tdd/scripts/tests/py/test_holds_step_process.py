@@ -4,25 +4,16 @@ import subprocess
 import pytest
 
 from conftest import SCRIPTS
+from repo_builder import commit_all, new_repo
 
 HOLDS_STEP = str(SCRIPTS / "holds-step.sh")
 
 
-def git(repo, *argv):
-    return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *argv], cwd=repo, check=True,
-                          capture_output=True, text=True).stdout.strip()
-
-
 def step_start(repo, tests):
     """A committed repository whose `veri: one test file:` command runs a test file with `sh`; returns HEAD's sha."""
-    (repo / "tests").mkdir(parents=True)
-    (repo / "CLAUDE.md").write_text('veri: one test file: sh "$1"\n')
-    for name, body in tests.items():
-        (repo / "tests" / name).write_text(body)
-    git(repo, "init", "-q")
-    git(repo, "add", ".")
-    git(repo, "commit", "-q", "-m", "base")
-    return git(repo, "rev-parse", "HEAD")
+    new_repo(repo)
+    files = {"tests__" + name: body for name, body in tests.items()}
+    return commit_all(repo, "base", **{"CLAUDE.md": 'veri: one test file: sh "$1"\n'}, **files)
 
 
 def holds_step(repo, *argv):
@@ -73,7 +64,7 @@ def test_holds_step_exits_2_running_no_case_when_a_commit_landed_after_the_step_
     repo, ran = tmp_path / "repo", tmp_path / "ran"
     sha = step_start(repo, {"a.sh": f"touch '{ran}'\n"})
     (repo / "CLAUDE.md").write_text('veri: one test file: sh "$1"\n# committed after the step start\n')
-    git(repo, "commit", "-q", "-am", "after the start")
+    commit_all(repo, "after the start")
 
     code, _, err = holds_step(repo, "42", sha, "tests/a.sh::case_a")
 
