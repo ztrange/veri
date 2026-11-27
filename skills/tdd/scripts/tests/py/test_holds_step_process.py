@@ -101,3 +101,26 @@ def test_holds_step_exits_2_when_a_named_id_runs_no_case(tmp_path, named):
     code, _, _ = holds_step(tmp_path, "42", sha, "tests/a.sh::case_a", "tests/b.sh::case_b", named)
 
     assert code == 2
+
+
+@pytest.mark.process("holds-step.sh run in a clean real git repository with no id named")
+def test_holds_step_with_n_and_sha_but_no_id_exits_2_with_its_usage_line_4779(tmp_path):
+    sha = step_start(tmp_path, {"a.sh": "exit 0\n"})
+
+    code, _, err = holds_step(tmp_path, "42", sha)
+
+    assert code == 2, err
+    assert err.splitlines()[-1] == "usage: holds-step.sh <n> <step-start-sha> <id>…"
+
+
+@pytest.mark.process("holds-step.sh run in a clean real git repository over more ids than COVERING_TESTS: allows")
+def test_holds_step_over_more_than_covering_tests_most_ids_exits_2_running_no_case_4779(tmp_path):
+    from veri import covering_tests
+    names = ["t%d.sh" % i for i in range(covering_tests.MOST + 1)]
+    sha = step_start(tmp_path, {name: "touch ran-%s\n" % name for name in names})
+
+    code, _, err = holds_step(tmp_path, "42", sha, *["tests/%s::case" % name for name in names])
+
+    assert code == 2, err
+    assert "at most %d" % covering_tests.MOST in err
+    assert not list(tmp_path.glob("ran-*"))
