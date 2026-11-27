@@ -21,7 +21,9 @@ def test_the_repository_passes_ruff_under_its_config():
 
     ran = subprocess.run([*check, str(REPO)], stdin=subprocess.DEVNULL, capture_output=True, text=True, cwd=REPO)
     planted = subprocess.run([*check, "--stdin-filename", str(REPO / "planted.py"), "-"],
-                             input="planted = 1 \n", capture_output=True, text=True, cwd=REPO)
+                             input="planted = 1 \n" + "too_long = " + repr("x" * 108) + "\n",
+                             capture_output=True, text=True, cwd=REPO)
 
     assert ran.returncode == 0, ran.stdout + ran.stderr
     assert "W291" in planted.stdout, planted.stdout + planted.stderr
+    assert "E501" in planted.stdout, planted.stdout + planted.stderr
