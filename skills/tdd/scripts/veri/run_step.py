@@ -166,22 +166,22 @@ def series_start(wt, n, step, order):
 def run_stages(at, order, i, hand):
     """The stages of <order> from index <i> for <at>, (wt, n, step), with their revises and reroutes: the exit of the
     first stop, else finished()'s."""
-    wt, n, step = at
+    step = at[2]
     out, action = "", None
     while i < len(order):
         stage = order[i]
         if action is None:
             reason = left_to_prose(step, stage, hand)
             if reason is not None:
-                return seam(wt, n, step, stage, 1, STAGES[stage][0], reason)
+                return seam(at, stage, 1, STAGES[stage][0], reason)
             action = under_way(at, stage)
         (kind, *given), action = action, None
         if kind == "reroute":
-            action = reroute(wt, n, step, hand, *given)
+            action = reroute(at, hand, *given)
         elif kind == "revise":
-            action = revise(wt, n, step, stage, hand)
+            action = revise(at, stage, hand)
         else:
-            code, out = run_stage(stage + ".sh", n)
+            code, out = run_stage(stage + ".sh", at[1])
             action = stage_answer(at, stage, code, out)
             if action is None:
                 i += 1
@@ -228,10 +228,10 @@ def stage_answer(at, stage, code, out):
         return None
     said = [line for line in out.splitlines() if line.startswith(RECORD_SEAM % stage)]
     if code == 1 and said:
-        return seam(wt, n, step, stage, code, None, line=said[-1])
+        return seam(at, stage, code, None, line=said[-1])
     if code == 2 and stage == "skill-edit-half":
         sys.stdout.write("out=.tdd/skill-edit-%s.out refusal=%s\n" % (n, "yes" if refused(wt, n) else "no"))
-    return seam(wt, n, step, stage, code, NEXT_SCRIPTS[0] + " " + n if code == 3 else STAGES[stage][0])
+    return seam(at, stage, code, NEXT_SCRIPTS[0] + " " + n if code == 3 else STAGES[stage][0])
 
 
 def finished(at, stage, out):
@@ -249,11 +249,12 @@ def finished(at, stage, out):
     return 0
 
 
-def reroute(wt, n, step, hand, report):
+def reroute(at, hand, report):
     """reroute.sh <n> <report> for a Green route (PRD 038.10 RRT8): the next action, green-half again on its 0 (the
     answered REJECT's exit file and green-half's rejected record cleared, so the relaunched green is not read as a
     second REJECT), revise.sh <n> green on its `route=revise phase=green`; with `reroute` handed, the hand seam and 1,
     never calling it; else the seam's exit."""
+    wt, n, step = at
     if "reroute" in hand:
         record(wt, n, "green-half", step)
         sys.stdout.write("seam=reroute code=1 reason=hand next=%s\n" % GREEN)
@@ -294,11 +295,12 @@ def verdict(wt, phase):
         return ""
 
 
-def revise(wt, n, step, stage, hand):
+def revise(at, stage, hand):
     """revise.sh <n> <phase> for a REJECT of <stage> (PRD 038.9 criterion 9): the next action, the stage called
     again on its 0, reroute.sh on a revise-green route (PRD 038.10 RRT8); with `revise` handed, the hand seam and 1,
     never calling it; else the seam's exit, `next=run-step.sh <n>` on its 3 (the seam recorded at <stage>, whose
     rejected record sends the next call back here), REVISE.md's anchor on any other code."""
+    wt, n, step = at
     if "revise" in hand:
         record(wt, n, stage, step)
         sys.stdout.write("seam=revise code=1 reason=hand next=%s\n" % REVISE)
@@ -314,9 +316,10 @@ def revise(wt, n, step, stage, hand):
     return code
 
 
-def seam(wt, n, step, stage, code, next_, reason=None, line=None):
+def seam(at, stage, code, next_, reason=None, line=None):
     """A stop at <stage>: the seam recorded in .tdd/issue-<n>-step (RN3), then the last line, <line> when given (a
     stage's own record seam), else `seam=<stage> code=<code> [reason=<reason>] next=<next_>`; <code>, the exit."""
+    wt, n, step = at
     record(wt, n, stage, step)
     if line is None:
         line = "seam=%s code=%d%s next=%s" % (stage, code, " reason=" + reason if reason else "", next_)
