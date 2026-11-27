@@ -16,14 +16,14 @@ def test_3368_reproducing_command_of_a_mismatched_pin_prints_the_cksum_the_test_
     spec = importlib.util.spec_from_file_location("emitted_text_pins_under_test", UNIT)
     pins = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(pins)
-    monkeypatch.setattr(pins, "USAGE", [("1 1", "tick-ledger.sh", [])])
+    monkeypatch.setattr(pins, "USAGE", [("1 1", "wait-leaf.sh", [])])
 
     with pytest.raises(AssertionError) as failure:
         pins.test_usage_output_on_a_missing_argument_is_unchanged(run_cli)
 
     message = "\n".join(failure.traceback[-1].frame.f_locals["problems"])
     command = [line.split("reproduce:", 1)[1].strip() for line in message.splitlines() if "reproduce:" in line][0]
-    computed = pins.cksum(pins.emitted(run_cli, "tick-ledger.sh", []).encode("utf-8", "surrogateescape"))
+    computed = pins.cksum(pins.emitted(run_cli, "wait-leaf.sh", []).encode("utf-8", "surrogateescape"))
     ran = subprocess.run(["bash", "-c", command], cwd=SCRIPTS.parents[2], stdin=subprocess.DEVNULL,
                          capture_output=True, text=True)
     assert ran.stdout.strip() == computed
