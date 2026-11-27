@@ -286,8 +286,11 @@ outcome, `run=`, `verify_plan=`) its last lines. Else go on from the sub-step it
    This step does not run `$S/stop-requested.sh --clear` itself: the stale-request clear is left to preflight.
    Then record the timeout preflight step 7 settled, here, where this run's `supervise.sh`
    reads it — never from the caller's checkout, where preflight ran:
+   with `--reused` after `"$full"` when the preflight file holds `full_tier_mode=reuse`, so a skipped
+   baseline sizes from the ceiling record's idle full tier rather than a reused time (#4835):
    ```
-   VERI_ISSUE=<n> $S/leaf-timeout.sh "$baseline" --full "$full" > /dev/null
+   VERI_ISSUE=<n> $S/leaf-timeout.sh "$baseline" --full "$full" > /dev/null            # full_tier_mode=run
+   VERI_ISSUE=<n> $S/leaf-timeout.sh "$baseline" --full "$full" --reused > /dev/null   # full_tier_mode=reuse
    ```
    **Every later step of the run happens inside that worktree**: the blind spec
    (`.tdd/issue-<n>-spec.md`), the ledger (`.tdd/issue-<n>.md`), every leaf log and prompt,
