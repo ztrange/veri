@@ -8,6 +8,7 @@ import sys
 
 import budget_entries
 import entry
+import leg_budget
 import role_state
 import tunables
 import watch_runs
@@ -18,7 +19,6 @@ USAGE = role_state.USAGE
 def lane_budget(path, n):
     """Writes the lane's entry under VERI_TEST_BUDGET_DIR as dispatch.sh does (max(N, live conductors) x d) and returns
     the line naming N, the lane's need, the other lanes' needs, C with its source and the T a leg reads now."""
-    leg = budget_entries.leg()
     main = os.path.dirname(os.path.dirname(path))
     match = re.fullmatch(r"role-dev-(.+)\.state", os.path.basename(path))
     lane = match.group(1) if match else "main"
@@ -28,9 +28,9 @@ def lane_budget(path, n):
     budget_entries.write(main, lane, need)
     own = budget_entries.entry_name(main, lane)
     others = ", ".join("%s=%d" % (name.partition("@")[0], value) for name, value in budget_entries.unexpired_entries() if name != own)
-    total, source = leg.capacity(say=False)
+    total, source = leg_budget.capacity(say=False)
     return "N=%d; lane %s needs %d (max(N, %d live conductors) x %d); other lanes: %s; C=%d from %s; T=%d\n" % (
-        n, lane, need, live, d, others or "none", total, source, leg.budget(say=False)[0])
+        n, lane, need, live, d, others or "none", total, source, leg_budget.budget(say=False)[0])
 
 
 def main(argv):

@@ -589,6 +589,7 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 - `profile.sh`: per-case timing of suites.
 - `pycache_prefix`: sets where this run reads and writes bytecode; a veri module's first line runs it before any veri import.
 - `budget_entries`: the lane budget's entries under `~/.veri-test-budget` (PRD 036.5), each lane's need and expiry, which every leg reads to narrow T.
+- `leg_budget`: T, the pytest leg's worker budget, out of C0, the cap, the load file and the lane entries; the leg, dispatch and role_state_cli read it here, so none imports the leg.
 
 ## full_run_lock
 - `acquire()`: take the lock (waiting for a holder, saying who holds it and marking the wait at `PYTEST_LEG_LOCK_WAIT_MARKER` with a file naming the waiter, its pid and start time in `pid_file.record`'s form; a supervisor ignores a marker whose waiter is no longer alive under that start time, while an empty one, an older leg's, still freezes its timers), record this pid and tree in the lock file and mark this process the holder in `PYTEST_LEG_FULL_LOCK_HOLDER`; returns a `Lock` whose `release()` empties the file and restores the variable.
@@ -606,7 +607,10 @@ How veri's own suite runs (`make test`, `make unit`, `make profile`): what the p
 ## budget_entries
 - `write(main_tree, lane, need)`: replaces the lane's entry for that main working tree whole (a temporary file renamed into place): `need` on line 1, now plus `VERI_TEST_BUDGET_TTL` seconds on line 2. `entry_name(main_tree, lane)`: `<lane>@<16 hex of the sha256 of the tree's real path>`.
 - `unexpired_entries()`: `[(entry name, need)]` of the entries whose expiry is ahead; an unreadable or malformed one adds nothing, an expired one is removed. `unexpired()`: the same as `[(lane, need)]`, which the pytest leg sums into T.
-- `leg()`: the pytest leg's module, loaded from `tests/leg/`, whose capacity and budget dispatch and role_state_cli read.
+
+## leg_budget
+- `budget(say=True)`: `(T, its source)`: `capacity` narrowed to the unexpired lane entries' summed needs, never below 2. `capacity(say=True)`: `(C, its source)`: `c0` lowered to the cap file's line 1 and the load file's T. `c0()`: `(C0, its source)`: the ceiling record's line 1, else `cores()`, never below 2, its source None. `cores()`: the physical cores on macOS, the affinity count elsewhere.
+- `load_timeouts_module()`: the leg's `load_timeouts` module, `tests/leg/` put on sys.path first.
 
 # Target suites and tiers
 
