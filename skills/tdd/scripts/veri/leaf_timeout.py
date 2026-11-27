@@ -4,6 +4,7 @@ import os
 import pathlib
 import sys
 
+import ceiling
 import entry
 import paths
 import run_dir
@@ -87,7 +88,7 @@ def main(argv):
         code = require_seconds("<full-seconds>", full)
         if code:
             return code
-        baseline = full
+        baseline = ceiling.read_idle("all") if int(baseline) == 0 else full
     derived = max(900, int(baseline) * 6)
     if argv[1:2] == ["refactor"]:
         budget = tunables.get("VERI_REFACTOR_BUDGET", unless_empty=True)
