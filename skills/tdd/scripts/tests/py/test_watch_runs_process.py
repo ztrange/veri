@@ -74,7 +74,7 @@ def watch_hook(tmp_path, delay=0):
         "        open(os.environ['WATCH_MARKER'], 'w').close()\n"
         "    _sleep(seconds)\n"
         "time.sleep = sleep\n")
-    env = {**os.environ, "WATCH_MARKER": str(marker), "WATCH_DELAY": str(delay),
+    env = {**os.environ, "WATCH_MARKER": str(marker), "WATCH_DELAY": str(delay), "VERI_WATCH_POLL": "0.1",
            "PYTHONPATH": os.pathsep.join(filter(None, [str(hook), os.environ.get("PYTHONPATH")]))}
     return env, marker
 
@@ -106,7 +106,7 @@ def test_it_exits_only_when_the_second_of_two_running_conductors_exits_printing_
         make_run(repo, 101, first.pid)
         make_run(repo, 102, gone.pid)
         make_run(repo, 103, second.pid)
-        env, marker = watch_hook(tmp_path, delay=5)
+        env, marker = watch_hook(tmp_path, delay=1)
         watcher = subprocess.Popen([str(SHIM), "--max-wait", "30"], cwd=repo, stdin=subprocess.DEVNULL,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
         wait_for_snapshot(watcher, marker, bound=20)
@@ -153,9 +153,9 @@ def test_target_slot_is_free_only_below_target_asking_for_not_running_issues_193
         def watch(*args, timeout=30):
             return subprocess.run([str(scripts / "watch-runs.sh"), *args], cwd=repo, stdin=subprocess.DEVNULL,
                                   capture_output=True, text=True, timeout=timeout,
-                                  env={**os.environ, "PYTHONPATH": str(SCRIPTS / "veri")})
+                                  env={**os.environ, "PYTHONPATH": str(SCRIPTS / "veri"), "VERI_WATCH_POLL": "0.1"})
 
-        full = watch("--target", "2", "--max-wait", "3")
+        full = watch("--target", "2", "--max-wait", "1")
         second.terminate()
         second.wait()
         reported = watch("--target", "2", "--max-wait", "20", timeout=25)
@@ -193,9 +193,9 @@ def test_target_slot_is_taken_by_a_live_conductor_that_has_not_written_a_launch_
         run = repo / ".tdd" / "wt" / "101" / ".tdd"
         run.mkdir(parents=True)
         (run / "baseline-fast.pid").write_text("1\n")
-        out = subprocess.run([str(scripts / "watch-runs.sh"), "--target", "1", "--max-wait", "2"], cwd=repo,
+        out = subprocess.run([str(scripts / "watch-runs.sh"), "--target", "1", "--max-wait", "1"], cwd=repo,
                              stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30,
-                             env={**os.environ, "PYTHONPATH": str(SCRIPTS / "veri")})
+                             env={**os.environ, "PYTHONPATH": str(SCRIPTS / "veri"), "VERI_WATCH_POLL": "0.1"})
     finally:
         starting.terminate()
         starting.wait()
@@ -221,9 +221,9 @@ def test_target_counts_a_starting_run_when_run_from_a_subdirectory_2388(tmp_path
         run = repo / ".tdd" / "wt" / "101" / ".tdd"
         run.mkdir(parents=True)
         (run / "baseline-fast.pid").write_text("1\n")
-        out = subprocess.run([str(scripts / "watch-runs.sh"), "--target", "1", "--max-wait", "2"], cwd=repo / "sub",
+        out = subprocess.run([str(scripts / "watch-runs.sh"), "--target", "1", "--max-wait", "1"], cwd=repo / "sub",
                              stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30,
-                             env={**os.environ, "PYTHONPATH": str(SCRIPTS / "veri")})
+                             env={**os.environ, "PYTHONPATH": str(SCRIPTS / "veri"), "VERI_WATCH_POLL": "0.1"})
     finally:
         starting.terminate()
         starting.wait()
@@ -253,9 +253,9 @@ def test_target_counts_a_run_live_in_its_pre_conductor_baseline_2388(tmp_path):
         for name in ("baseline-fast", "baseline-full"):
             (run / (name + ".pid")).write_text("1\n")
             (run / (name + ".exit")).write_text("0\n")
-        out = subprocess.run([str(scripts / "watch-runs.sh"), "--target", "2", "--max-wait", "2"], cwd=repo,
+        out = subprocess.run([str(scripts / "watch-runs.sh"), "--target", "2", "--max-wait", "1"], cwd=repo,
                              stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30,
-                             env={**os.environ, "PYTHONPATH": str(SCRIPTS / "veri")})
+                             env={**os.environ, "PYTHONPATH": str(SCRIPTS / "veri"), "VERI_WATCH_POLL": "0.1"})
     finally:
         running.terminate()
         running.wait()
