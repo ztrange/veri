@@ -2342,3 +2342,23 @@ def test_4770_revise_red_builds_the_prompt_for_a_verify_pin_reason_saying_the_ca
 
     out, err = capsysbinary.readouterr()
     assert (code, bool(out), err) == (0, True, b"")
+
+
+def test_main_asks_for_test_path_and_target_test_lines_in_a_revise_prompt_only_when_redoing_red_4779(
+        tmp_path, capsysbinary, build_develop_prompt):
+    """A HOLDS step's develop-red.out names no test, so a red revise that writes one names it in its own report."""
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+
+    seen = {}
+    for revised in ("red", "green", "refactor"):
+        code = build_develop_prompt.main(["revise", revised, str(spec), "s", "make test", str(reason)])
+        lines = capsysbinary.readouterr().out.splitlines()
+        format_line = next(line for line in lines if line.startswith(b"REPORT-FORMAT revise |"))
+        seen[revised] = (code, [line.split(b":")[0] for line in lines if line.startswith((b"TEST_PATH:", b"TARGET_TEST:"))],
+                         b" TEST_PATH:? TARGET_TEST:?" in format_line)
+
+    assert seen == {"red": (0, [b"TEST_PATH", b"TARGET_TEST"], True),
+                    "green": (0, [], False), "refactor": (0, [], False)}
