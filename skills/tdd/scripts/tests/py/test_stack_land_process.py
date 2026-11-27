@@ -50,7 +50,7 @@ def test_4318_a_carry_over_whose_fetch_hangs_past_the_network_bound_leaves_no_me
         tmp_path, monkeypatch, capfd):
     work, cut = _landed_world(tmp_path)
     monkeypatch.chdir(work)
-    monkeypatch.setenv("VERI_GIT_NETWORK_TIMEOUT", "8")
+    monkeypatch.setenv("VERI_GIT_NETWORK_TIMEOUT", "2")
     stack_fix = importlib.import_module("veri.stack_fix")
     real = stack_fix.script
     monkeypatch.setattr(stack_fix, "script", lambda name, *args, **kwargs: (
