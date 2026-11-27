@@ -45,3 +45,12 @@ def test_holds_step_with_no_arguments_exits_2_with_its_usage_line(tmp_path):
 
     assert code == 2
     assert err.splitlines()[-1] == "usage: holds-step.sh <n> <step-start-sha> <id>…"
+
+
+@pytest.mark.process("holds-step.sh run in a real git repository, each case through its one-test-file command")
+def test_holds_step_exits_1_when_a_named_case_fails(tmp_path):
+    sha = step_start(tmp_path, {"a.sh": "exit 0\n", "b.sh": "exit 1\n"})
+
+    code, _, _ = holds_step(tmp_path, "42", sha, "tests/a.sh::case_a", "tests/b.sh::case_b")
+
+    assert code == 1
