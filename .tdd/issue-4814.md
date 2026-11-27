@@ -1,6 +1,6 @@
 # Plan for #4814 — refactor: cut the nested-pytest leg cases' real waits and duplicate leg launches
 
-- [ ] `idle_watch.py` waits `VERI_PYTEST_TERM_GRACE` seconds (tunable, default `5`) between TERM and KILL ⟦criterion 1⟧
+- [x] `idle_watch.py` waits `VERI_PYTEST_TERM_GRACE` seconds (tunable, default `5`) between TERM and KILL ⟦criterion 1⟧
 - [ ] ⟦skill-edit⟧ skills/tdd/scripts/tests/py/README.md *The idle window* names `VERI_PYTEST_TERM_GRACE`, graded by row CM210<reword> ⟦criterion 1⟧
 - [ ] every hung-worker case in `test_pytest_leg_idle_process.py` sets `VERI_PYTEST_TERM_GRACE=1`, and no case name says `5_s_later` ⟦criterion 2⟧
 - [ ] the stacks assertions run on the `workers-end-on-term` launch at `2 * IDLE`; the idle file collects 5 cases ⟦criterion 3⟧

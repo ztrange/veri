@@ -79,9 +79,24 @@ def test_4254_a_leg_idle_for_the_window_terms_its_workers_kills_those_alive_5_s_
     kills = [at for signum, at in term_at if signum == signal.SIGKILL]
     assert world.codes == [2]
     assert [pid for pid, signum in world.signals] == [4101, 4102, 4101, 4102]
-    assert len(terms) == 2 and len(kills) == 2 and kills[0] - terms[0] >= idle_watch.GRACE
+    assert len(terms) == 2 and len(kills) == 2 and kills[0] - terms[0] >= 5  # VERI_PYTEST_TERM_GRACE unset: its default
     assert written() == ("pytest leg idle for 30 s with no case running (last case seen: tests/py/unit/test_x.py::test_last); "
                          "workers 4101 4102 ended\n")
+
+
+def test_4814_veri_pytest_term_grace_sets_the_seconds_between_a_worker_s_term_and_its_kill(idle_watch, stderr_pipe, monkeypatch):
+    monkeypatch.setenv("VERI_PYTEST_TERM_GRACE", "2")
+    out, _ = stderr_pipe
+    world = World()
+    world.kill = lambda pid, signum: world.signals.append((pid, signum, world.now))  # nothing ever dies
+    watch = watch_in(idle_watch, world, 30, out)
+    watch.workers[:] = [4111]
+
+    watch.end_workers()
+
+    (_, term, term_at), (_, kill, kill_at) = world.signals
+    assert (term, kill) == (signal.SIGTERM, signal.SIGKILL)
+    assert 2 <= kill_at - term_at < 2.5  # the injected clock: the configured grace, not the default 5 s
 
 
 def test_4254_a_worker_that_obeys_term_is_never_killed_and_a_leg_that_saw_no_case_names_none(idle_watch, stderr_pipe):
@@ -141,7 +156,7 @@ def test_4278_a_killed_worker_that_never_goes_bounds_the_wait_by_the_grace_windo
     start = world.now
 
     assert watch.end_workers() == [4401]
-    assert world.now - start <= 2 * idle_watch.GRACE + 0.5
+    assert world.now - start <= 2 * 5 + 0.5  # VERI_PYTEST_TERM_GRACE unset: its default
 
 
 def test_4254_a_case_that_keeps_reporting_within_the_window_is_never_ended_and_the_window_counts_from_its_last_report(idle_watch, stderr_pipe):
