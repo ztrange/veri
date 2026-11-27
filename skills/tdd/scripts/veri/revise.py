@@ -85,12 +85,12 @@ def run(n, phase):
             if code == 0 and recorded(n, wt, step, values):
                 return finish(n, wt, step, values, at)
             if code == 1 and at == "verdict-pin":
-                route_pin_reject(wt)
+                carry_pin_reason(wt)
         values = dict(values, k=values["k"] + 1)
         at = attempt(n, wt, settled, step, values)
 
 
-def route_pin_reject(wt):
+def carry_pin_reason(wt):
     """REVISE.md sub-step 5, a red revise's verify-pin REJECT: the pin's reason becomes the one attempt k+1 compares
     and revises (PRD 044.2)."""
     shutil.copyfile(os.path.join(wt, ".tdd", "verify-pin.reason"), os.path.join(wt, ".tdd", "verify-red.reason"))
