@@ -603,3 +603,13 @@ def test_4803_a_body_read_that_gets_no_answer_with_no_incident_still_stops_at_6_
 
     assert (code, fake.names()[-1]) == (2, "gh")
     assert not (tmp_path / ".tdd" / "github-queue").exists()
+
+
+def test_4803_a_body_read_refused_with_exit_1_during_an_incident_still_stops_at_6_and_queues_nothing(
+        close, tmp_path, monkeypatch):
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: True)
+
+    code, out, err, fake = close(answers={("gh", None): (1, "")})
+
+    assert (code, fake.names()[-1]) == (1, "gh")
+    assert not (tmp_path / ".tdd" / "github-queue").exists()

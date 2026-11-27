@@ -2280,3 +2280,19 @@ def test_4803_a_post_behind_a_replay_that_gets_no_answer_is_queued_behind_the_ot
     assert [e["key"] for e in entries][0] == "a1" and len(entries) == 2
     assert out == "queued %s\n" % entries[1]["key"]
     assert "a1" in err
+
+
+def test_4803_a_post_behind_an_unreadable_queue_entry_exits_2_posting_and_queueing_nothing(
+        monkeypatch, run_cli, tmp_path):
+    comment = importlib.import_module("veri.comment")
+    github = importlib.import_module("github")
+    _offline_step_done(monkeypatch, tmp_path, incident=True)
+    posted = []
+    monkeypatch.setattr(github, "gh_issue_comment", lambda number, body: posted.append(body) or "https://x/1")
+    (tmp_path / ".tdd" / "github-queue").write_text("not json\n")
+
+    code, out, err = run_cli(comment, ["7", "step-done"], cwd=tmp_path)
+
+    assert (code, out, posted) == (2, "", [])
+    assert "unreadable entry" in err
+    assert (tmp_path / ".tdd" / "github-queue").read_text() == "not json\n"
