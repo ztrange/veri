@@ -17,7 +17,11 @@ RUFF = Path(sys.executable).parent / "ruff"
 def test_the_repository_passes_ruff_under_its_config():
     assert RUFF.is_file(), f"{RUFF} missing: run `make install-dev` (requirements-dev.txt locks ruff)"
 
-    ran = subprocess.run([str(RUFF), "check", "--no-cache", "--quiet", "--config", str(REPO / "ruff.toml"), str(REPO)],
-                         stdin=subprocess.DEVNULL, capture_output=True, text=True, cwd=REPO)
+    check = [str(RUFF), "check", "--no-cache", "--quiet", "--config", str(REPO / "ruff.toml")]
+
+    ran = subprocess.run([*check, str(REPO)], stdin=subprocess.DEVNULL, capture_output=True, text=True, cwd=REPO)
+    planted = subprocess.run([*check, "--stdin-filename", str(REPO / "planted.py"), "-"],
+                             input="planted = 1 \n", capture_output=True, text=True, cwd=REPO)
 
     assert ran.returncode == 0, ran.stdout + ran.stderr
+    assert "W291" in planted.stdout, planted.stdout + planted.stderr
