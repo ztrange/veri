@@ -7,16 +7,26 @@ directory), one JSON object per line, in the order the writes were made: a `comm
 (`issue`, `criterion`, `key`), the issue's acceptance criterion `<criterion>` to tick. GitHub is down while
 `.tdd/github-outage` exists in the main working tree or `github-status.sh`'s read with its default components reports
 a counting incident; a read that gets no answer is not an outage. Every append and every replay holds an exclusive
-lock on `.tdd/github-queue.lock`, a file never removed; the queue is rewritten by renaming a temporary file."""
+lock on `.tdd/github-queue.lock`, a file never removed; the queue is rewritten by renaming a temporary file.
+
+`close-landed <tip-sha>` queues, then replays, one `### ✅ Landed` comment per issue an offline join landed: it fetches
+origin, reads `<tip-sha>..origin/<default>`, the commits the stack landed as, and takes each run's commits as the range
+after the previous commit carrying a `Veri-Joined: <pr-url> <branch>` trailer up to its own, so a subject needs no
+`(#<n>)` suffix. Only a run whose pull request reads as merged gets its comment; the comment's key is derived from the
+issue, the tip and the commits, so a second run over the same tip posts nothing."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
 import fcntl
+import hashlib
 import json
 import os
+import re
 import secrets
+import subprocess
 import sys
 
 import entry
+import git
 import github
 import github_status
 import issue_body
@@ -24,10 +34,12 @@ import ledger
 import run_dir
 import tick_issue_criterion
 
-USAGE = "usage: github-queue.sh replay"
+USAGE = "usage: github-queue.sh replay | close-landed <tip-sha>"
 FILE, LOCK = ".tdd/github-queue", ".tdd/github-queue.lock"
 OUTAGE_FILE = ".tdd/github-outage"  # github_outage.FILE; a Conductors module no GitHub one imports
 MARKER = "<!-- veri-queued %s -->"
+SHA = re.compile(r"[0-9a-f]{7,40}")
+JOINED = re.compile(r"https://[^/\s]+/([^/\s]+/[^/\s]+)/pull/(\d+) (\S+)")
 
 
 def root(start=None):
@@ -98,9 +110,10 @@ def key():
     return secrets.token_hex(8)
 
 
-def queue_comment(top, issue, kind, body):
-    """Queue a comment of <kind> on <issue>, <body> redacted and ending in its key's marker; the key."""
-    k = key()
+def queue_comment(top, issue, kind, body, k=None):
+    """Queue a comment of <kind> on <issue>, <body> redacted and ending in the marker of key <k> (default: a random
+    one); the key."""
+    k = k or key()
     append(top, {"type": "comment", "issue": str(issue), "kind": kind,
                  "body": "%s\n\n%s" % (github.published(body).rstrip("\n"), MARKER % k), "key": k})
     return k
@@ -200,13 +213,87 @@ def replay(top, out=None):
         return 0
 
 
+def joined_runs(tip, default):
+    """The offline joins `<tip>..origin/<default>` landed, oldest first: (issue, pull request url, api path,
+    [(short sha, subject)]) each, a run's commits being those after the previous Veri-Joined commit up to its own;
+    commits after the last are no run's. ValueError naming the commit when its Veri-Joined trailer cannot be read as
+    one run's."""
+    log = git.out("log", "--reverse", "--format=%x1e%h%x1f%s%x1f%(trailers:key=Veri-Joined,valueonly,unfold,"
+                  "separator=%x1d)", "%s..refs/remotes/origin/%s" % (tip, default), "--")
+    runs, commits = [], []
+    for record in log.split("\x1e")[1:]:
+        short, subject, trailers = record.rstrip("\n").split("\x1f")
+        commits.append((short, subject))
+        values = [value for value in trailers.split("\x1d") if value]
+        if not values:
+            continue
+        found = JOINED.fullmatch(values[0].strip())
+        issue = found and run_dir.branch_issue(found[3])
+        if len(values) > 1 or not issue:
+            raise ValueError("%s %s: Veri-Joined %r is not one `<pr-url> tdd/<n>-<slug>`" % (short, subject, trailers))
+        runs.append((issue, found[0].split(" ")[0], "repos/%s/pulls/%s" % (found[1], found[2]), commits))
+        commits = []
+    return runs
+
+
+def merged(path):
+    """Whether the pull request at api <path> reads as merged; None when the read gets no answer."""
+    try:
+        done = github.gh_api(path, stderr=subprocess.PIPE)
+        return json.loads(done.stdout).get("merged") is True if done.returncode == 0 else None
+    except (github.NoAnswer, ValueError, AttributeError):
+        return None
+
+
+def close_landed(top, tip):
+    """Queue and replay one `### ✅ Landed` comment per issue whose offline join landed between stack tip <tip> and
+    origin's default branch, listing its commits there; exit 2 when origin, the range or a pull request gets no
+    answer or a Veri-Joined trailer is garbled, else the replay's code (3: nothing queued)."""
+    fetched = git.network("fetch", "origin", cwd=top)
+    if fetched.returncode != 0:
+        return entry.refuse("github-queue.sh: git fetch origin failed; no Landed comment queued",
+                            fetched.stderr.strip())
+    default = git.default_branch(top)
+    if not default:
+        return entry.refuse("github-queue.sh: cannot tell origin's default branch; no Landed comment queued")
+    try:
+        runs = joined_runs(tip, default)
+    except git.GitFailed as error:
+        return entry.refuse("github-queue.sh: cannot read %s..origin/%s; no Landed comment queued" % (tip, default),
+                            (error.stderr or "").strip())
+    except ValueError as error:
+        return entry.refuse("github-queue.sh: %s; no Landed comment queued" % error)
+    if not runs:
+        print("github-queue.sh: no Veri-Joined commit in %s..origin/%s" % (tip, default), file=sys.stderr)
+        return 3
+    landed, failed = {}, False
+    for issue, url, path, commits in runs:
+        answer = merged(path)
+        if answer is None:
+            failed = True
+            print("github-queue.sh: no answer reading #%s's pull request %s; no Landed comment for it"
+                  % (issue, url), file=sys.stderr)
+        elif not answer:
+            print("github-queue.sh: #%s's pull request %s is not merged; no Landed comment for it" % (issue, url),
+                  file=sys.stderr)
+        else:
+            landed.setdefault(issue, []).extend(commits)
+    for issue, commits in landed.items():
+        shas = " ".join(short for short, _ in commits)
+        k = hashlib.sha256(("%s %s %s" % (issue, tip, shas)).encode()).hexdigest()[:16]
+        body = "### ✅ Landed\n\n%s" % "\n".join("- %s %s" % commit for commit in commits)
+        queue_comment(top, issue, "landed", body, k)
+    code = replay(top)
+    return 2 if failed else code
+
+
 def main(argv):
-    if argv != ["replay"]:
+    if argv != ["replay"] and not (len(argv) == 2 and argv[0] == "close-landed" and SHA.fullmatch(argv[1])):
         return entry.refuse(usage=USAGE)
     top = root()
     if top is None:
         return entry.refuse("github-queue.sh: no main working tree")
-    return replay(top)
+    return replay(top) if argv == ["replay"] else close_landed(top, argv[1])
 
 
 if __name__ == "__main__":
