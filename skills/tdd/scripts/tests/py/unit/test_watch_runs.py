@@ -438,6 +438,19 @@ def test_2547_main_with_max_wait_shorter_than_one_poll_returns_timeout_within_a_
     assert (code, capsys.readouterr().out, now[0] - 100.0 < 2) == (3, "timeout\n", True)
 
 
+def test_4816_main_pauses_between_polls_the_seconds_VERI_WATCH_POLL_sets(monkeypatch, capsys, watch_runs):
+    slept = []
+    listings = iter([["5"], ["5"], []])
+    monkeypatch.setenv("VERI_WATCH_POLL", "0.05")
+    monkeypatch.setattr(watch_runs, "live_conductors", lambda: next(listings))
+    monkeypatch.setattr(watch_runs, "run_state", lambda issue: "done")
+    monkeypatch.setattr(watch_runs.time, "sleep", slept.append)
+
+    code = watch_runs.main([])
+
+    assert (code, capsys.readouterr().out, slept) == (0, "exited 5 done\n", [0.05, 0.05])
+
+
 def test_2597_main_with_no_run_directory_and_no_arguments_prints_nothing_to_watch_and_returns_3_not_2(
         monkeypatch, capsys, tmp_path, watch_runs):
     monkeypatch.setattr(watch_runs.run_dir, "main_tree", lambda **_: str(tmp_path))
