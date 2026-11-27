@@ -87,7 +87,8 @@ def branch_base_is_veris_own_tree(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def tracked_test_file(fake_processes):
-    """git ls-files lists the test file every roster prompt names, the pin's test id among them."""
+    """git ls-files lists the test file every roster prompt names, the pin's test id among them (the pin renders from the
+    spec's scratch directory, since no unmarked case starts git in the repository the tests live in)."""
     return fake_processes.answers({"git ls-files": (0, "tests/zorblat.test.sh\0", "")})
 
 
@@ -118,8 +119,13 @@ NAMED = ("develop-red", "develop-green", "develop-refactor", "develop-cover", "d
 
 
 def roster_of(problems, spec, reason, run_cli, build_develop_prompt, build_verify_prompt):
-    def render(module, *argv):
-        code, out, _ = run_cli(module, list(argv))
+    def render(module, *argv, cwd=None):
+        start = os.getcwd()
+        try:
+            os.chdir(cwd or start)
+            code, out, _ = run_cli(module, list(argv))
+        finally:
+            os.chdir(start)
         if code != 0:
             problems.append("%s %s exited %d" % (module.__name__.rsplit(".", 1)[-1], argv[2] if argv[0] == "--fast-cmd" else argv[0], code))
         return out
@@ -127,8 +133,8 @@ def roster_of(problems, spec, reason, run_cli, build_develop_prompt, build_verif
     def develop(*argv):
         return render(build_develop_prompt, *argv)
 
-    def verify(*argv):
-        return render(build_verify_prompt, *argv)
+    def verify(*argv, cwd=None):
+        return render(build_verify_prompt, *argv, cwd=cwd)
 
     step = "the zorblat is frobbed ⟦diff-checked⟧ ⟦criterion 1⟧"
     sha = "abc1234"
@@ -155,7 +161,8 @@ def roster_of(problems, spec, reason, run_cli, build_develop_prompt, build_verif
         ("verify-red", verify("red", spec, "tests/zorblat.test.sh", "zorblat case")),
         ("verify-green", verify("--fast-cmd", "make unit", "green", spec, "tests/zorblat.test.sh", "zorblat case")),
         ("verify-refactor", verify("--fast-cmd", "make unit", "--step-green", sha, "refactor", spec, "tests/zorblat.test.sh", sha)),
-        ("verify-pin", verify("--branch-base", "abc1234", "pin", spec, "tests/zorblat.test.sh", "tests/zorblat.test.sh::zorblat_case")),
+        ("verify-pin", verify("--branch-base", "abc1234", "pin", spec, "tests/zorblat.test.sh", "tests/zorblat.test.sh::zorblat_case",
+                              cwd=os.path.dirname(spec))),
         ("verify-transform", verify("--fast-cmd", "make unit", "transform", spec, "tests/zorblat.test.sh", sha)),
         ("verify-diff", verify("--step", step, "--fast-cmd", "make unit", "--branch-base", sha, "diff", spec, "4567def")),
     ]
