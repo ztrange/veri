@@ -446,8 +446,9 @@ def full_result(n, wt, baseline, full, fast, alone, began, reused, code):
     return 0, math.ceil(time.monotonic() - began)
 
 
-def finish(n, wt, baseline, full, fast, alone, reused, full_secs):
-    branch = checked(4, "gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
+def checked_models(wt):
+    """Steps 5 and 6: the tunables and budgets checked, then the leaf models; the exit code preflight stops with, else
+    the models of develop-red, revise-green and verify-green."""
     for args in (("0",), ("--issue", "0")):
         checked(5, script("refactor-budget.sh"), *args, cwd=wt, ok=(0, 3))
     if "plan" in tunables.read("VERI_SKIP_VERIFY").replace(",", " ").split():
@@ -468,8 +469,15 @@ def finish(n, wt, baseline, full, fast, alone, reused, full_secs):
             return stopped(5, name, 2)
     checked(5, script("step-budget.sh"), cwd=wt)
     checked(5, script("adjudicate.sh"), "--check-budget", cwd=wt)
-    models = [checked(6, script("leaf-model.sh"), leaf, cwd=wt).strip()
-              for leaf in ("develop-red", "revise-green", "verify-green")]
+    return [checked(6, script("leaf-model.sh"), leaf, cwd=wt).strip()
+            for leaf in ("develop-red", "revise-green", "verify-green")]
+
+
+def finish(n, wt, baseline, full, fast, alone, reused, full_secs):
+    branch = checked(4, "gh", "api", "repos/{owner}/{repo}", "-q", ".default_branch", cwd=wt)
+    models = checked_models(wt)
+    if isinstance(models, int):
+        return models
     timeout = checked(7, script("leaf-timeout.sh"), str(baseline), "--full", str(full_secs), cwd=wt)
     lines = ["worktree=" + wt, "fast_cmd=" + fast, "full_cmd=" + full, "alone_cmd=" + alone,
              "baseline=%d" % baseline, "full=%d" % full_secs,
