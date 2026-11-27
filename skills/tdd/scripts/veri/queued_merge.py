@@ -868,7 +868,8 @@ def _joined_offline(pr, worktree, branch, stack, skip=None):
             changed, stack))
         return 2
     amend = _git(worktree, "commit", "--amend", "--no-edit", "--no-verify", "--allow-empty",
-                 "--trailer", "Veri-Joined: %s %s" % (pr, branch), "--trailer", "Veri-Suite: " + suite)
+                 "--trailer", "Veri-Joined: %s %s" % (pr, branch), "--trailer", "Veri-Joined-Onto: " + onto,
+                 "--trailer", "Veri-Suite: " + suite)
     joined = _rev(worktree, "HEAD")
     if amend.returncode or not joined:
         _say("amending the rebased tip with its Veri-Joined trailer failed (exit %d): %s; the local %s not moved" % (

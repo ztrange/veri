@@ -820,3 +820,5 @@ def test_an_offline_join_retried_after_its_cleanup_failed_is_exit_3_leaving_the_
     assert (retry.returncode, git(clone, "rev-parse", "stack").strip(), [t for t in trailers if t]) == (
         3, joined, ["%s tdd/7-slug" % pr]), retry.stderr
     assert git(clone, "log", "--format=%s", "origin/stack..stack").splitlines() == ["feat: run 7"], retry.stderr
+    assert git(clone, "log", "-1", "--format=%(trailers:key=Veri-Joined-Onto,valueonly)", "stack").strip() == git(
+        clone, "rev-parse", "origin/stack").strip(), "the join names the stack's tip it was made onto"
