@@ -238,10 +238,11 @@ def test_4823_close_landed_posts_one_landed_comment_on_an_issue_two_veri_joined_
 
 
 @pytest.mark.process(PROCESS)
+@pytest.mark.parametrize("answer", [False, None], ids=["false", "null"])
 def test_4823_close_landed_names_a_run_whose_pull_request_is_not_merged_and_comments_on_the_others(
-        tmp_path, monkeypatch, run_cli):
+        tmp_path, monkeypatch, run_cli, answer):
     work, tip, landed, _ = landed_world(tmp_path)
-    hub = Hub(monkeypatch, merged={"11": False})
+    hub = Hub(monkeypatch, merged={"11": answer})
 
     code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
 
@@ -415,13 +416,13 @@ def test_4823_close_landed_whose_pull_request_read_is_not_json_names_the_run_and
 @pytest.mark.process(PROCESS)
 def test_4823_close_landed_over_a_commit_with_two_veri_joined_trailers_queues_nothing_and_exits_2(
         tmp_path, monkeypatch, run_cli):
-    work, tip, _, _ = landed_world(tmp_path, trailers={("12", 2): joined("12") + "\n" + joined("13")})
+    work, tip, _, _ = landed_world(tmp_path, trailers={("12", 2): lambda base: joined("12") + "\n" + joined("13") + "\n" + onto(base)})
     hub = Hub(monkeypatch)
 
     code, out, err = run_cli(hub.queue, ["close-landed", tip], cwd=work)
 
     assert code == 2, err
-    assert "feat: add bravo (#12)" in err, err
+    assert "feat: add bravo (#12)" in err and "is not one `<pr-url> tdd/<n>-<slug>`" in err, err
     assert hub.posted == [] and not (work / ".tdd" / "github-queue").exists(), err
 
 
