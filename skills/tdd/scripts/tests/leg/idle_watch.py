@@ -6,7 +6,7 @@ module as a plugin (PYTEST_PLUGINS, so its workers load it too) and makes a `Wat
 the hooks below record, in the leg, each worker it started (by pid) and the time and node id of the last case that
 started or reported; in a worker, where no Watch is current, they do nothing. The Watch's thread, once the leg has been
 idle for the window, writes the stacks of all the leg's threads, sends each worker SIGUSR1 (on which this plugin has the
-worker write all its threads' stacks), ends the workers (TERM, then KILL by pid after GRACE seconds, reaping the killed ones within GRACE more), runs the leg's
+worker write all its threads' stacks), ends the workers (TERM, then KILL by pid after VERI_PYTEST_TERM_GRACE seconds, reaping the killed ones within that grace more), runs the leg's
 cleanups, prints one line and exits 2. `end` is also what
 the leg's TERM and HUP handler calls, so a signalled leg never waits on xdist's worker teardown.
 
@@ -19,7 +19,8 @@ import time
 
 import pytest
 
-GRACE = 5
+import tunables
+
 STACK_WAIT = 1
 # The stderr this process started with, taken at import: pytest loads its PYTEST_PLUGINS before it starts capturing, and
 # a worker's later fd 2 is pytest's capture file.
@@ -90,6 +91,7 @@ class Watch:
     def __init__(self, idle, out, clock=time.monotonic, sleep=time.sleep, pause=None, kill=os.kill, gone=gone,
                  exit=os._exit, dump=faulthandler.dump_traceback):
         self.idle, self.out = idle, out
+        self.grace = float(tunables.get("VERI_PYTEST_TERM_GRACE"))
         self.clock, self.sleep, self.kill, self.gone, self.exit, self.dump = clock, sleep, kill, gone, exit, dump
         self.stopped = threading.Event()
         self.pause = pause or self.stopped.wait
@@ -108,8 +110,8 @@ class Watch:
             pass
 
     def end_workers(self):
-        """TERM to each worker this leg started, KILL by pid to any still alive GRACE seconds later, then wait up to GRACE
-        more until each is gone, reaped (#4278: a killed worker is still dying or a zombie until then, and would outlive
+        """TERM to each worker this leg started, KILL by pid to any still alive the grace (VERI_PYTEST_TERM_GRACE) later, then wait up to the
+        grace more until each is gone, reaped (#4278: a killed worker is still dying or a zombie until then, and would outlive
         the leg's exit); their pids."""
         workers = [pid for pid in self.workers if pid > 1 and pid != os.getpid()]
         for pid in workers:
@@ -122,7 +124,7 @@ class Watch:
         return workers
 
     def wait_gone(self, workers):
-        deadline = self.clock() + GRACE
+        deadline = self.clock() + self.grace
         while any(not self.gone(pid) for pid in workers) and self.clock() < deadline:
             self.sleep(0.1)
 

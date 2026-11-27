@@ -264,6 +264,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_PYCACHE` | "" | its readers' own words |
 | `VERI_PYTEST_IDLE` | `1200` | its readers' own words |
 | `VERI_PYTEST_LEGS` | "" | its readers' own words |
+| `VERI_PYTEST_TERM_GRACE` | `5` | its readers' own words |
 | `VERI_PYTEST_WAITERS` | "" | its readers' own words |
 | `VERI_QUEUE_POLLS` | `3` | its readers' own words |
 | `VERI_CONDUCTOR_TEST_WORKERS` | `2` | its readers' own words |
