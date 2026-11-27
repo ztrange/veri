@@ -566,3 +566,40 @@ def test_a_hand_refactor_whose_verify_was_skipped_settles_no_flag_of_an_earlier_
     code, out, err, fake = close()
 
     assert (code, out.splitlines()[-1] == "stopped at 6 uncovered_spec=the log's flag") == (int(flagged), flagged)
+
+
+def _queued(tmp_path):
+    """The (type, issue, criterion) of each entry in the main tree's GitHub queue, in file order."""
+    with open(tmp_path / ".tdd" / "github-queue") as f:
+        return [(e["type"], e["issue"], e["criterion"]) for e in map(json.loads, f.read().splitlines())]
+
+
+def test_4803_with_the_outage_file_each_finished_criterion_is_queued_as_a_tick_without_reading_the_body(close, tmp_path):
+    (tmp_path / ".tdd" / "github-outage").write_text("")
+
+    code, out, err, fake = close(step="one thing works ⟦criterion 1⟧ ⟦criterion 3⟧")
+
+    assert code == 0, out
+    assert not {"gh", "tick-issue-criterion.sh"} & set(fake.names())
+    assert _queued(tmp_path) == [("tick", "12", 1), ("tick", "12", 3)]
+    assert fake.call("event.sh", "step-done")
+
+
+def test_4803_a_body_read_that_gets_no_answer_during_an_incident_queues_the_tick_and_exits_0(
+        close, tmp_path, monkeypatch):
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: True)
+
+    code, out, err, fake = close(answers={("gh", None): (2, "")})
+
+    assert code == 0, out
+    assert "tick-issue-criterion.sh" not in fake.names()
+    assert _queued(tmp_path) == [("tick", "12", 1)]
+
+
+def test_4803_a_body_read_that_gets_no_answer_with_no_incident_still_stops_at_6_with_2(close, tmp_path, monkeypatch):
+    monkeypatch.setattr(importlib.import_module("veri.github_queue"), "incident", lambda: False)
+
+    code, out, err, fake = close(answers={("gh", None): (2, "")})
+
+    assert (code, fake.names()[-1]) == (2, "gh")
+    assert not (tmp_path / ".tdd" / "github-queue").exists()
