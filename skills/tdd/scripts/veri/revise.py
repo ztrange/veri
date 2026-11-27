@@ -182,6 +182,8 @@ def checks(n, wt, settled, step, values):
     routed(wt, values)
     if values["phase"] == "red":
         got = fused.report("4", wt, ".tdd/revise-red-%d.out" % values["k"], "AGAINST_UNMODIFIED", "COVERING_TESTS")
+        if wrote_no_test(values) and got["AGAINST_UNMODIFIED"] != "HOLDS":
+            values.update(written(wt, values["k"]))
         if passes_unmodified(got["AGAINST_UNMODIFIED"]):
             return verify(n, wt, settled, step, values, "pin")
         if got["AGAINST_UNMODIFIED"] == "HOLDS":
@@ -201,6 +203,18 @@ def checks(n, wt, settled, step, values):
     check_earlier(n, wt, step, list(dict.fromkeys(green_half.rerouted_cases(wt, step)
                                                   + (replaces_case.parse(step) or ([], ""))[0])))
     return verify(n, wt, settled, step, values)
+
+
+def written(wt, k):
+    """The test a HOLDS step's revise leaf wrote, from its report's TEST_PATH: and TARGET_TEST: lines, which a revise
+    report carries on a red revise (REVISE.md RV114): the step's own develop-red.out names none. A missing line stops with exit 2,
+    no test to verify."""
+    out = ".tdd/revise-red-%d.out" % k
+    got = fused.report("4", wt, out, "TEST_PATH", "TARGET_TEST")
+    for key in ("TEST_PATH", "TARGET_TEST"):
+        if not got[key]:
+            raise fused.Stop("4", "%s names no %s: and develop-red.out none (a HOLDS step)" % (out, key), 2)
+    return {"test_path": got["TEST_PATH"], "target_test": got["TARGET_TEST"]}
 
 
 def passes_unmodified(got):

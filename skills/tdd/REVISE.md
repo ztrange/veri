@@ -144,9 +144,9 @@ For attempt `k = 1 … REVISE_BUDGET`:
      A REJECT from a verify-pin re-verify (a revised red whose report said `AGAINST_UNMODIFIED: PASSES`
      or `HOLDS`) is no different: no step is retired on it, and the loop continues at attempt `k+1`, the
      budget's exhaustion bailing as a **process** failure. On `PASSES` that re-verify names the step's
-     `TARGET_TEST` from `.tdd/develop-red.out`, the case the revise leaf rewrote, never a `TARGET_TEST` of the
-     revise report, since a revise report carries no `TARGET_TEST:` line; on `HOLDS` it names the revise
-     report's `COVERING_TESTS:` ids.
+     `TARGET_TEST` from `.tdd/develop-red.out`, the case the revise leaf rewrote, and the revise report's
+     `TEST_PATH:` and `TARGET_TEST:` lines only when that file names none (a `HOLDS` step's Red wrote no
+     test), a missing line there a bail; on `HOLDS` it names the revise report's `COVERING_TESTS:` ids.
    - **Malformed / killed-stuck (exit 2):** **bail** (system failure).
 
 **The `diff` phase.** A REJECT on a `⟦diff-checked⟧` step runs the same loop with `<phase>`
