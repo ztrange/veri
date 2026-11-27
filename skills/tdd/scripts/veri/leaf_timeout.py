@@ -10,7 +10,7 @@ import paths
 import run_dir
 import tunables
 
-USAGE = "usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seconds>]"
+USAGE = "usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seconds> [--reused]]"
 
 
 def is_whole(text):
@@ -73,7 +73,8 @@ def record(timeout):
 
 
 def idle_full_tier():
-    """The full tier's idle seconds the test-ceiling record holds, for a skipped baseline (#4835); 0, so the
+    """The full tier's idle seconds the test-ceiling record holds, for a skipped baseline whose full-tier time was
+    reused rather than run (#4835); 0, so the
     default 900 s, with one stderr line naming that fallback when the record holds none."""
     idle = ceiling.read_idle("all")
     if idle is None:
@@ -99,7 +100,8 @@ def main(argv):
         code = require_seconds("<full-seconds>", full)
         if code:
             return code
-        baseline = idle_full_tier() if int(baseline) == 0 else full
+        reused = argv[3:4] == ["--reused"]
+        baseline = idle_full_tier() if reused and int(baseline) == 0 else full
     derived = max(900, int(baseline) * 6)
     if argv[1:2] == ["refactor"]:
         budget = tunables.get("VERI_REFACTOR_BUDGET", unless_empty=True)

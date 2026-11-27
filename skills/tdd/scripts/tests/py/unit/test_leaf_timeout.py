@@ -9,7 +9,7 @@ import pytest
 
 from conftest import SCRIPTS
 
-USAGE = "usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seconds>]"
+USAGE = "usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seconds> [--reused]]"
 
 
 @pytest.fixture
@@ -235,27 +235,27 @@ def test_cli_with_veri_issue_954_records_its_settled_1200_in_the_worktrees_tdd_a
     assert (first, second) == ("1200\n", "1200\n")
 
 
-def test_cli_with_a_skipped_baseline_sizes_and_pins_1800_from_the_ceiling_records_idle_full_tier_of_300_issue_4835(
+def test_cli_with_a_skipped_baseline_and_a_reused_full_tier_sizes_and_pins_1800_from_the_ceiling_records_idle_full_tier_of_300_issue_4835(
         tmp_path, monkeypatch, run_cli, leaf_timeout):
     monkeypatch.delenv("VERI_TIMEOUT", raising=False)
     work = _worktree(tmp_path / "work")
     ceiling = tmp_path / "ceiling-record"
     ceiling.write_text("4\nidle all 300\nidle fast 100\n")
-    code, out, _ = run_cli(leaf_timeout, ["0", "--full", "124"],
+    code, out, _ = run_cli(leaf_timeout, ["0", "--full", "124", "--reused"],
                            env={"VERI_ISSUE": "4835", "VERI_TEST_CEILING_FILE": str(ceiling)}, cwd=work)
     pin = work / ".tdd" / "issue-4835-timeout"
     assert (code, out, pin.read_text() if pin.exists() else "<no record>") == (0, "1800\n", "1800\n")
 
 
 @pytest.mark.parametrize("record", [None, "4\nidle fast 100\n"], ids=["no-record", "no-idle-all-line"])
-def test_cli_with_a_skipped_baseline_and_no_recorded_idle_full_tier_pins_900_and_names_the_fallback_issue_4835(
+def test_cli_with_a_skipped_baseline_a_reused_full_tier_and_no_recorded_idle_full_tier_pins_900_and_names_the_fallback_issue_4835(
         tmp_path, monkeypatch, run_cli, leaf_timeout, record):
     monkeypatch.delenv("VERI_TIMEOUT", raising=False)
     work = _worktree(tmp_path / "work")
     ceiling = tmp_path / "ceiling-record"
     if record is not None:
         ceiling.write_text(record)
-    code, out, err = run_cli(leaf_timeout, ["0", "--full", "124"],
+    code, out, err = run_cli(leaf_timeout, ["0", "--full", "124", "--reused"],
                              env={"VERI_ISSUE": "4835", "VERI_TEST_CEILING_FILE": str(ceiling)}, cwd=work)
     pin = work / ".tdd" / "issue-4835-timeout"
     assert (code, out, pin.read_text() if pin.exists() else "<no record>", err) == (
@@ -270,11 +270,27 @@ def test_cli_with_a_measured_baseline_keeps_max_900_six_times_full_and_ignores_t
     ceiling = tmp_path / "ceiling-record"
     ceiling.write_text("4\nidle all 300\n")
     seen = []
-    for issue, full in (("4835", "124"), ("4836", "200")):
-        code, out, err = run_cli(leaf_timeout, ["8", "--full", full],
+    for issue, baseline, full, *reused in (("4835", "8", "124"), ("4836", "8", "200"), ("4837", "1", "124", "--reused"),
+                                          ("4838", "1", "200", "--reused")):
+        code, out, err = run_cli(leaf_timeout, [baseline, "--full", full, *reused],
                                  env={"VERI_ISSUE": issue, "VERI_TEST_CEILING_FILE": str(ceiling)}, cwd=work)
         seen.append((code, out, (work / ".tdd" / f"issue-{issue}-timeout").read_text(), err))
-    assert seen == [(0, "900\n", "900\n", ""), (0, "1200\n", "1200\n", "")]
+    assert seen == [(0, "900\n", "900\n", ""), (0, "1200\n", "1200\n", ""), (0, "900\n", "900\n", ""),
+                    (0, "1200\n", "1200\n", "")]
+
+
+@pytest.mark.parametrize("record", [None, "4\nidle all 600\n"], ids=["no-record", "idle-all-600"])
+def test_cli_with_a_skipped_baseline_and_a_freshly_run_full_tier_of_300_sizes_and_pins_1800_from_it_issue_4835(
+        tmp_path, monkeypatch, run_cli, leaf_timeout, record):
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    work = _worktree(tmp_path / "work")
+    ceiling = tmp_path / "ceiling-record"
+    if record is not None:
+        ceiling.write_text(record)
+    code, out, err = run_cli(leaf_timeout, ["0", "--full", "300"],
+                             env={"VERI_ISSUE": "4835", "VERI_TEST_CEILING_FILE": str(ceiling)}, cwd=work)
+    pin = work / ".tdd" / "issue-4835-timeout"
+    assert (code, out, pin.read_text() if pin.exists() else "<no record>", err) == (0, "1800\n", "1800\n", "")
 
 
 def test_cli_with_veri_issue_unset_prints_1200_and_records_no_settled_timeout_under_tdd_issue_954(

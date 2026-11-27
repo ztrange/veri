@@ -479,7 +479,8 @@ def finish(n, wt, baseline, full, fast, alone, reused, full_secs):
     models = checked_models(wt)
     if isinstance(models, int):
         return models
-    timeout = checked(7, script("leaf-timeout.sh"), str(baseline), "--full", str(full_secs), cwd=wt)
+    timeout = checked(7, script("leaf-timeout.sh"), str(baseline), "--full", str(full_secs),
+                      *(("--reused",) if reused is not None else ()), cwd=wt)
     lines = ["worktree=" + wt, "fast_cmd=" + fast, "full_cmd=" + full, "alone_cmd=" + alone,
              "baseline=%d" % baseline, "full=%d" % full_secs,
              "full_tier_mode=" + ("reuse" if reused is not None else "run"),

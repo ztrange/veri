@@ -253,3 +253,13 @@ def test_4024_a_missing_preflight_file_is_exit_2_before_any_inner_call_named_on_
 
     assert (code, fake.calls) == (2, [])
     assert ".tdd/issue-12-preflight" in err
+
+
+@pytest.mark.parametrize("mode, tail", [("reuse", ("--reused",)), ("run", ()), (None, ())])
+def test_4835_a_reused_full_tier_time_is_handed_to_leaf_timeout_as_reused_and_a_run_one_is_not(start, mode, tail):
+    line = "" if mode is None else "full_tier_mode=%s\n" % mode
+    (start.wt / ".tdd" / "issue-12-preflight").write_text(
+        "worktree=%s\nfast_cmd=make unit\nbaseline=0\nfull=95\n%stimeout=1800\nrun=fresh\n" % (start.wt, line))
+    code, out, err, fake = start(preflight=False)
+
+    assert (code, fake.calls[0][:2]) == (0, ("leaf-timeout.sh", ("0", "--full", "95", *tail)))
