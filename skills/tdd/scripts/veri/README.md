@@ -84,6 +84,7 @@ Rules this file states that no audit enforces; they rely on review.
 
 What every module stands on: the one `__main__` path and exit contract, script paths, the `VERI_*` tunables, git, starting a process detached, the bash and Python floors, the session environment, JSON/Markdown reading, the reading of a leaf report's `KEY:` lines and the reading of test and requirements sources. Builds on no other group; every other group may build on it.
 
+- `covering_tests`: a `HOLDS` red report's `COVERING_TESTS:` ids.
 - `fused`: what a fused script shares: an inner call from this skill's scripts directory, printed with its exit code, a `Stop` at the first call that is not clean, its `stopped at` line, and the settled `key=value` file.
 - `report.sh`: read `KEY: value` lines off a leaf report.
 - `requirements.sh`: the prose units and requirement rows of a file.
@@ -97,6 +98,10 @@ What every module stands on: the one `__main__` path and exit contract, script p
 - `live_titles(case, text)`: the titles in `text` that match a JS case, ignoring comments. `js_title_pattern(case)`: that compiled pattern.
 - `cut_prefix(case)`: the case with its trailing `…`/`...` cut, `None` when it has none. `strip_param_suffix(name)`: the name without `[param]`.
 - `file_defines(path, case, classes=(), any_title=False)`: whether the test file at `path` defines `case` (a Python or Go def, a live JS title, a `.test.sh` `name=`); with `classes`, only a Python file whose class chain defines it; with `any_title`, any live JS title `case`'s pattern matches, so a name cut at `…` resolves to the longer title (bool).
+
+## covering_tests
+- `MOST`: the most ids one `COVERING_TESTS:` line or one verify-pin launch may name (5).
+- `ids(line, tracked)`: the space-separated ids of a `COVERING_TESTS:` value; raises ValueError naming the line when it holds none, more than `MOST`, or an id whose path is not in `tracked` (the `git ls-files` paths).
 
 ## detach
 - `start(argv, stdin, stdout, stderr, xfsz=SIG_IGN)`: starts `argv` as leader of a new session and returns its pid without waiting.
@@ -520,7 +525,6 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 - `build-develop-prompt.sh`: render a developer leaf's prompt (red, green, refactor, revise).
 - `build-verify-prompt.sh`: render the blind verifier's prompt.
 - `cover-outcome.sh`: read a cover leaf's report on stdin.
-- `covering_tests`: a `HOLDS` red report's `COVERING_TESTS:` ids.
 - `near-duplicates.sh`: list the blocks a commit added that repeat code in the files it touched.
 - `pin-target.sh`: read a pin leaf's target from its report.
 - `quality_findings`: test-quality.sh: list the test files a run's range touched, and check and record the develop-test-quality leaf's `FINDING:` lines.
@@ -539,10 +543,6 @@ What a leaf is told (the prompt builders) and what it answers (the `KEY: value` 
 - `KEY`: the `CANDIDATES:` marker. `line(text)`: what follows it and any ASCII whitespace on one line (str or bytes), found through `report`; `None` for another line.
 - `CLASSES`: the four classes a candidate may name (`structural`, `cosmetic`, `test-only`, `out-of-scope`).
 - `candidate(text, cls)`: the text after the bar of a `CANDIDATES: <cls> | <text>` line, whitespace allowed around class and bar; `None` otherwise.
-
-## covering_tests
-- `MOST`: the most ids one `COVERING_TESTS:` line or one verify-pin launch may name (5).
-- `ids(line, tracked)`: the space-separated ids of a `COVERING_TESTS:` value; raises ValueError naming the line when it holds none, more than `MOST`, or an id whose path is not in `tracked` (the `git ls-files` paths).
 
 ## prompt_template
 - `read(path)`: the file's bytes without trailing newlines; raises OSError. `spec_text_of(path)`: the same, `b""` when unreadable.
