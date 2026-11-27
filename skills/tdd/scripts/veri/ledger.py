@@ -122,7 +122,7 @@ def body(step):
 
 
 def retire_mark(reason):
-    """The mark that retires a step, e.g. retire_mark("unpinnable")."""
+    """The mark that retires a step, e.g. retire_mark("already holds")."""
     return f" ⟂ retired {reason}"
 
 
