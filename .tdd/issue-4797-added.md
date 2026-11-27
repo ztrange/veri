@@ -1,0 +1,1 @@
+- [ ] `skills/tdd/scripts/tests/py/unit/test_load_file_readers.py`'s `NAMERS` allowlist gains `veri/leg_budget.py`, the module the next step moves `capacity` (which names `load_timeouts`) into; no other line of the file and no production file changes ⟦diff-checked⟧ ⟦criterion 2⟧
