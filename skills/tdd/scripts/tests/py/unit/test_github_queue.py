@@ -99,6 +99,16 @@ def test_4803_replay_posts_the_queued_comments_in_file_order_removes_them_and_ex
     assert hub.left() is None
 
 
+def test_4803_replay_posts_a_queued_body_through_github_published_so_no_local_path_leaves_the_machine(hub, run_cli):
+    hub.enqueue(comment("a1", text="see /home/someone/run/.tdd/issue-7.md"))
+
+    code, out, err = run_cli(hub.queue, ["replay"], cwd=hub.root)
+
+    assert code == 0, err
+    assert "/home/someone" not in hub.posted[0][1]
+    assert "<path>" in hub.posted[0][1]
+
+
 def test_4803_replay_skips_a_comment_whose_key_a_trusted_comment_already_carries(hub, run_cli):
     hub.comments["7"] = [{"body": "landed\n\n<!-- veri-queued a1 -->", "trusted": True}]
     hub.enqueue(comment("a1"), comment("b2"))
@@ -204,3 +214,8 @@ def test_4803_replay_of_an_unreadable_line_exits_2_keeping_the_queue(hub, run_cl
 
     assert code == 2
     assert (hub.root / ".tdd" / "github-queue").read_text() == "not json\n"
+
+
+def test_4803_the_outage_file_the_queue_checks_is_the_one_github_outage_sh_writes():
+    queue = importlib.import_module("veri.github_queue")
+    assert queue.OUTAGE_FILE == importlib.import_module("veri.github_outage").FILE

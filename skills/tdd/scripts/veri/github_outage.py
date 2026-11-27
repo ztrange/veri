@@ -13,14 +13,12 @@ detached, its record `.tdd/github-outage-wait` (`<nonce> <pid> <start>`) and its
 `.tdd/github-outage-wait.exit` (`<nonce> <code>`)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import contextlib
-import datetime
 import fcntl
 import os
 import re
 import subprocess
 import sys
 import time
-import urllib.parse
 
 import detach
 import entry
@@ -28,7 +26,6 @@ import git
 import github_status
 import paths
 import pid_file
-import tunables
 
 USAGE = ("usage: github-outage.sh enter <pr-url> | hold <pr-url> | take --pid <pid> | adopt --pid <pid>\n"
          "       github-outage.sh settle <pr-url> merged|failed|released | wait-start | wait-status\n"
@@ -47,7 +44,7 @@ class World:
 
     def status(self):
         """(code, lines) of one status read, github-status.sh's default components; NoAnswer when none."""
-        return status_read()
+        return github_status.default_read()
 
     def alive(self, pid, start):
         """Whether <pid> answers kill -0 and was started at <start> (`pid_file.started_utc`'s text)."""
@@ -72,20 +69,6 @@ class World:
 
     def pause(self, seconds):
         time.sleep(seconds)
-
-
-def status_read():
-    """github-status.sh's one-shot read with its default components, run in-process."""
-    knobs = {name: github_status.positive(name) for name in
-             ("VERI_GITHUB_OUTAGE_MIN", "VERI_GITHUB_STATUS_TIMEOUT", "VERI_GITHUB_STATUS_POLL")}
-    for name, value in knobs.items():
-        if value is None:
-            raise github_status.NoAnswer("%s=%r is not a positive integer" % (name, tunables.get(name)))
-    if urllib.parse.urlsplit(tunables.get("VERI_GITHUB_STATUS_URL")).scheme not in ("http", "https"):
-        raise github_status.NoAnswer("VERI_GITHUB_STATUS_URL is not an http or https URL")
-    return github_status.read(github_status.DEFAULT_COMPONENTS,
-                              datetime.timedelta(minutes=knobs["VERI_GITHUB_OUTAGE_MIN"]),
-                              knobs["VERI_GITHUB_STATUS_TIMEOUT"])
 
 
 def is_pr(line):

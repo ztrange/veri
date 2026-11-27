@@ -244,6 +244,20 @@ def positive(name):
     return entry.whole_number(tunables.get(name), 1)
 
 
+def default_read():
+    """github-status.sh's one-shot read with its default components, run in-process."""
+    knobs = {name: positive(name) for name in
+             ("VERI_GITHUB_OUTAGE_MIN", "VERI_GITHUB_STATUS_TIMEOUT", "VERI_GITHUB_STATUS_POLL")}
+    for name, value in knobs.items():
+        if value is None:
+            raise NoAnswer("%s=%r is not a positive integer" % (name, tunables.get(name)))
+    if urllib.parse.urlsplit(tunables.get("VERI_GITHUB_STATUS_URL")).scheme not in ("http", "https"):
+        raise NoAnswer("VERI_GITHUB_STATUS_URL is not an http or https URL")
+    return read(DEFAULT_COMPONENTS,
+                              datetime.timedelta(minutes=knobs["VERI_GITHUB_OUTAGE_MIN"]),
+                              knobs["VERI_GITHUB_STATUS_TIMEOUT"])
+
+
 def no_answer(cause):
     """Report a read that got no answer; 2."""
     return entry.refuse("github-status.sh: no answer from GitHub's status page: %s" % cause)
