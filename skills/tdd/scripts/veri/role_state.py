@@ -9,7 +9,7 @@ import entry
 import run_dir
 import timed_n_format
 
-USAGE = ("usage: role-state.sh dev [--lane <lane>] set <n|lane|auto> <value>"
+USAGE = ("usage: role-state.sh dev [--lane <lane>] set <n|lane|auto> <value>  (n: a whole number or auto)"
          " | add <decision|message|override|timed-n> <text>"
          " | drop <decision|message|override|timed-n> <id> | show | recovered\n")
 
@@ -18,6 +18,10 @@ def state_path(tree, role, lane=None):
     name = role if lane is None else "%s-%s" % (role, lane)
     return run_dir.main_file(tree, "role-%s.state" % name)
 
+
+# The `n` value that lets dispatch set N at every poll from what T has left (PRD 036.6); unrelated to the `auto` field
+# (on/off, vdev's --auto).
+AUTO_N = "auto"
 
 STAMP = "%Y-%m-%dT%H:%M:%S"
 
@@ -80,10 +84,12 @@ class State:
         return [line for line in self.lines if line.startswith(tuple(kind + " " for kind in kinds))]
 
     def last_n(self):
-        """The target from the last `n=` line, as an int."""
+        """The target from the last `n=` line, as an int, or the word "auto" (PRD 036.6: dispatch then sets N from T)."""
         ns = [line for line in self.lines if line.startswith("n=")]
         if not ns:
             raise Malformed("n-missing")
+        if ns[-1] == "n=" + AUTO_N:
+            return AUTO_N
         try:
             return int(ns[-1][2:])
         except ValueError as error:
@@ -144,7 +150,7 @@ def run_verbs(argv, after_set_n=None):
     verb = VERBS.get(argv[1])
     code = verb(path, argv) if verb else usage()
     if code == 0 and after_set_n and argv[1:3] == ["set", "n"]:
-        sys.stdout.write(after_set_n(path, int(argv[3])))
+        sys.stdout.write(after_set_n(path, argv[3] if argv[3] == AUTO_N else int(argv[3])))
     return code
 
 
@@ -159,7 +165,7 @@ def do_recovered(path, argv):
 def do_set(path, argv):
     if len(argv) != 4 or argv[2] not in SET_FIELDS:
         return usage()
-    if argv[2] == "n" and entry.whole_number(argv[3], minimum=0) is None:
+    if argv[2] == "n" and argv[3] != AUTO_N and entry.whole_number(argv[3], minimum=0) is None:
         return usage()
     if argv[2] == "auto" and argv[3] not in ("on", "off"):
         return usage()

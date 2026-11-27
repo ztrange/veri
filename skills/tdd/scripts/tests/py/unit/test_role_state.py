@@ -232,3 +232,29 @@ def test_issue_4465_status_recover_dev_reads_a_state_file_holding_a_resetter_lin
     lines = [line.strip() for line in out.splitlines() if line.strip()]
     state = lines[lines.index("State") + 1:lines.index("Pending decisions")]
     assert (code, err, state, "resetter" in out) == (0, "", ["n 2", "lane mu"], False)
+
+
+def test_4805_set_n_auto_exits_0_recording_n_auto_and_any_other_non_numeric_n_still_exits_2_writing_nothing(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+    state = tmp_path / ".tdd" / "role-dev.state"
+
+    refused = [run_cli(role_state, ["dev", "set", "n", value]) for value in ("AUTO", "auto ", "on", "x", "")]
+    written_before = state.exists()
+    code = run_cli(role_state, ["dev", "set", "n", "auto"])[0]
+
+    assert (refused, written_before, code, state.read_text()) == ([(2, "", role_state.USAGE)] * 5, False, 0, "n=auto\n")
+
+
+def test_4805_a_timed_n_of_auto_exits_2_recording_nothing_through_set_and_through_add(tmp_path, monkeypatch, run_cli):
+    role_state = importlib.import_module("veri.role_state")
+    monkeypatch.setattr(role_state.run_dir, "main_tree_from_files", lambda cwd: str(tmp_path))
+
+    codes = [run_cli(role_state, ["dev", "set", "timed-n", "auto", "600"])[0],
+             run_cli(role_state, ["dev", "add", "timed-n", "auto until 2026-11-27T10:00:00"])[0]]
+
+    assert (codes, (tmp_path / ".tdd" / "role-dev.state").exists()) == ([2, 2], False)
+
+
+def test_4805_state_last_n_of_an_n_auto_line_is_the_word_auto():
+    assert _state(["n=3", "n=auto"]).last_n() == "auto"
