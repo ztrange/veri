@@ -77,3 +77,14 @@ def test_holds_step_exits_2_when_the_worktree_holds_an_untracked_file(tmp_path):
     code, _, _ = holds_step(repo, "42", sha, "tests/a.sh::case_a")
 
     assert (code, ran.exists()) == (2, False)
+
+
+@pytest.mark.process("holds-step.sh run in a real git repository, a named id running no case")
+@pytest.mark.parametrize("named", ["tests/missing.sh::case_m", "tests/empty.sh::case_e"],
+                         ids=["cannot-run", "collects-nothing"])
+def test_holds_step_exits_2_when_a_named_id_runs_no_case(tmp_path, named):
+    sha = step_start(tmp_path, {"a.sh": "exit 0\n", "b.sh": "exit 1\n", "empty.sh": "echo 'collected 0 items'\nexit 5\n"})
+
+    code, _, _ = holds_step(tmp_path, "42", sha, "tests/a.sh::case_a", "tests/b.sh::case_b", named)
+
+    assert code == 2
