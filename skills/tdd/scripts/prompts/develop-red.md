@@ -63,28 +63,29 @@ written inside. {{RED_CASES}}{{CI_REPAIR}}
    looking red. Revise the **test**, predict again and re-run, until the observed failure is
    the predicted one or you can say precisely why the two cannot be reconciled. Never adjust
    the prediction to fit what you saw — that is the whole of the discipline.
-5. **Either answer is acceptable, and must be reported truthfully**: a criterion that
-   earlier work already satisfies yields a passing test, and the pipeline has a dedicated
-   path for exactly that. Do not bend the test to force a failure.
-   If it PASSES, additionally confirm it is *capable* of failing — predict what temporarily
-   breaking the behaviour it pins should make the case print, then break it, run the case,
-   and check what it printed against that prediction, all **before** you restore: once the
-   production code is back that output cannot be reproduced, so a comparison made after the
-   restore is one made against a recollection, and a red bar nobody read is no answer. Then
-   restore the production code exactly and verify the restore with `git diff --exit-code`
-   on the file you touched.
+5. **Look for tests that already cover the criterion before you write one.** Make this check
+   before step 1: search the suites for existing tests that already cover the step's criterion.
+   When they do, run them, write nothing, and report `AGAINST_UNMODIFIED: HOLDS` with their ids
+   on `COVERING_TESTS:`, skipping steps 1 to 4. Otherwise write the test as steps 1 to 4 say.
+   **Either answer is acceptable, and must be reported truthfully**: a criterion that earlier
+   work already satisfies yields a passing test, and the pipeline has a dedicated path for
+   exactly that. Do not bend the test to force a failure. A test that passes against the
+   unmodified code is reported `PASSES` as it stands, with production code left untouched.
 6. Leave no change to any file other than the test file.
 
 ### Report (last lines of your output)
 
 TEST_PATH: <path of the test file, or NONE on UNTESTABLE>
 TARGET_TEST: <the exact case name string you used, or NONE on UNTESTABLE>
-AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE
+AGAINST_UNMODIFIED: FAILS | PASSES | HOLDS | UNTESTABLE
+COVERING_TESTS: <HOLDS only — 1 to 5 space-separated ids of the existing tests that cover the criterion, each a tracked path or `<path>::<node>`>
 WHY: <UNTESTABLE only — which rule (1, 2 or 3) the only available test would break, and why>
-FAIL_OUTPUT: <the failure line — from the unmodified code if it fails there, otherwise from the temporarily-broken code>
+FAIL_OUTPUT: <the failure line from the unmodified code, or NONE when the case passes>
 PREDICTED_FAILURE: <the missing name, when the predicted failure is an error on the name the step introduces rather than an assertion; otherwise the assertion and the observed and expected values, as predicted before running; the message shape only as a hint, which the run is not compared on>
 PREDICTION: MATCHED | DIVERGED
 PREDICTION_NOTE: <on DIVERGED, what actually happened and why it could not be reconciled>
 SETUP: <n> | <what> — <n> the number of stubs, fakes, spies and fixtures the case needed beyond the code under test (0 when none), <what> naming them (`none` when 0)
 
-REPORT-FORMAT red | keys TEST_PATH: TARGET_TEST: AGAINST_UNMODIFIED: WHY: FAIL_OUTPUT: PREDICTED_FAILURE: PREDICTION: PREDICTION_NOTE: SETUP:? | suite exempt: a red step's test is meant to fail
+On `HOLDS` leave out the `TEST_PATH:` and `FAIL_OUTPUT:` lines: no test file was written and none failed.
+
+REPORT-FORMAT red | keys TEST_PATH: TARGET_TEST: AGAINST_UNMODIFIED: COVERING_TESTS:? WHY: FAIL_OUTPUT: PREDICTED_FAILURE: PREDICTION: PREDICTION_NOTE: SETUP:? | suite exempt: a red step's test is meant to fail
