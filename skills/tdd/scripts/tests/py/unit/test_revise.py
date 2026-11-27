@@ -38,7 +38,7 @@ class Fake:
             return 0, self.cost, ""
         if base == "step-budget.sh":
             return 0, "12\n120\n", ""
-        if base in ("same-reject.sh", "pin-reject-route.sh"):
+        if base == "same-reject.sh":
             return 1, "", ""
         return 0, "", ""
 
@@ -967,6 +967,25 @@ def test_4735_after_a_pin_reject_attempt_2_compares_the_prior_red_reason_with_th
 
     assert fake.launched() == ["revise-red-1", "verdict-pin", "revise-red-2"], (code, out, err)
     assert fake.compared == [REASON, pin_reason]
+
+
+def test_4770_a_red_revises_verify_pin_reject_launches_the_next_red_revise_comparing_the_pin_reason_with_no_route(
+        revise):
+    """PRD 044.2: a red revise's verify-pin REJECT goes straight to attempt k+1 on REVISE_BUDGET, the pin's reason
+    copied to `.tdd/verify-red.reason` as the prior reason, and no route script is called."""
+    _red(revise)
+    pin_reason = "VERDICT: REJECT\nthe pinned case misses the criterion\n"
+    (revise.wt / ".tdd" / "verify-pin.reason").write_text(pin_reason)
+    report = RED_REPORT.replace("AGAINST_UNMODIFIED: FAILS", "AGAINST_UNMODIFIED: PASSES")
+    code, out, err, fake = revise(fake=Fake({("wait-leaf.sh", "verdict-pin"): (1, ""),
+                                             ("wait-leaf.sh", "revise-red-2"): (3, "")}, report=report),
+                                  argv=("12", "red"), missing=("red-half",))
+
+    assert fake.launched() == ["revise-red-1", "verdict-pin", "revise-red-2"], (code, out, err)
+    assert code == 3, out
+    assert (revise.wt / ".tdd" / "verify-red.reason").read_text() == pin_reason
+    route = "pin-reject" + "-route.sh"
+    assert route not in fake.names()
 
 
 def test_4734_a_red_revise_opened_while_a_steps_refactor_is_pending_names_that_step_not_the_next_unchecked(revise):

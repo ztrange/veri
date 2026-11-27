@@ -17,7 +17,6 @@ import refactor_half
 import replaces_case
 import run_dir
 import tunables
-import wrong_test_route
 from next_pending_refactor import refactor_pending
 
 NAME = "revise"
@@ -35,7 +34,7 @@ LEDGER = run_dir.ledger("", "%s")
 # The $S/ scripts this call makes, in the order each is first made.
 CALLS = ("build-develop-prompt.sh", "comment.sh", "event.sh", "stop-requested.sh", "detach-leaf.sh", "supervise.sh",
          "run-leaf.sh", "wait-leaf.sh", "step-cost.sh", "step-budget.sh", "tests-frozen.sh", "run-verdict.sh",
-         "pin-reject-route.sh", "same-reject.sh", "restore-production.sh", "extract-result.sh", "red-divergence.sh",
+         "same-reject.sh", "restore-production.sh", "extract-result.sh", "red-divergence.sh",
          "preserve-attempt.sh", "red-setup.sh")
 
 
@@ -86,24 +85,16 @@ def run(n, phase):
             if code == 0 and recorded(n, wt, step, values):
                 return finish(n, wt, step, values, at)
             if code == 1 and at == "verdict-pin":
-                route_pin_reject(n, wt, step, values)
+                route_pin_reject(wt)
         values = dict(values, k=values["k"] + 1)
         at = attempt(n, wt, settled, step, values)
 
 
-def route_pin_reject(n, wt, step, values):
-    """REVISE.md sub-step 5, a red revise's verify-pin REJECT: pin-reject-route.sh's exit 0 retires the step (Stop,
-    exit 1), any code but 1 bails (Stop, its code); on 1 the pin's reason becomes the one attempt k+1 compares and
-    revises. A step reached by a `missing` reroute passes `--missing-reroute` (PIN.md)."""
-    with contextlib.chdir(wt):
-        missing = ("--missing-reroute",) if wrong_test_route.missing_reroutes(step) else ()
-    route = fused.call(fused.script("pin-reject-route.sh"), *missing, ".tdd/verify-pin.reason", LEDGER % n, step,
-                       values["target_test"], cwd=wt)[0]
-    if route == 0:
-        raise fused.Stop("5", "pin-reject-route.sh exit 0: the step retired", 1)
-    if route != 1:
-        raise fused.Stop("5", "pin-reject-route.sh exit %d" % route, route)
+def route_pin_reject(wt):
+    """REVISE.md sub-step 5, a red revise's verify-pin REJECT: the pin's reason becomes the one attempt k+1 compares
+    and revises (PRD 044.2)."""
     shutil.copyfile(os.path.join(wt, ".tdd", "verify-pin.reason"), os.path.join(wt, ".tdd", "verify-red.reason"))
+
 
 def start(n, wt, step, phase, k):
     """The values the rejected verifier judged: red's from the report it judged (`.tdd/develop-red.out`, at every
