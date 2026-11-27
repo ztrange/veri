@@ -63,7 +63,7 @@ def resume(monkeypatch, run_cli, tmp_path):
     (wt / ".tdd").mkdir(parents=True)
 
     def go(answers=None, fake=None, missing=(), verify_plan="skip", argv=None, stray=()):
-        files = {"branch_base": (wt / ".tdd" / "issue-12-branch-base", BRANCH_BASE + "\n"), 
+        files = {"branch_base": (wt / ".tdd" / "issue-12-branch-base", BRANCH_BASE + "\n"),
                  "preflight": (wt / ".tdd" / "issue-12-preflight",
                                "worktree=%s\nfast_cmd=make unit\ndefault_branch=main\nrun=resume\n" % wt
                                + "".join("stray=%s\n" % path for path in stray)),

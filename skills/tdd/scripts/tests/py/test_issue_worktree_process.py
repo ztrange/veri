@@ -73,7 +73,7 @@ def routing_git(fake_processes, answers):
 
 
 @pytest.mark.process("a stand-in conductor (a claude under run_conductor.py) left running beside real git worktree calls")
-def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_names_a_live_conductor(fake_processes, 
+def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_names_a_live_conductor(fake_processes,
         monkeypatch, capfd, tmp_path, issue_worktree, run_cli):
     import os
 
@@ -145,7 +145,7 @@ def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_na
     assert (own[0], own[1].strip(), other[0], other[1], holder in other[2]) == (0, want, 2, "", True)
 
 
-def test_main_puts_a_seeded_log_back_when_the_cut_dies_and_still_maps_the_dying_add_into_0_to_3(fake_processes, 
+def test_main_puts_a_seeded_log_back_when_the_cut_dies_and_still_maps_the_dying_add_into_0_to_3(fake_processes,
         monkeypatch, capsys, tmp_path, issue_worktree):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/63"
@@ -184,7 +184,7 @@ def test_main_puts_a_seeded_log_back_when_the_cut_dies_and_still_maps_the_dying_
 
 
 @pytest.mark.parametrize("extra", ["notes.txt", ".tdd/.lock"])
-def test_main_leaves_a_path_holding_more_than_the_seeded_log_where_it_is_for_git_to_refuse(fake_processes, 
+def test_main_leaves_a_path_holding_more_than_the_seeded_log_where_it_is_for_git_to_refuse(fake_processes,
         monkeypatch, capsys, tmp_path, issue_worktree, extra):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/63"
@@ -223,7 +223,7 @@ def test_main_leaves_a_path_holding_more_than_the_seeded_log_where_it_is_for_git
         2, "", [sorted([".tdd", ".tdd/events.jsonl", extra])], b'{"event":"seeded"}\n', [])
 
 
-def test_main_appends_a_seeded_log_into_the_tdd_directory_a_successful_cut_checked_out(fake_processes, 
+def test_main_appends_a_seeded_log_into_the_tdd_directory_a_successful_cut_checked_out(fake_processes,
         monkeypatch, capsys, tmp_path, issue_worktree):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/63"
@@ -256,7 +256,7 @@ def test_main_appends_a_seeded_log_into_the_tdd_directory_a_successful_cut_check
         0, path + "\n", b'{"event":"committed"}\n{"event":"seeded"}\n', [])
 
 
-def test_main_restores_a_seeded_log_after_a_successful_cut_without_issue_worktree_opening_events_jsonl_itself(fake_processes, 
+def test_main_restores_a_seeded_log_after_a_successful_cut_without_issue_worktree_opening_events_jsonl_itself(fake_processes,
         monkeypatch, capsys, tmp_path, issue_worktree):
     import builtins
 
@@ -299,7 +299,7 @@ def test_main_restores_a_seeded_log_after_a_successful_cut_without_issue_worktre
     assert [p for p in opened if p.endswith("events.jsonl")] == []
 
 
-def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_missing_default_or_the_failed_fetch(fake_processes, 
+def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_missing_default_or_the_failed_fetch(fake_processes,
         monkeypatch, capsys, tmp_path, issue_worktree):
     main_tree = str(tmp_path / "repo")
     path = f"{main_tree}/.tdd/wt/63"
