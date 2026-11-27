@@ -164,7 +164,9 @@ def red_report(wt):
     against = got["AGAINST_UNMODIFIED"]
     if against == "HOLDS":
         try:
-            held = covering_tests.ids(got["COVERING_TESTS"] or "")
+            with fused.quiet():
+                tracked = set(fused.checked("2", "git", "ls-files", cwd=wt).splitlines())
+            held = covering_tests.ids(got["COVERING_TESTS"] or "", tracked)
         except ValueError as error:
             raise fused.Stop("2", str(error), 2) from error
         raise fused.Stop("2", "COVERING_TESTS: " + " ".join(held), 1)

@@ -11,7 +11,7 @@
 - [x] `veri/covering_tests.py` exits 2 on a `COVERING_TESTS:` line holding no id, a unit case in `tests/py/unit/test_covering_tests.py` ⟦criterion 2⟧
 - [x] `veri/covering_tests.py` exits 2 on a `COVERING_TESTS:` line holding 6 tracked ids, a unit case in `tests/py/unit/test_covering_tests.py` ⟦criterion 2⟧
 - [x] `veri/covering_tests.py` parses a `COVERING_TESTS:` line holding 5 tracked ids into those 5 ids, a unit case in `tests/py/unit/test_covering_tests.py` ⟦criterion 2⟧
-- [ ] `veri/covering_tests.py` exits 2 on a `COVERING_TESTS:` line holding an id whose path `git ls-files` does not list, a unit case in `tests/py/unit/test_covering_tests.py` ⟦criterion 2⟧
+- [x] `veri/covering_tests.py` exits 2 on a `COVERING_TESTS:` line holding an id whose path `git ls-files` does not list, a unit case in `tests/py/unit/test_covering_tests.py` ⟦criterion 2⟧
 - [ ] `reroute.sh`, on a rerouted red whose report says `AGAINST_UNMODIFIED: HOLDS`, stops with exit 1 naming `AGAINST_UNMODIFIED: HOLDS`, as it does on `PASSES`, never exit 2 (`veri/reroute.py` `edited()`; a case in `tests/py/unit/test_reroute.py`)
 - [ ] `tick-ledger.sh --already-holds <reason-file> --case <a> --case <b>` runs both cases and, when both pass, ticks the step ` ⟂ retired already holds` with one `already-holds-step` event, a case in `tests/py/unit/test_tick_ledger_already_holds.py` ⟦criterion 5⟧
 - [ ] `tick-ledger.sh --already-holds <reason-file> --case <a> --case <b>` with `<a>` passing and `<b>` failing exits 1 with ledger and events untouched, a case in `tests/py/unit/test_tick_ledger_already_holds.py` ⟦criterion 5⟧
