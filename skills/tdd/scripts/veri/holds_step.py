@@ -15,6 +15,8 @@ def main(argv):
     start = argv[1]
     if not git.ok("diff", "--quiet", start, "--"):
         return entry.refuse(f"holds-step.sh: the worktree differs from {start}: a tracked file changed; no case run")
+    if git.out("status", "--porcelain", "--untracked-files=all"):
+        return entry.refuse(f"holds-step.sh: the worktree differs from {start}: an untracked file is present; no case run")
     answers = [tick_ledger.run_case(case)[0] for case in argv[2:]]
     return 1 if any(answers) else 0
 
