@@ -79,8 +79,8 @@ line also names it as promotable.
    `needs-rewrite` becomes `needs-human`.
 3. **`needs-split`**: file each deliverable as its own issue in that same body, label each as in
    step 4, and close the original with a pointer to them.
-4. **`ready`**: run the check under `## Before labelling ready`, then add the opt-in label, plus
-   the kind label for a bug and the label `## Labelling bugs` proposes.
+4. **`ready`**: run the checks under `## Before labelling ready`; once they pass, add the opt-in
+   label, plus the kind label for a bug and the label `## Labelling bugs` proposes.
 5. **`gone`** and **`duplicate`**: close with the reason.
 6. **`needs-human`**: leave without the opt-in label; show the question in full.
 
@@ -163,11 +163,21 @@ Before labelling an issue ready, run `$S/stale-rows.sh <issue>` against it:
 - **exit 1** — a requirement row no longer holds. Park the issue with
   `$S/park-issue.sh <issue> <cause> <unblock>`, the cause naming the row, the unit and the
   failing line `stale-rows.sh` printed. The issue is **not** labelled ready.
-- **exit 0** and **exit 3** — go on as before.
+- **exit 0** and **exit 3** — go on to the input check (below).
 - **exit 2** — no answer could be obtained: report it and leave the issue as it was, neither
   labelled ready nor parked.
 
 The groom never rewrites a requirement row.
+
+**The input check.** Once `stale-rows.sh` exits 0 or 3, a read-only subagent runs
+`../vfile/SKILL.md`'s *Before filing* check 2 (*Check the inputs*) on the issue's acceptance
+criteria: every input a criterion names exists, and its literal rule meets its goal.
+
+- **Every criterion passes** — the issue may be labelled ready.
+- **A criterion fails** — the issue is `needs-rewrite` (`## The sweep` step 2), its report line
+  naming the criterion and what failed. The issue is **not** labelled ready.
+- **The subagent returns no answer** — report it and leave the issue as it was, neither labelled
+  ready nor rewritten.
 
 ## Labelling bugs
 
