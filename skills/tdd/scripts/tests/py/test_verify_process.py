@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from conftest import INTERPRETER_VENV
-from repo_builder import origin_head_at
+from repo_builder import new_repo, origin_head_at
 from test_supervise_process import checked_head, checked_step, committed_head
 
 
@@ -673,7 +673,7 @@ def git_state(repo):
 def tamper_scratch(tmp_path, monkeypatch, gitignore, tracked, origin=True):
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
     (repo / "src.txt").write_text("the developer committed this\n")
@@ -1270,7 +1270,7 @@ def test_verify_sh_preserves_a_rejected_or_no_verdict_attempt_under_its_ref_and_
 def test_verify_sh_diff_exits_1_without_launching_the_leaf_naming_the_pytest_case_a_step_deleted_that_an_earlier_step_added_1486(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1311,7 +1311,7 @@ def test_verify_sh_diff_exits_1_without_launching_the_leaf_naming_the_pytest_cas
 def test_4376_verify_sh_diff_takes_its_branch_base_from_the_branch_base_flag_not_origin_main_for_both_its_gate_and_its_prompt(
         deletes, run_cli, tmp_path):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1362,7 +1362,7 @@ def test_4376_verify_sh_diff_takes_its_branch_base_from_the_branch_base_flag_not
 def test_verify_sh_diff_still_launches_the_leaf_for_a_pytest_case_an_earlier_step_added_and_this_step_moved_to_another_file_under_the_same_name_1486(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1404,7 +1404,7 @@ def test_verify_sh_diff_still_launches_the_leaf_for_a_pytest_case_an_earlier_ste
 def test_2329_verify_sh_diff_launches_the_leaf_for_a_pytest_case_an_earlier_step_added_and_this_step_renamed_with_its_text_otherwise_unchanged(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1444,7 +1444,7 @@ def test_2329_verify_sh_diff_launches_the_leaf_for_a_pytest_case_an_earlier_step
 def test_2329_verify_sh_diff_exits_1_naming_a_renamed_case_whose_body_or_def_line_also_changed_and_a_removed_case_without_launching_the_leaf(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1489,7 +1489,7 @@ def test_2329_verify_sh_diff_exits_1_naming_a_renamed_case_whose_body_or_def_lin
 def test_2329_verify_sh_diff_exits_1_naming_a_renamed_case_whose_decorator_line_also_changed_without_launching_the_leaf(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1530,7 +1530,7 @@ def test_2329_verify_sh_diff_exits_1_naming_a_renamed_case_whose_decorator_line_
 def test_2594_verify_sh_diff_exits_1_with_a_line_naming_a_case_renamed_and_changed_to_be_split_without_launching_the_leaf(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1573,7 +1573,7 @@ def test_2594_verify_sh_diff_exits_1_with_a_line_naming_a_case_renamed_and_chang
 def test_2594_verify_sh_diff_launches_the_leaf_and_exits_0_on_its_pass_printing_no_renamed_and_changed_line_for_a_case_renamed_with_its_body_and_def_line_unchanged(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1613,7 +1613,7 @@ def test_2594_verify_sh_diff_launches_the_leaf_and_exits_0_on_its_pass_printing_
 def test_2594_verify_sh_diff_exits_1_with_the_deleted_cases_line_and_no_traceback_for_an_async_case_removed_with_no_counterpart(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1654,7 +1654,7 @@ def test_2594_verify_sh_diff_exits_1_with_the_deleted_cases_line_and_no_tracebac
 def test_2594_verify_sh_diff_exits_1_with_the_deleted_cases_line_alone_for_a_removed_case_whose_def_line_no_added_case_shares_but_for_the_name(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1695,7 +1695,7 @@ def test_2594_verify_sh_diff_exits_1_with_the_deleted_cases_line_alone_for_a_rem
 def test_2419_verify_sh_diff_exits_1_naming_exactly_one_of_two_identical_removed_cases_when_one_added_case_carries_their_text(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1737,7 +1737,7 @@ def test_2419_verify_sh_diff_exits_1_naming_exactly_one_of_two_identical_removed
 def test_2419_verify_sh_diff_exits_1_naming_exactly_the_third_of_three_identical_removed_cases_when_two_added_cases_carry_their_text(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1781,7 +1781,7 @@ def test_2419_verify_sh_diff_exits_1_naming_exactly_the_third_of_three_identical
 def test_2419_verify_sh_diff_launches_the_leaf_for_a_single_removed_case_renamed_to_one_added_case_while_an_identical_twin_stays(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1823,7 +1823,7 @@ def test_2419_verify_sh_diff_launches_the_leaf_for_a_single_removed_case_renamed
 def test_2329_verify_sh_diff_exits_1_naming_a_removed_case_whose_text_reappears_under_another_name_in_another_file(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -1866,7 +1866,7 @@ def test_2329_verify_sh_diff_exits_1_naming_a_removed_case_whose_text_reappears_
 def test_verify_sh_diff_exits_2_without_launching_the_leaf_when_the_step_base_sha_does_not_resolve_1486(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
     (repo / ".gitignore").write_text(".tdd/\n")
@@ -1895,7 +1895,7 @@ def test_verify_sh_diff_exits_2_without_launching_the_leaf_when_the_step_base_sh
 def test_verify_sh_diff_still_launches_the_leaf_and_returns_its_verdict_when_the_step_deletes_only_a_pytest_case_that_existed_at_the_branch_base_1486(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -2049,7 +2049,7 @@ def test_main_saves_the_content_diff_of_a_verifier_that_modified_a_tracked_file_
             ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
             cwd=repo, stdout=subprocess.PIPE, check=True).stdout
 
-    git("init", "-q")
+    new_repo(repo)
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     origin_head_at(repo)
@@ -2095,7 +2095,7 @@ def test_main_saves_a_mode_only_change_of_a_verifier_in_the_diff_byte_exactly_18
             ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
             cwd=repo, stdout=subprocess.PIPE, check=True).stdout
 
-    git("init", "-q")
+    new_repo(repo)
     git("config", "core.fileMode", "true")
     git("add", "-A")
     git("commit", "-q", "-m", "base")
@@ -2139,7 +2139,7 @@ def test_main_saves_a_binary_change_of_a_verifier_in_a_diff_that_applies_with_bi
             ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
             cwd=repo, stdout=subprocess.PIPE, check=True).stdout
 
-    git("init", "-q")
+    new_repo(repo)
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     origin_head_at(repo)
@@ -2186,7 +2186,7 @@ def test_main_still_refuses_with_2_and_resets_the_tree_saying_the_diff_could_not
             ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
             cwd=repo, stdout=subprocess.PIPE, check=True).stdout
 
-    git("init", "-q")
+    new_repo(repo)
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     origin_head_at(repo)
@@ -2231,7 +2231,7 @@ def test_main_still_refuses_with_2_saying_the_diff_could_not_be_saved_and_writes
             ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
             cwd=repo, stdout=subprocess.PIPE, check=True).stdout
 
-    git("init", "-q")
+    new_repo(repo)
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     origin_head_at(repo)
@@ -2273,7 +2273,7 @@ def test_main_removes_an_earlier_refusals_diff_when_this_refusals_diff_could_not
             ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
             cwd=repo, stdout=subprocess.PIPE, check=True).stdout
 
-    git("init", "-q")
+    new_repo(repo)
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     origin_head_at(repo)
@@ -2316,7 +2316,7 @@ def test_main_saves_a_diff_that_passes_git_apply_check_whatever_the_users_prefix
             ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
             cwd=repo, stdout=subprocess.PIPE, check=True).stdout
 
-    git("init", "-q")
+    new_repo(repo)
     git("add", "-A")
     git("commit", "-q", "-m", "base")
     origin_head_at(repo)
@@ -2349,7 +2349,7 @@ def test_main_saves_a_diff_that_passes_git_apply_check_whatever_the_users_prefix
 def test_verify_sh_rebase_exits_1_without_launching_the_leaf_naming_the_commit_and_file_that_added_a_conflict_marker_a_later_commit_removed_2516(
         run_cli, tmp_path):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -2391,7 +2391,7 @@ def test_verify_sh_rebase_exits_1_without_launching_the_leaf_naming_the_commit_a
 def test_verify_sh_rebase_exits_1_without_launching_the_leaf_when_a_commit_added_only_a_closing_conflict_marker_2516(
         run_cli, tmp_path):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -2429,7 +2429,7 @@ def test_verify_sh_rebase_exits_1_without_launching_the_leaf_when_a_commit_added
 def test_verify_sh_rebase_launches_the_leaf_and_returns_its_verdict_when_no_commit_of_the_range_adds_a_conflict_marker_2516(
         run_cli, tmp_path):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -2466,7 +2466,7 @@ def test_verify_sh_rebase_launches_the_leaf_and_returns_its_verdict_when_no_comm
 def rebased_repo_and_recorder(tmp_path):
     """A scratch repo with one clean commit past <onto>, and a stub claude that records any start."""
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -2593,7 +2593,7 @@ def test_2916_verify_green_with_veri_issue_hands_the_runs_ledger_to_the_builder_
 def test_2897_verify_sh_diff_exits_1_with_the_deleted_cases_line_for_a_go_test_func_removed_from_a_test_go_file(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -2633,7 +2633,7 @@ def test_2897_verify_sh_diff_exits_1_with_the_deleted_cases_line_for_a_go_test_f
 def test_2897_verify_sh_diff_exits_1_with_the_deleted_cases_line_for_an_it_case_removed_from_a_test_js_file(
         run_cli, tmp_path, monkeypatch):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -2671,7 +2671,7 @@ def test_2897_verify_sh_diff_exits_1_with_the_deleted_cases_line_for_an_it_case_
 
 def run_2897_diff(run_cli, tmp_path, path, base_text, added_text, final_text):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -2817,7 +2817,7 @@ def test_2897_verify_sh_diff_does_not_refuse_a_go_test_renamed_in_a_test_go_file
 def test_3120_verify_sh_diff_with_supersede_base_exits_1_naming_a_case_the_uncommitted_edits_delete_though_head_still_holds_it(
         run_cli, tmp_path):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -2861,7 +2861,7 @@ def test_3120_verify_sh_diff_with_supersede_base_exits_1_naming_a_case_the_uncom
 def test_3120_verify_sh_diff_without_supersede_base_still_compares_against_head_so_an_uncommitted_deletion_is_not_reported(
         run_cli, tmp_path):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -2903,7 +2903,7 @@ def test_3120_verify_sh_diff_without_supersede_base_still_compares_against_head_
 def test_3120_verify_sh_diff_with_supersede_base_does_not_report_a_case_the_uncommitted_edits_only_rename(
         run_cli, tmp_path):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -2946,7 +2946,7 @@ def test_3120_verify_sh_diff_with_supersede_base_does_not_report_a_case_the_unco
 def test_3120_verify_sh_diff_with_supersede_base_tells_the_step_to_split_when_the_uncommitted_edits_rename_and_change_a_case(
         run_cli, tmp_path):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 
@@ -2990,7 +2990,7 @@ def test_3120_verify_sh_diff_with_supersede_base_tells_the_step_to_split_when_th
 def test_4730_verify_sh_diff_with_frozen_edit_judges_the_snapshot_tip_so_a_case_it_deletes_is_named_though_head_still_holds_it(
         run_cli, tmp_path):
     repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    new_repo(repo)
     for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
         subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
 

@@ -101,7 +101,6 @@ FILES_RUNNING_GIT_INIT = (
     "test_timed_test_run_process.py",
     "test_verdict_chain.py",
     "test_veri_bail_patch_process.py",
-    "test_verify_process.py",
     "test_watch_runs_process.py",
     "test_workqueue_process.py",
     "unit/test_report_cache.py",
