@@ -402,7 +402,7 @@ A run's records on origin's `refs/veri/runs/<n>`: a commit with no parent holdin
 - `PATH_START`, `PATH_END`: regular-expression sources for the boundary before and after a local path, so `/tmpfile` is no `/tmp`; `github.published` builds its pattern on them.
 
 ## run_end
-- `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events. `standing_mark(events, ends=MARKS)`: the mark that ended the run, the last of `ends` no `resume` or `step-added` followed, `{}` when none stands; `MARKS`: the ending events, each to its cause.
+- `run_end(run_dir)`: `(ended, cause, standing mark)` for a run, from its events. With no standing mark and no live conductor, a re-posted Done still ends the run as `done`, its mark the latest `done` event: a `comment kind=done` after the last `resume` (no later `resume` or `step-added`), followed by a `ci-wait` stage whose last `stage-end` has status 0; with no `ci-wait` after it, or one pending or red, the run is not done (#4792). `standing_mark(events, ends=MARKS)`: the mark that ended the run, the last of `ends` no `resume` or `step-added` followed, `{}` when none stands; `MARKS`: the ending events, each to its cause.
 - `latest_result(path)`: `(launched, latest result record or None)` of a conductor log. `conductor_log(run_dir, issue)`: its path.
 
 ## stop_modes
