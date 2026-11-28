@@ -2103,3 +2103,18 @@ def test_4453_a_lone_lane_entry_needing_0_under_a_ceiling_record_of_10_narrows_t
     monkeypatch.setenv("VERI_TEST_BUDGET_DIR", str(entries))
 
     assert pytest_leg.budget(say=False)[0] == 2
+
+
+def test_4855_with_keep_run_dir_unset_leaving_run_directory_removes_it_and_a_file_planted_under_its_base(pytest_leg, monkeypatch, tmp_path):
+    import tempfile
+    monkeypatch.delenv("VERI_PYTEST_KEEP_RUN_DIR", raising=False)
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    monkeypatch.setattr(sys, "pycache_prefix", None)
+
+    with pytest_leg.run_directory() as run:
+        planted = os.path.join(run, "base", "case0", "left.txt")
+        os.makedirs(os.path.dirname(planted))
+        with open(planted, "w") as f:
+            f.write("x")
+
+    assert (run.startswith(str(tmp_path)), os.path.exists(planted), os.path.exists(run)) == (True, False, False)
