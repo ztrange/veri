@@ -134,6 +134,12 @@ entry and releases the full-run lock first. A case may run silently for as long 
 (or a timeout mark) above `VERI_PYTEST_IDLE` lets the idle window end a leg whose slow case is still running; keep the window
 above every timeout.
 
+**The run directory.** Each leg runs its cases under one `veri-pytest-*` run directory and removes it, the case
+directories under it included, when it ends. `VERI_PYTEST_KEEP_RUN_DIR=1` (default `0`; any other value cleans up) leaves
+that directory in place, its bytecode mirror still removed. CI's `make test` step sets it (#4855): a runner is discarded
+after the job, and removing thousands of case directories after the last case was 8-13 s of the job's wall time. A leg
+started inside a case still cleans up, since `hermetic_environment` clears ambient `VERI_*`.
+
 **The bytecode cache** (`PYTHONPYCACHEPREFIX`, at `VERI_PYCACHE`, default `${TMPDIR:-/tmp}/veri-pycache-<uid>`, which the
 Makefile sets when unset) persists between runs. `make test` and `make unit` create it with mode `0700` and refuse, exit 2
 before any suite, one that is not a directory owned by the current user and writable by neither group nor others, a symlink
