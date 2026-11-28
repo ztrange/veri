@@ -365,6 +365,15 @@ def clear_case_directories(base):
 
 @contextlib.contextmanager
 def run_directory():
+    # VERI_PYTEST_KEEP_RUN_DIR=1 leaves the run directory in place: CI's runner is discarded after the job, and the
+    # removal was 8-13 s of its wall time (#4855). The bytecode mirror still goes, since CI saves the prefix as a cache.
+    if tunables.get("VERI_PYTEST_KEEP_RUN_DIR") == "1":
+        run = tempfile.mkdtemp(prefix="veri-pytest-")
+        try:
+            yield run
+        finally:
+            remove_scratch_mirror(sys.pycache_prefix, run)
+        return
     with tempfile.TemporaryDirectory(prefix="veri-pytest-") as run:
         try:
             yield run
