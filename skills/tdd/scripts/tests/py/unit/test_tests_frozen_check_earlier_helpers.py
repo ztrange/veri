@@ -549,3 +549,28 @@ def test_check_earlier_exits_1_naming_the_case_for_a_helpers_digest_matching_nei
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)
 
     assert (checked[0], "TestX" in checked[1]) == (1, True)
+
+
+TS_SUITE = "tests/deal.test.ts"
+TS_HELPER = "const folios = async (t) => {\n  expect(t).toBeDefined();\n  return t.query(\"DEAL\");\n};\n\n"
+TS_CASE = "  it(\"a\", async () => {\n    expect(await folios(t)).toEqual([]);\n  });\n"
+TS_SIBLING = "\n  it(\"b\", () => {\n    expect(1).toBe(1);\n  });\n"
+
+
+def test_check_earlier_exits_0_when_a_rebase_only_adds_a_sibling_case_below_the_helper_a_frozen_ts_case_calls_4868(
+        tmp_path, run_cli, tests_frozen, based):
+    earlier, current = "step one adds case a", "step two adds nothing"
+    suite = tmp_path / TS_SUITE
+    suite.write_text(TS_HELPER + "describe(\"d\", () => {\n" + TS_CASE + "});\n")
+    run_cli(tests_frozen, ["record", "--step", earlier, TS_SUITE], cwd=tmp_path)
+    (record,) = (tmp_path / ".tdd").glob("tests-frozen-*.record")
+    with record.open("a") as handle:
+        handle.write("helpers: %s\ta\t%s\n" % (TS_SUITE, tests_frozen._helper_digest(
+            suite.read_text(), tests_frozen._bodies_of(suite.read_text(), "a")[0])))
+    ledger = tmp_path / ".tdd/ledger.md"
+    ledger.write_text("- [x] %s\n- [ ] %s\n" % (earlier, current))
+    suite.write_text(TS_HELPER + "describe(\"d\", () => {\n" + TS_CASE + TS_SIBLING + "});\n")
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", current], cwd=tmp_path)
+
+    assert (code, out) == (0, "")
