@@ -184,7 +184,8 @@ def test_2380_a_leaf_whose_full_run_queues_on_the_lock_from_its_own_process_grou
 HANG_CLOCK = """\
 #!/bin/sh
 n=$(cat "$1/ticks" 2>/dev/null || echo 0)
-if [ -e "$1/../acquired" ]; then n=$((n + 1)); echo $n > "$1/ticks.tmp" && mv "$1/ticks.tmp" "$1/ticks"; fi
+set -- "$1" "$1/../legs-full.lock.wait-"*
+if [ -e "$1/../acquired" ] || [ -e "$2" ]; then n=$((n + 1)); echo $n > "$1/ticks.tmp" && mv "$1/ticks.tmp" "$1/ticks"; fi
 echo $n
 """
 
@@ -200,7 +201,7 @@ sys.exit(pytest_leg.main([]))
 """
 
 
-def run_hang_after_lock(tmp_path, startup_delay):
+def run_hang_after_lock(tmp_path, wait_ticks):
     work = tmp_path / "work"
     work.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=work, check=True)
@@ -223,9 +224,9 @@ def run_hang_after_lock(tmp_path, startup_delay):
                                 "VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1",
                                 "VERI_PYTEST_XDIST_IMPORTABLE": "1", "PYTHONDONTWRITEBYTECODE": "1"}) as ran:
         try:
-            while ran.poll() is None and not list(tmp_path.glob("legs-full.lock.wait-*")):
+            while ran.poll() is None and not (list(tmp_path.glob("legs-full.lock.wait-*"))
+                                              and int((state / "ticks").read_text() if (state / "ticks").exists() else 0) >= wait_ticks):
                 time.sleep(0.02)
-            time.sleep(startup_delay)
         finally:
             fcntl.flock(held, fcntl.LOCK_UN)
             held.close()
@@ -242,7 +243,7 @@ def test_2380_a_leaf_that_hangs_after_acquiring_the_full_suite_lock_is_still_kil
     assert (code, acquired) == (2, True), err
 
 
-@pytest.mark.process("supervise.sh runs a real leaf that waits past VERI_TIMEOUT on a lock the test releases, then hangs holding it")
+@pytest.mark.process("supervise.sh runs a real leaf that waits on a lock the test releases only once the injected clock passes VERI_TIMEOUT, then hangs holding it")
 @pytest.mark.timeout(60)
 def test_2717_a_leaf_slow_to_reach_the_full_suite_lock_past_the_hard_timeout_is_still_killed_stuck(tmp_path):
     code, acquired, err = run_hang_after_lock(tmp_path, 3)
