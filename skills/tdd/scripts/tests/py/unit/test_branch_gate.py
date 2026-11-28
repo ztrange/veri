@@ -120,7 +120,7 @@ def test_4030_under_local_it_runs_the_full_command_inside_the_full_suite_stage_r
     assert (code, out.splitlines()[-1]) == (0, "branch_suite=local")
     assert [(c[0], c[1]) for c in fake.calls] == [
         ("branch-suite.sh", ()), ("detect-test-command.sh", ("--tier", "all")),
-        ("event.sh", ("stage-start", "stage=full-suite")), ("detach-command.sh", ("start", "branch-full-12", "make", "test")),
+        ("event.sh", ("stage-start", "stage=full-suite")), ("detach-command.sh", ("start", "branch-full-12", "sh", "-c", "make test")),
         ("detach-command.sh", ("wait", "branch-full-12")),
         ("event.sh", ("stage-end", "stage=full-suite", "status=0", "secs=42")),
         ("full-tier-time.sh", ("--record", "42", FULL))]
@@ -252,3 +252,10 @@ def test_4030_an_inner_call_that_fails_stops_it_with_its_code_and_runs_nothing_l
 
     assert code == inner
     assert (fake.calls[-1][0], out.splitlines()[-1].startswith("stopped at opening " + script)) == (script, True)
+
+
+def test_4856_a_compound_full_command_starts_through_sh_c_so_and_and_never_reaches_the_tool(gate):
+    code, out, err, fake = gate({("detect-test-command.sh", None): (0, "make lint && make test\n")})
+
+    assert fake.call("detach-command.sh", "start")[1] == ("start", "branch-full-12", "sh", "-c",
+                                                          "make lint && make test")

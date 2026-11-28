@@ -3,7 +3,6 @@ two questions, the rebase, the regrade block, the rebased tip's suite when owed,
 refactor-owed list), made in one call (PRD 027.9, amended: it stops after RB7)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
-import shlex
 import sys
 
 import fused
@@ -145,7 +144,7 @@ def tip_suite(wt, n):
         raise fused.Stop("1", "rebased-tip-suite.sh printed " + (mode or "nothing"), 2)
     if mode == "local":
         full = fused.checked("1", fused.script("detect-test-command.sh"), "--tier", "all", cwd=wt).strip()
-        fused.checked("1", DETACH, "start", RUN % n, *shlex.split(full), cwd=wt)
+        fused.checked("1", DETACH, "start", RUN % n, "sh", "-c", full, cwd=wt)
     return mode
 
 

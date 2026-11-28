@@ -141,7 +141,7 @@ def test_4031_a_clean_rebase_regrades_runs_the_local_suite_checks_the_tree_pushe
         ("detach-command.sh", ("wait", "regrade-12")),
         ("git", ("status", "--porcelain", "--untracked-files=all")),
         ("rebased-tip-suite.sh", ()), ("detect-test-command.sh", ("--tier", "all")),
-        ("detach-command.sh", ("start", "rebased-full-12", "make", "test")),
+        ("detach-command.sh", ("start", "rebased-full-12", "sh", "-c", "make test")),
         ("detach-command.sh", ("wait", "rebased-full-12")),
         ("git", ("status", "--porcelain", "--untracked-files=all")), ("git", ("branch", "--show-current")),
         ("push-branch.sh", ("--force-with-lease=tdd/12-x:" + PRE,)),
@@ -484,3 +484,10 @@ def test_4390_once_the_regrade_wait_answered_no_record_is_left_so_the_next_call_
     prep(answers=answers)
 
     assert not (prep.wt / ".tdd" / "issue-12-pr-prepare-wait").exists()
+
+
+def test_4856_a_compound_full_command_on_the_rebased_tip_starts_through_sh_c_so_and_and_never_reaches_the_tool(prep):
+    code, out, err, fake = prep(fake=Fake({("detect-test-command.sh", None): (0, "make lint && make test\n")}))
+
+    starts = [c[1] for c in fake.calls if c[0] == "detach-command.sh" and c[1][:2] == ("start", "rebased-full-12")]
+    assert starts == [("start", "rebased-full-12", "sh", "-c", "make lint && make test")]

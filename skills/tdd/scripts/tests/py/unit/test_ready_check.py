@@ -540,7 +540,7 @@ def test_issue_4088_each_resolved_tier_runs_in_a_detached_worktree_of_the_defaul
     code, out, _ = run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
     lines = out.splitlines()
 
-    for tier, command in (("fast", ["make", "unit"]), ("all", ["make", "test"])):
+    for tier, command in (("fast", ["sh", "-c", "make unit"]), ("all", ["sh", "-c", "make test"])):
         wt = str(tmp_path / ".tdd" / f"ready-{tier}")
         assert any(row.startswith(f"ok    {tier} tier run") for row in lines), (tier, lines)
         added = [argv for argv, _ in calls_in(fake, "git worktree add") if wt in argv]
@@ -1217,3 +1217,18 @@ def test_issue_4570_the_pull_request_and_push_rows_accept_a_quoted_on_key(ready_
         answers[quote] = (ready_check.triggers_on("pull_request"), ready_check.triggers_on("push"))
 
     assert answers == {"\"": (True, True), "'": (True, True)}
+
+
+def test_4856_a_compound_tier_command_starts_through_sh_c_so_and_and_never_reaches_the_tool(ready_check, run_cli,
+                                                                                            fake_processes, tmp_path):
+    fake = fake_processes.answers(holding(**{"detect-test-command.sh --tier fast": (0, "make lint && make unit\n", ""),
+                                             "detect-test-command.sh --tier all": (0, "make lint && make test\n", "")}))
+    home = tmp_path / "scratch-home"
+    home.mkdir()
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "settings.json").write_text(json.dumps({"permissions": {"defaultMode": "bypassPermissions"}}))
+    run_cli(ready_check, [str(tmp_path)], env={"VERI_BASH_MAJOR": "5", "HOME": str(home)})
+
+    for tier, command in (("fast", "make lint && make unit"), ("all", "make lint && make test")):
+        starts = calls_in(fake, f"detach-command.sh start ready-{tier} ")
+        assert [argv[3:] for argv, _ in starts] == [["sh", "-c", command]], fake.calls
