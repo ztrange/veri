@@ -110,9 +110,14 @@ jobs:
       # pytest prints its slowest cases, so a slow run says which cases made it slow: the
       # job's time is decided by a few long cases at the end of the run, and the log
       # otherwise names none of them. Printing only; nothing reads it.
+      # VERI_PYTEST_KEEP_RUN_DIR=1 leaves the leg's veri-pytest-* run directory in place (#4855):
+      # removing its thousands of case directories after the last case was 8-13 s of the job's
+      # wall time, and the runner is discarded after the job anyway. A leg nested inside a case
+      # still cleans up, since hermetic_environment clears ambient VERI_*.
       - name: make test
         env:
           PYTEST_ADDOPTS: --durations=80 --durations-min=2
+          VERI_PYTEST_KEEP_RUN_DIR: "1"
         run: make test
 
       - name: save the bytecode cache
