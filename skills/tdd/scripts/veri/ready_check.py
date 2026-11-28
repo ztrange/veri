@@ -192,7 +192,7 @@ def tier_run_row(tier, command, wt, deadline, state):
         os.makedirs(os.path.join(wt, ".tdd"), exist_ok=True)
         with open(record_path(wt, tier), "w") as record:
             record.write(f"{time.time()!r}\n{tip}\n{command}\n")
-        subprocess.run([detach, "start", name, *shlex.split(command)], cwd=wt, capture_output=True, text=True)
+        subprocess.run([detach, "start", name, "sh", "-c", command], cwd=wt, capture_output=True, text=True)
     state[wt] = "started"
     bound = str(max(0, int(deadline - time.monotonic())))
     waited = subprocess.run([detach, "wait", name, bound], cwd=wt, capture_output=True, text=True)

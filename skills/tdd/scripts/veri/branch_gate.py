@@ -3,7 +3,6 @@ full run and, under `local`, that run and its recorded time (DRAFT-PR.md's openi
 (PRD 027.7)."""
 if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0] + "/pycache_prefix.py")
 import os
-import shlex
 import sys
 import time
 
@@ -67,7 +66,7 @@ def start(wt, n):
     full = fused.checked(WHERE, fused.script("detect-test-command.sh"), "--tier", "all", cwd=wt).strip()
     mark(wt, n, "stage-start", "stage=full-suite")
     began = int(time.time())
-    fused.checked(WHERE, DETACH, "start", RUN % n, *shlex.split(full), cwd=wt)
+    fused.checked(WHERE, DETACH, "start", RUN % n, "sh", "-c", full, cwd=wt)
     return {"full": full, "began": began}
 
 
