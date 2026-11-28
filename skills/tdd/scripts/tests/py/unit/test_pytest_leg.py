@@ -2133,3 +2133,18 @@ def test_4855_with_keep_run_dir_1_leaving_run_directory_leaves_it_and_a_file_pla
             f.write("x")
 
     assert (run.startswith(str(tmp_path)), os.path.exists(planted), os.path.exists(run)) == (True, True, True)
+
+
+def test_4855_with_keep_run_dir_set_to_anything_but_1_leaving_run_directory_still_removes_it(pytest_leg, monkeypatch, tmp_path):
+    import tempfile
+    monkeypatch.setenv("VERI_PYTEST_KEEP_RUN_DIR", "yes")
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    monkeypatch.setattr(sys, "pycache_prefix", None)
+
+    with pytest_leg.run_directory() as run:
+        planted = os.path.join(run, "base", "case0", "left.txt")
+        os.makedirs(os.path.dirname(planted))
+        with open(planted, "w") as f:
+            f.write("x")
+
+    assert (run.startswith(str(tmp_path)), os.path.exists(planted), os.path.exists(run)) == (True, False, False)
