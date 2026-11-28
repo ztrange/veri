@@ -4,4 +4,4 @@
 - [x] the 13 kept cases read `GRADED` and `REQUIREMENTS.md` directly in `tests/py/unit/test_prose_units_signed.py`, with no prose-owed run and no `process` or `tree_audit` mark ⟦criterion 3⟧
 - [x] `test_2307` and `test_prose_owed_repo_audit_process.py` are deleted, and `specs/prd-024.md` MV8 names the new file ⟦criterion 2⟧
 - [x] no case under `tests/py/` runs `prose-owed.sh` against the repository itself ⟦criterion 1⟧
-- [ ] `prose-owed.sh .` exits 0 and the full `make test` is green ⟦full-suite⟧ ⟦criterion 5⟧
+- [x] `prose-owed.sh .` exits 0 and the full `make test` is green ⟦full-suite⟧ ⟦criterion 5⟧
