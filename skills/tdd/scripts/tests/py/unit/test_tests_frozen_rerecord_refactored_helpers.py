@@ -1194,3 +1194,25 @@ def test_rerecord_refactored_re_records_a_case_whose_record_holds_the_non_transi
     checked = run_cli(tests_frozen, ["check-earlier", PLAN_LEDGER, "--step", STEPS[2]], cwd=tmp_path)[:2]
 
     assert (code, _skip_lines(err, GO_SUITE + " TestX"), checked) == (0, 0, (0, ""))
+
+
+ABOVE_CLASS = ("def helper():\n    assert 1 == 1\n\n\nclass TestA:\n    def test_a(self):\n        helper()\n"
+               "        assert 2 == 2\n\n\ndef other():\n    assert 3 == 3\n")
+
+
+def test_rerecord_refactored_takes_a_helpers_digest_from_before_4868_that_ran_on_through_the_class_below_as_greens_4868(
+        tmp_path, run_cli, tests_frozen, monkeypatch, fed_commits):
+    """The helper above TestA once ran on to `def other`, through test_a's own assertion: a record holding that digest
+    is green's, not a reason to skip."""
+    repo = _plan_repo(tmp_path, monkeypatch, fed_commits)
+
+    def unscoped_helpers():
+        with _record_of(tmp_path).open("a") as handle:
+            handle.write("helpers: %s\ttest_a\t%s\n" % (ROOT_SUITE, tests_frozen.body_digest("assert1==1\nassert2==2")))
+
+    green = _refactored(tmp_path, run_cli, tests_frozen, repo, ROOT_SUITE, ABOVE_CLASS, ABOVE_CLASS + "\n# tidied\n",
+                        edit_record=unscoped_helpers)
+
+    err = run_cli(tests_frozen, ["rerecord-refactored", PLAN_LEDGER, green], cwd=tmp_path)[2]
+
+    assert _skip_lines(err, "%s test_a" % ROOT_SUITE) == 0

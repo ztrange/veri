@@ -124,3 +124,22 @@ def test_check_earlier_exits_1_naming_the_case_when_an_assertion_is_deleted_from
     code, out, _ = run_cli(tests_frozen, argv, cwd=tmp_path)
 
     assert (first, code, "test_a" in out) == (0, 1, True)
+
+
+ABOVE_CLASS = ("def helper():\n    assert 1 == 1\n\n\nclass TestA:\n    def test_a(self):\n        helper()\n"
+               "        assert 2 == 2\n\n\ndef other():\n    assert 3 == 3\n")
+
+
+def test_check_earlier_accepts_an_unscoped_helpers_digest_and_re_records_it_to_the_scoped_one_4868(
+        tmp_path, run_cli, tests_frozen, based):
+    """The helper above TestA once ran on to `def other`, through test_a's own assertion: that digest is accepted over
+    the unchanged file and re-recorded to the scoped one, which ends the helper at test_a's head."""
+    record, ledger = _legacy_recorded(tmp_path, run_cli, tests_frozen, ABOVE_CLASS)
+    unscoped = tests_frozen.body_digest("assert1==1\nassert2==2")
+    kept = [line for line in record.read_text().splitlines(keepends=True) if not line.startswith("helpers:")]
+    record.write_text("".join(kept) + "helpers: %s\ttest_a\t%s\n" % (SUITE, unscoped))
+
+    code, out, _ = run_cli(tests_frozen, ["check-earlier", str(ledger), "--step", CURRENT], cwd=tmp_path)
+    held = [line.split("\t")[-1] for line in record.read_text().splitlines() if line.startswith("helpers: ")]
+
+    assert (code, out, held) == (0, "", [tests_frozen.body_digest("assert1==1")])

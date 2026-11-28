@@ -20,17 +20,20 @@ Interface (a function says what it touches: text only, the tree's files, or case
   bodies_of(text, case)                   every body of the cases named `case` in test source `text`, in file
                                           order; [] when none. Text only; UnclosedCase from case_reader.cut_cases
                                           when a JS call never closes.
-  helpers_in(text, body, legacy=False, transitive=True)
+  helpers_in(text, body, legacy=False, transitive=True, scoped=True)
                                           the definitions in `text` (python def, Go func, JS function or arrow
                                           const) that `body` calls by name, each from its head to the next
-                                          column-0 definition keyword; a python `test*` def and a Go `Test*` func
+                                          column-0 definition keyword, cut at the first case head after its own
+                                          lines, so a case added below it, in a describe or a test class, changes
+                                          nothing (#4868); `scoped=False` is the uncut formula records before it
+                                          were written with. A python `test*` def and a Go `Test*` func
                                           are never helpers. `transitive` also follows the calls the helpers
                                           make, each helper once by name, so a recursive helper or a pair calling
                                           each other ends the walk (#4642); `transitive=False` is the formula
                                           records before it were written with. `legacy` ends a definition only at
                                           `func` and is never transitive, the formula older records were written
-                                          with. "" when none. Text only.
-  helper_digest(text, body, legacy=False, transitive=True)
+                                          with, and never cut. "" when none. Text only.
+  helper_digest(text, body, legacy=False, transitive=True, scoped=True)
                                           the body digest of the sorted assertion lines of helpers_in. Text only.
   root_variants(body)                     `body`, then `body` with each `parents[N]` rewritten to depth 0..9. Text only.
   as_recorded(body, digests)              the first of root_variants(body) whose digest is in `digests`, else
@@ -56,14 +59,14 @@ Interface (a function says what it touches: text only, the tree's files, or case
   changed_by_refactor(name, case)         True when the newest commit that changed `case` in `name` has a subject
                                           starting "refactor:". False when `case` is not at HEAD, was never changed,
                                           or the history cannot be read (OSError). Asks case_history.
-  called_helpers(rev, name, body, transitive=True)
+  called_helpers(rev, name, body, transitive=True, scoped=True)
                                           helpers_in of the file `name` at `rev` (read quietly), then, for a Go
                                           `_test.go` file only, of every other `_test.go` file in its directory at
                                           `rev` (one package, one namespace), each name taken once, the case's own file
                                           first. A Python or JS case never reads a sibling test file: its helper may be
                                           imported from anywhere, and a sibling's same-named one is not it. "" when git
                                           can show none of them. Asks case_history.
-  helper_digest_beside(name, text, body, transitive=True)
+  helper_digest_beside(name, text, body, transitive=True, scoped=True)
                                           helper_digest over `text` (the file `name`) plus, for a Go `_test.go` file,
                                           the tree's other `_test.go` files in its directory, each name taken once,
                                           `text` first: the digest called_helpers' definitions give. Reads the tree's
@@ -113,14 +116,14 @@ _HELPER_NAME = (r"^(?:(?:function|func|def)\s+(?:\([^)]*\)\s*)?(\w+)"
                 r"|const\s+(\w+)\s*=\s*(?:async\s*)?(?:\([^)]*\)|\w+)\s*=>)")
 
 
-def _named_helpers(text, body, legacy=False):
+def _named_helpers(text, body, legacy=False, scoped=True):
     """(name, definition) of each helper in `text` that `body` calls, in file order."""
     helpers = []
     stop = r"func" if legacy else r"(?:function|func|def|const)"
     rest = re.compile(r"(?:(?!%s\b).*\n?)*" % stop)
     for head in re.finditer(_HELPER_NAME + r"[^\n]*\n", text, re.M):
         definition = head.group() + rest.match(text, head.end()).group()
-        definition = definition if legacy else _scoped(definition)
+        definition = _scoped(definition) if scoped and not legacy else definition
         name = head.group(1) or head.group(2)
         keyword = definition.split(None, 1)[0]
         collected = (keyword == "def" and name.startswith("test")) or (keyword == "func" and name.startswith("Test"))
@@ -147,14 +150,14 @@ def _own_lines(definition):
     return definition
 
 
-def _walk(texts, body):
+def _walk(texts, body, scoped=True):
     """The definitions of every helper `body` calls in `texts`, directly or through another helper it calls: each
     helper once, by name (a visited set, so a helper that calls itself or a pair calling each other ends the walk)."""
     seen, found, pending = set(), [], [body]
     while pending:
         calling = pending.pop()
         for text in texts:
-            for name, definition in _named_helpers(text, calling):
+            for name, definition in _named_helpers(text, calling, scoped=scoped):
                 if name not in seen:
                     seen.add(name)
                     found.append(definition)
@@ -162,14 +165,14 @@ def _walk(texts, body):
     return found
 
 
-def helpers_in(text, body, legacy=False, transitive=True):
+def helpers_in(text, body, legacy=False, transitive=True, scoped=True):
     if transitive and not legacy:
-        return "\n".join(_walk([text], body))
-    return "\n".join(definition for _, definition in _named_helpers(text, body, legacy))
+        return "\n".join(_walk([text], body, scoped))
+    return "\n".join(definition for _, definition in _named_helpers(text, body, legacy, scoped))
 
 
-def helper_digest(text, body, legacy=False, transitive=True):
-    return body_digest("\n".join(sorted(assertion_lines(helpers_in(text, body, legacy, transitive)))))
+def helper_digest(text, body, legacy=False, transitive=True, scoped=True):
+    return body_digest("\n".join(sorted(assertion_lines(helpers_in(text, body, legacy, transitive, scoped)))))
 
 
 def root_variants(body):
@@ -249,21 +252,22 @@ def _go_siblings(name, paths):
     return [path for path in paths if path != os.path.normpath(name) and path.endswith("_test.go")]
 
 
-def _first_named(texts, body, transitive=True):
+def _first_named(texts, body, transitive=True, scoped=True):
     if transitive:
-        return "\n".join(_walk(texts, body))
+        return "\n".join(_walk(texts, body, scoped))
     seen, helpers = set(), []
     for text in texts:
-        for helper, definition in _named_helpers(text, body):
+        for helper, definition in _named_helpers(text, body, scoped=scoped):
             if helper not in seen:
                 seen.add(helper)
                 helpers.append(definition)
     return "\n".join(helpers)
 
 
-def called_helpers(rev, name, body, transitive=True):
+def called_helpers(rev, name, body, transitive=True, scoped=True):
     siblings = _go_siblings(name, case_history.paths_at(rev, os.path.dirname(name)))
-    return _first_named([case_history.text_at(rev, path, quiet=True) for path in [name] + siblings], body, transitive)
+    texts = [case_history.text_at(rev, path, quiet=True) for path in [name] + siblings]
+    return _first_named(texts, body, transitive, scoped)
 
 
 def _tree_text(path):
@@ -274,9 +278,9 @@ def _tree_text(path):
         return ""
 
 
-def helper_digest_beside(name, text, body, transitive=True):
+def helper_digest_beside(name, text, body, transitive=True, scoped=True):
     directory = os.path.dirname(name)
     listed = sorted(os.path.normpath(os.path.join(directory, f)) for f in os.listdir(directory or "."))
     siblings = _go_siblings(os.path.normpath(name), listed)
-    helpers = _first_named([text] + [_tree_text(path) for path in siblings], body, transitive)
+    helpers = _first_named([text] + [_tree_text(path) for path in siblings], body, transitive, scoped)
     return body_digest("\n".join(sorted(assertion_lines(helpers))))
