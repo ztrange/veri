@@ -550,7 +550,10 @@ def _main(argv):
             full_lock = None
         if held_run:
             remove_scratch_mirror(sys.pycache_prefix, held_run)
-            shutil.rmtree(held_run, ignore_errors=True)
+            # VERI_PYTEST_KEEP_RUN_DIR=1 leaves the run tree too: this serial rmtree, not run_directory's, was the
+            # 19.5 s CI still gapped after #4863 (#4855).
+            if tunables.get("VERI_PYTEST_KEEP_RUN_DIR") != "1":
+                shutil.rmtree(held_run, ignore_errors=True)
 
     watch = idle_watch.Watch(int(idle), os.dup(2))
     watch.cleanups.append(leg_cleanup)

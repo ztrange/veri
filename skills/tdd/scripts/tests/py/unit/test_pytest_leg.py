@@ -2164,3 +2164,29 @@ def test_4855_with_keep_run_dir_1_leaving_run_directory_still_removes_its_byteco
         os.makedirs(mirror)
 
     assert os.path.exists(mirror) is False
+
+
+def test_4855_with_keep_run_dir_1_the_leg_leaves_its_run_directory_in_place_after_main_returns(pytest_leg, run_cli, monkeypatch, tmp_path):
+    import tempfile
+
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    monkeypatch.setenv("TMPDIR", str(tmp_path))
+    monkeypatch.setattr(sys, "pycache_prefix", None)
+    planted = []
+
+    def spy(args):
+        base = next(arg for arg in args if arg.startswith("--basetemp="))[len("--basetemp="):]
+        path = os.path.join(base, "case0", "left.txt")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write("x")
+        planted.append(path)
+        return pytest.ExitCode.OK
+
+    monkeypatch.setattr(pytest, "main", spy)
+    env = {"VERI_PYTEST_IMPORTABLE": "1", "VERI_PYTEST_TIMEOUT_IMPORTABLE": "1", "VERI_PYTEST_XDIST_IMPORTABLE": "1",
+           "VERI_PYTEST_WORKERS": "1", "VERI_PYTEST_KEEP_RUN_DIR": "1"}
+    code = run_cli(pytest_leg, [], env=env)[0]
+
+    run = os.path.dirname(os.path.dirname(os.path.dirname(planted[0])))
+    assert (code, run.startswith(str(tmp_path)), os.path.exists(planted[0]), os.path.isdir(run)) == (0, True, True, True)
