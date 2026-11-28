@@ -2190,3 +2190,29 @@ def test_4855_with_keep_run_dir_1_the_leg_leaves_its_run_directory_in_place_afte
 
     run = os.path.dirname(os.path.dirname(os.path.dirname(planted[0])))
     assert (code, run.startswith(str(tmp_path)), os.path.exists(planted[0]), os.path.isdir(run)) == (0, True, True, True)
+
+
+def test_4855_with_keep_run_dir_1_main_still_releases_the_full_run_lock_and_removes_the_scratch_mirror(pytest_leg, monkeypatch, tmp_path):
+    import tempfile
+
+    (tmp_path / "runs").mkdir()
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    mirrors = []
+
+    def spy(args):
+        run = os.path.dirname(next(arg for arg in args if arg.startswith("--basetemp="))[len("--basetemp="):])
+        mirror = _mirror_of(prefix, run)
+        (mirror / "base").mkdir(parents=True, exist_ok=True)
+        (mirror / "base" / "scratch_module.cpython-312.pyc").write_bytes(b"x")
+        mirrors.append(mirror)
+        return pytest.ExitCode.OK
+
+    in_process_leg(pytest_leg, monkeypatch, spy)
+    monkeypatch.setenv("VERI_PYTEST_KEEP_RUN_DIR", "1")
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path / "runs"))
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+
+    assert pytest_leg.main(["some/dir"]) == 0
+    assert mirrors and [mirror.exists() for mirror in mirrors] == [False] * len(mirrors)
+    assert "pid" not in open(importlib.import_module("veri.full_run_lock").path()).read()
