@@ -31,12 +31,14 @@ def detached(tmp_path, monkeypatch):
 
 
 @pytest.mark.process("the real detach-command.sh, starting and waiting on a detached sh")
-def test_a_tier_command_of_several_words_is_run_by_the_real_detach_command_and_its_output_is_recorded(tmp_path, detached):
-    code = detached("probe", "sh -c 'echo two words'")
+def test_a_compound_tier_command_is_run_by_the_real_detach_command_through_a_shell_and_its_output_is_recorded_4856(
+        tmp_path, detached):
+    code = detached("probe", "echo two words && echo more")
 
     tdd = tmp_path / ".tdd"
-    assert (code, (tdd / "probe.exit").read_text().strip(), (tdd / "probe.out").read_text()) == (0, "0", "two words\n")
-    assert detached.seen[0] == ("detach-command.sh", "start", "probe", "sh", "-c", "echo two words")
+    assert (code, (tdd / "probe.exit").read_text().strip(), (tdd / "probe.out").read_text()) == (0, "0",
+                                                                                                 "two words\nmore\n")
+    assert detached.seen[0] == ("detach-command.sh", "start", "probe", "sh", "-c", "echo two words && echo more")
 
 
 @pytest.mark.process("the real detach-command.sh, starting and waiting on a detached sh that fails")
