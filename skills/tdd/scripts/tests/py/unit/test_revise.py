@@ -355,7 +355,7 @@ def _red(revise):
 
 def test_red_restores_production_gates_the_prediction_and_on_pass_records_and_resaves_red_halfs_wait(revise):
     """PRD 038.9 criteria 1, 4, 5: REVISE.md sub-steps 3-5 for red, red-half's record not needed. The test checked,
-    recorded and saved is develop-red.out's (RED_REPORT's tests/test_b.py), not the revise report's, which names none."""
+    recorded and saved is RED_REPORT's tests/test_b.py, which develop-red.out and the revise report both name."""
     _red(revise)
     code, out, err, fake = revise(fake=Fake({("red-divergence.sh", None): (3, "")}, report=RED_REPORT),
                                   argv=("12", "red"), missing=("red-half",))
@@ -1067,8 +1067,8 @@ def test_4497_red_attempt_2_takes_the_test_path_from_develop_red_out_when_revise
 
 
 def test_4497_a_matched_revised_red_verifies_and_records_develop_red_outs_test_when_its_report_names_none(revise):
-    """REVISE.md sub-steps 4-5: verdict-red, tests-frozen.sh and the wait record take red's own report's test, since a
-    revise report never carries TEST_PATH: or TARGET_TEST:."""
+    """REVISE.md sub-steps 4-5: verdict-red, tests-frozen.sh and the wait record take red's own report's test when the
+    revise report carries neither TEST_PATH: nor TARGET_TEST:."""
     (revise.wt / ".tdd" / "issue-12-red-half-rejected-wait").write_text(
         json.dumps({"conductor": None, "at": "verdict-red", "values": RED_VALUES, "step": STEP}))
     (revise.wt / ".tdd" / "develop-red.out").write_text(
