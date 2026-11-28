@@ -363,11 +363,15 @@ def clear_case_directories(base):
         list(pool.map(remove, children))
 
 
-@contextlib.contextmanager
-def run_directory():
+def keep_run_dir():
     # VERI_PYTEST_KEEP_RUN_DIR=1 leaves the run directory in place: CI's runner is discarded after the job, and the
     # removal was 8-13 s of its wall time (#4855). The bytecode mirror still goes, since CI saves the prefix as a cache.
-    if tunables.get("VERI_PYTEST_KEEP_RUN_DIR") == "1":
+    return tunables.get("VERI_PYTEST_KEEP_RUN_DIR") == "1"
+
+
+@contextlib.contextmanager
+def run_directory():
+    if keep_run_dir():
         run = tempfile.mkdtemp(prefix="veri-pytest-")
         try:
             yield run
@@ -552,7 +556,7 @@ def _main(argv):
             remove_scratch_mirror(sys.pycache_prefix, held_run)
             # VERI_PYTEST_KEEP_RUN_DIR=1 leaves the run tree too: this serial rmtree, not run_directory's, was the
             # 19.5 s CI still gapped after #4863 (#4855).
-            if tunables.get("VERI_PYTEST_KEEP_RUN_DIR") != "1":
+            if not keep_run_dir():
                 shutil.rmtree(held_run, ignore_errors=True)
 
     watch = idle_watch.Watch(int(idle), os.dup(2))
