@@ -3,6 +3,7 @@ if __name__ == "__main__": __import__("runpy").run_path(__import__("sys").path[0
 import collections
 import difflib
 import hashlib
+import itertools
 import os
 import re
 import sys
@@ -207,7 +208,11 @@ def _helpers_stale(releg, name, case, recorded, text, body, at):
     if recorded in (case_identity.helper_digest(text, body, transitive=False),
                     case_identity.helper_digest_beside(at, text, body, transitive=False)):
         return False
-    if recorded != case_identity.helper_digest(text, body, legacy=True):
+    # A record from before #4868 holds a digest over helpers that ran on through the cases below them.
+    unscoped = {digest for transitive in (True, False) for digest in (
+        case_identity.helper_digest(text, body, transitive=transitive, scoped=False),
+        case_identity.helper_digest_beside(at, text, body, transitive=transitive, scoped=False))}
+    if recorded not in unscoped and recorded != case_identity.helper_digest(text, body, legacy=True):
         return True
     releg[(name, case)] = current
     return False
@@ -506,10 +511,10 @@ def rerecord_refactored(ledger, green):
         # over its file plus its sibling _test.go files this command writes below (#4606): either one matching green
         # is green's. Accepting only the first would skip a case a later step's refactor edits again.
         green_helpers = set()
-        for transitive in (True, False):
-            green_helpers.add(case_identity.helper_digest(green_text, verified, transitive=transitive))
+        for transitive, scoped in itertools.product((True, False), (True, False)):
+            green_helpers.add(case_identity.helper_digest(green_text, verified, transitive=transitive, scoped=scoped))
             green_helpers.add(body_digest("\n".join(sorted(case_identity.assertion_lines(
-                case_identity.called_helpers(green, name, verified, transitive))))))
+                case_identity.called_helpers(green, name, verified, transitive, scoped))))))
         if (digest != body_digest(head) or digest == body_digest(verified)) and recorded_helpers.get(
                 (name, case), next(iter(green_helpers))) not in green_helpers:
             return skip(name, case, record, "helpers digest differs from green's")
