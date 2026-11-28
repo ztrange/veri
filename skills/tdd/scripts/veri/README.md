@@ -269,6 +269,7 @@ Every key of `TUNABLES`, its `default(name)` (`""` is the empty string, after wh
 | `VERI_PROFILE_THRESHOLD` | `1` | its readers' own words |
 | `VERI_PYCACHE` | "" | its readers' own words |
 | `VERI_PYTEST_IDLE` | `1200` | its readers' own words |
+| `VERI_PYTEST_KEEP_RUN_DIR` | `0` | 0 or 1 |
 | `VERI_PYTEST_LEGS` | "" | its readers' own words |
 | `VERI_PYTEST_TERM_GRACE` | `5` | its readers' own words |
 | `VERI_PYTEST_WAITERS` | "" | its readers' own words |
