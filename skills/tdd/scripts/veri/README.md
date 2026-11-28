@@ -93,6 +93,7 @@ What every module stands on: the one `__main__` path and exit contract, script p
 ## case_reader
 - `is_test_file(name)`, `is_test_path(path)`, `is_go_test_file(name)`, `is_js_test_file(name, root="")`: whether a name or path is a Python, Go or JavaScript test file (bool). `JS_EXT`: the regex source matching a JavaScript or TypeScript file's extension.
 - `cut_cases(text)`: `[(case name, source)]` of a test source, a JS case cut at its call's closing paren past its strings, comments and regex literals (a `/` after a name other than `return`, a number, `)` or `]`, or with no closing `/` on its line, divides); raises `UnclosedCase` when a JS call never closes.
+- `CASE_HEAD`: the compiled pattern of a case's head line (a Python `test*` def, a Go `Test*` func, a JS `it(`/`test(` call with its title), indented or not; `case_identity` ends a helper at the first one after its own lines.
 - `old_cut_cases_all(text, call_form_only=False)`: the earlier cutter, kept for comparing old and new records.
 - `defined_name(case, text, py_file, go_file)`: the def a case name resolves to, `None` if none. `defines_helper(name, text, py_file, go_file)`: bool.
 - `live_titles(case, text)`: the titles in `text` that match a JS case, ignoring comments. `js_title_pattern(case)`: that compiled pattern.

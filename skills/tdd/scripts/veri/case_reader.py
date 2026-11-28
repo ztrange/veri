@@ -41,7 +41,7 @@ def is_js_test_file(name, root=""):
     return in_tests and re.search(JS_EXT, name) is not None
 
 
-_CASE = re.compile(
+CASE_HEAD = _CASE = re.compile(
     r"^\s*(?:(?:async\s+)?def\s+(?=test)|func\s+(?=Test))(\w+)|^\s*" + CALL + r"([\"'`])((?:\\.|.)+?)\2", re.M)
 
 
