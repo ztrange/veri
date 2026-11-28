@@ -100,7 +100,8 @@ def carry_pin_reason(wt):
 
 def start(n, wt, step, phase, k):
     """The values the rejected verifier judged: red's from the report it judged (`.tdd/develop-red.out`, at every
-    attempt: the revise report names neither key), since red-half writes its record only after a PASS; green's from
+    attempt; `checks` takes a revise report's TEST_PATH: and TARGET_TEST: when it names both), since red-half writes
+    its record only after a PASS; green's from
     red-half's record, and refactor's from refactor-half's rejected record, the only place its wait values survive
     (exit 2 without one).
     Green and refactor return None, the seam line printed, when no red-half record names the step (PRD 038.1 SC4)."""
@@ -185,9 +186,12 @@ def checks(n, wt, settled, step, values):
     the re-verify is launched (its leaf, or SKIPPED)."""
     routed(wt, values)
     if values["phase"] == "red":
-        got = fused.report("4", wt, ".tdd/revise-red-%d.out" % values["k"], "AGAINST_UNMODIFIED", "COVERING_TESTS")
+        got = fused.report("4", wt, ".tdd/revise-red-%d.out" % values["k"], "AGAINST_UNMODIFIED", "COVERING_TESTS",
+                           "TEST_PATH", "TARGET_TEST")
         if wrote_no_test(values) and got["AGAINST_UNMODIFIED"] != "HOLDS":
             values.update(written(wt, values["k"]))
+        elif all(got[key] and got[key] != "NONE" for key in ("TEST_PATH", "TARGET_TEST")):
+            values.update(test_path=got["TEST_PATH"], target_test=got["TARGET_TEST"])  # the leaf moved the case
         if passes_unmodified(got["AGAINST_UNMODIFIED"]):
             return verify(n, wt, settled, step, values, "pin")
         if got["AGAINST_UNMODIFIED"] == "HOLDS":
@@ -302,9 +306,10 @@ UNMATCHED = {1: "REASON: prediction not written before the run\n",
 
 
 def red_checks(n, wt, settled, step, values):
-    """Red's sub-step 4: the revised report's prediction gated, the test kept from `.tdd/develop-red.out` (the revise
-    report names neither key); exit 3 (matched) re-verifies, any other exit spends the attempt, exit 0 or 2 (a
-    divergence, or no readable prediction) marked `prediction-diverged` with its tree preserved, best-effort (RVS4)."""
+    """Red's sub-step 4: the revised report's prediction gated, the test kept from `.tdd/develop-red.out` unless the
+    revise report names its own TEST_PATH: and TARGET_TEST:; exit 3 (matched) re-verifies, any other exit spends the
+    attempt, exit 0 or 2 (a divergence, or no readable prediction) marked `prediction-diverged` with its tree
+    preserved, best-effort (RVS4)."""
     out = ".tdd/revise-red-%d.out" % values["k"]
     gate = fused.call(fused.script("red-divergence.sh"), ".tdd/red-prediction.md", ".tdd/red-run-output.txt", cwd=wt,
                       stdin=read(wt, out), out=".tdd/verify-red.reason")[0]

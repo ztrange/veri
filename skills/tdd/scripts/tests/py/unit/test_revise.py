@@ -1088,6 +1088,30 @@ def test_4497_a_matched_revised_red_verifies_and_records_develop_red_outs_test_w
         "tests/test_a.py", "tests/test_a.py::test_one")
 
 
+def test_a_revised_red_whose_report_names_its_moved_case_verifies_records_and_saves_that_id_4870(revise):
+    """#4870 criterion 5: a revise leaf that hoisted the `it` out of its `describe` reports the moved case's
+    TEST_PATH: and TARGET_TEST:, so verdict-red, tests-frozen.sh record --red-case and red-half's wait record take that
+    id, not develop-red.out's stale one."""
+    (revise.wt / ".tdd" / "issue-12-red-half-rejected-wait").write_text(
+        json.dumps({"conductor": None, "at": "verdict-red", "values": RED_VALUES, "step": STEP}))
+    (revise.wt / ".tdd" / "develop-red.out").write_text(
+        "TEST_PATH: src/a.test.ts\nTARGET_TEST: src/a.test.ts::outer > returns empty\nAGAINST_UNMODIFIED: FAILS\n")
+    (revise.wt / ".tdd" / "revise-red-1.out").write_text(
+        "OUTCOME: REWRITTEN\nTEST_PATH: src/a.test.ts\nTARGET_TEST: src/a.test.ts::returns empty\n"
+        "AGAINST_UNMODIFIED: FAILS\nPREDICTION: AssertionError\n")
+    (revise.wt / ".tdd" / "verify-red.reason").write_text(REASON)
+    code, out, err, fake = revise(fake=Echo({("red-divergence.sh", None): (3, "")}), argv=("12", "red"),
+                                  missing=("red-half",))
+
+    assert code == 0, out
+    verdict = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
+    assert _short(verdict[1])[-2:] == ("src/a.test.ts", "src/a.test.ts::returns empty")
+    assert fake.call("tests-frozen.sh", "record")[1][-2:] == ("src/a.test.ts::returns empty", "src/a.test.ts")
+    record = json.loads((revise.wt / ".tdd" / "issue-12-red-half-wait").read_text())
+    assert (record["values"]["test_path"], record["values"]["target_test"]) == (
+        "src/a.test.ts", "src/a.test.ts::returns empty")
+
+
 @pytest.mark.parametrize("phase", ["red", "green", "refactor"])
 def test_4500_with_no_veri_issue_exported_it_builds_the_revise_prompt_with_the_runs_issue_and_step_and_launches(
         revise, phase):
