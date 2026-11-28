@@ -1138,6 +1138,11 @@ def test_a_revised_red_whose_report_names_test_path_and_target_test_none_keeps_d
     _revised_red_keeps_develop_red_outs_case(revise, "TEST_PATH: NONE\nTARGET_TEST: NONE\n")
 
 
+def test_a_revised_red_whose_report_names_only_target_test_keeps_develop_red_outs_pair_4870(revise):
+    """#4870 criterion 5: a report naming one key of the pair is no moved case, so develop-red.out's pair stands."""
+    _revised_red_keeps_develop_red_outs_case(revise, "TARGET_TEST: src/a.test.ts::returns empty\n")
+
+
 @pytest.mark.parametrize("phase", ["red", "green", "refactor"])
 def test_4500_with_no_veri_issue_exported_it_builds_the_revise_prompt_with_the_runs_issue_and_step_and_launches(
         revise, phase):
