@@ -219,6 +219,7 @@ TUNABLES = {
     "VERI_PYTEST_TERM_GRACE": Tunable(text, "5"),
     "VERI_PYTEST_LEGS": Tunable(text, ""),
     "VERI_PYTEST_WAITERS": Tunable(text, ""),
+    "VERI_PYTEST_KEEP_RUN_DIR": Tunable(choice("0", "1"), "0"),
     "VERI_TEST_CEILING_FILE": Tunable(text, ""),
     "VERI_TEST_CAP_FILE": Tunable(text, ""),
     "VERI_TEST_LOAD_FILE": Tunable(text, ""),
