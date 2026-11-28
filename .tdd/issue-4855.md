@@ -4,3 +4,4 @@
 - [x] with VERI_PYTEST_KEEP_RUN_DIR=1, leaving run_directory() leaves the run directory and a file planted under its base/ in place, the knob declared in TUNABLES as choice("0", "1") defaulting to 0 ⟦criterion 1⟧ ⟦criterion 2⟧ ⟦criterion 5⟧
 - [x] ci.yml's make test step sets VERI_PYTEST_KEEP_RUN_DIR: "1", every job keeping timeout-minutes and ubuntu-latest ⟦criterion 6⟧
 - [x] tests/py/README.md's The pytest leg states the knob, regraded, prose-owed.sh exits 0 ⟦criterion 7⟧
+- [ ] with VERI_PYTEST_KEEP_RUN_DIR=1, main()'s leg_cleanup leaves the run directory in place, the full-run lock still released and the scratch bytecode mirror still removed; unset, it removes the run directory as today ⟦criterion 8⟧
