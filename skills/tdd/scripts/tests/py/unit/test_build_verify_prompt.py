@@ -804,7 +804,7 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         "suite-repair": (0, True, False),
         "replaces-case unreadable": (2, b"", True, [0]),
         "suite-repair unreadable": (2, b"", True, [0, 0]),
-        "#671 byte-identity": [(0, "248102427 11512"), (0, "968150011 11236")],
+        "#671 byte-identity": [(0, "255723997 11635"), (0, "3694738260 11359")],
         "#703 include": (0, f"before outer inner judges {testpath} end after\n".encode(), b"", True),
         "#703 missing partial": (2, b"", True),
         "#703 self-including partial": (2, b"", True),
@@ -1559,7 +1559,7 @@ def test_main_omits_a_checked_later_step_from_a_green_prompts_later_steps_and_re
     assert ("wibblet sorts" in green, "quuxlet nitzes" in green, "wibblet sorts" in red) == (True, False, False)
 
 
-def test_the_green_prompts_mutation_probe_line_names_the_fast_command_and_the_affected_suites_together_not_a_bare_suites_command_3041(
+def test_the_green_prompts_mutation_probe_line_runs_the_affected_suites_alone_never_the_fast_command_4859(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
     spec.write_bytes(b"# spec\n")
@@ -1569,7 +1569,7 @@ def test_the_green_prompts_mutation_probe_line_names_the_fast_command_and_the_af
 
     probe_lines = re.findall(r"mutation-probe\.sh <file> <old> <new> -- [^`]*`", prompt)
     assert len(probe_lines) == 1
-    assert "make unit-3041" in probe_lines[0]
+    assert "make unit-3041" not in probe_lines[0]
 
 
 def test_3104_supersede_base_that_is_not_lowercase_hex_exits_2_and_prints_no_prompt(
