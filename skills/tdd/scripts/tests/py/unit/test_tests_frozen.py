@@ -135,6 +135,19 @@ def test_record_accepts_a_red_case_qualified_by_two_nested_describes_4870(tmp_pa
     assert (result, (tmp_path / ".tdd" / "x.record").is_file()) == ((0, "", ""), True)
 
 
+@pytest.mark.parametrize("case", ["maps a > b::c", "outer > maps a > b::c"])
+def test_record_accepts_a_red_case_whose_it_title_holds_an_arrow_and_a_double_colon_bare_or_qualified_4870(
+        tmp_path, run_cli, tests_frozen, case):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "a.test.ts").write_text(
+        "describe('outer', () => {\n  it('maps a > b::c', () => {\n    expect(1).toBe(1)\n  })\n})\n")
+
+    result = run_cli(
+        tests_frozen, ["record", ".tdd/x.record", "--red-case", "a.test.ts::" + case, "a.test.ts"], cwd=tmp_path)
+
+    assert (result, (tmp_path / ".tdd" / "x.record").is_file()) == ((0, "", ""), True)
+
+
 def test_record_step_with_a_red_case_whose_test_file_is_gone_exits_1_naming_it_and_writes_no_record_2269(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "test_b.py").write_text("def test_b():\n    assert 1\n")
