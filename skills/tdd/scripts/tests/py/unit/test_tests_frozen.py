@@ -109,6 +109,19 @@ def test_record_with_a_red_case_still_present_records_exactly_as_without_it_2269
     assert (plain[0], withcase, recorded.get("case.record")) == (0, (0, "", ""), recorded["plain.record"])
 
 
+def test_record_accepts_a_red_case_qualified_by_its_enclosing_describe_and_writes_the_record_4870(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "a.test.ts").write_text(
+        "describe('outer', () => {\n  it('inner case', () => {\n    expect(1).toBe(1)\n  })\n})\n")
+
+    result = run_cli(
+        tests_frozen, ["record", ".tdd/x.record", "--red-case", "a.test.ts::outer > inner case", "a.test.ts"],
+        cwd=tmp_path)
+
+    assert (result, (tmp_path / ".tdd" / "x.record").is_file()) == ((0, "", ""), True)
+
+
 def test_record_step_with_a_red_case_whose_test_file_is_gone_exits_1_naming_it_and_writes_no_record_2269(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "test_b.py").write_text("def test_b():\n    assert 1\n")
