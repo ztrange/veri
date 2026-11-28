@@ -484,6 +484,34 @@ def test_3771_o_baseline_full_tier_reuse_starts_no_full_tier_run_records_nothing
     assert code == 0
 
 
+def test_4835_a_reused_full_tier_time_of_0_seconds_is_still_handed_to_leaf_timeout_as_reused(monkeypatch, run_cli, tmp_path):
+    import types
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    calls = []
+    now = [1000.0]
+    monkeypatch.setattr(preflight, "time", types.SimpleNamespace(monotonic=lambda: now[0]))
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        calls.append((base, args))
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, ("make unit\n" if args[1] == "fast" else "make test\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "reuse 0\n", ""
+        if base == "detach-command.sh" and args[0] == "wait":
+            now[0] += 7.2
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    code, _, _ = run_cli(preflight, ["12", "my-slug"])
+
+    assert (code, calls[-1]) == (0, ("leaf-timeout.sh", ("8", "--full", "0", "--reused")))
+
 def test_3771_p_empty_step_growth_stops_at_5_after_refactor_budget_issue_0_with_no_step_budget_call(monkeypatch, run_cli, tmp_path):
     import types
     preflight = importlib.import_module("veri.preflight")
