@@ -47,11 +47,12 @@ A developer agent has written the implementation intended to make the target tes
    per line, since the revise leaf fixes only what you name. Production code outside the
    step's criterion is rejected by asking for its removal, never by offering a test for it,
    and is not named on a `MISSING_TEST:` line. REJECT, too, when your own reason for a PASS
-   would name a guard, argument or clause whose removal turns no case of the fast tier plus
-   the `changed` run red. Establish each by a mutation of your own: remove the code through
-   `{{MUTATION_PROBE}} <file> <old> <new> -- <one command running {{FAST_CMD}} and the test files affected-suites.sh prints, together>`,
-   never those test files or one test file alone, so a branch only a fast-tier case
-   requires is not judged required by no test. It edits, runs the
+   would name a guard, argument or clause whose removal turns no case of the `changed` run
+   red. Establish each by a mutation of your own: remove the code through
+   `{{MUTATION_PROBE}} <file> <old> <new> -- <the command running the test files affected-suites.sh prints>`,
+   the `changed` tier only, never `{{FAST_CMD}}`. This probe is the one exception to the
+   coverage paragraph included in check 2 (`_verify-coverage-probe.md`): the probe runs the `changed` tier alone, while check 2's
+   runs on the unmutated tree still run the fast command and the `changed` tier. It edits, runs the
    command and restores the file; if it exits 1 (the suites stay green) nothing
    required the code, and an exit of 2 gives no verdict. If that probe exits 2 and its
    stderr names an allowed address domain, any email address in `<old>`/`<new>` must be on
