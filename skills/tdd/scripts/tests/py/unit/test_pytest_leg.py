@@ -2148,3 +2148,19 @@ def test_4855_with_keep_run_dir_set_to_anything_but_1_leaving_run_directory_stil
             f.write("x")
 
     assert (run.startswith(str(tmp_path)), os.path.exists(planted), os.path.exists(run)) == (True, False, False)
+
+
+def test_4855_with_keep_run_dir_1_leaving_run_directory_still_removes_its_bytecode_mirror(pytest_leg, monkeypatch, tmp_path):
+    import tempfile
+    prefix = tmp_path / "pycache"
+    prefix.mkdir()
+    (tmp_path / "runs").mkdir()
+    monkeypatch.setenv("VERI_PYTEST_KEEP_RUN_DIR", "1")
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path / "runs"))
+    monkeypatch.setattr(sys, "pycache_prefix", str(prefix))
+
+    with pytest_leg.run_directory() as run:
+        mirror = os.path.join(str(prefix), run.lstrip(os.sep))
+        os.makedirs(mirror)
+
+    assert os.path.exists(mirror) is False
