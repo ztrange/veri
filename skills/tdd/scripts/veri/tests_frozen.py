@@ -684,7 +684,7 @@ def _take_red_case(files):
     path, _, case = value.partition("::")
     try:
         with open(path, encoding="utf-8", errors="replace") as handle:
-            present = case in dict(cut_cases(handle.read()))
+            present = any(case == title or case.endswith(" > " + title) for title, _ in cut_cases(handle.read()))
     except FileNotFoundError:
         present = False
     if not present:
