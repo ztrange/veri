@@ -388,3 +388,17 @@ def test_helper_digest_of_a_js_case_ignores_a_sibling_case_added_below_its_helpe
     before, after, changed = (case_identity.helper_digest(text, body) for text in (JS_HELPER + JS_CASES, sibling, edited))
 
     assert (before == after, before == changed) == (True, False)
+
+
+CLASS_HELPER = 'def folios(t):\n    assert t is not None\n    return t.query("DEAL")\n\n\n'
+CLASS_CASES = 'class TestDeal:\n    def test_a(self):\n        assert folios(t) == []\n'
+CLASS_SIBLING = '\n    def test_b(self):\n        assert 1 == 1\n'
+
+
+def test_helper_digest_of_a_python_method_ignores_a_sibling_method_added_below_its_helper_but_sees_its_helper_edited_4868(
+        case_identity):
+    body = case_identity.bodies_of(CLASS_HELPER + CLASS_CASES, "test_a")[0]
+    edited = CLASS_HELPER.replace("is not None", "is None") + CLASS_CASES
+    before, after, changed = (case_identity.helper_digest(text, body)
+                              for text in (CLASS_HELPER + CLASS_CASES, CLASS_HELPER + CLASS_CASES + CLASS_SIBLING, edited))
+    assert (before == after, before == changed) == (True, False)
