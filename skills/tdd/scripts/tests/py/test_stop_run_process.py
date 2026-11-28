@@ -2,6 +2,7 @@
 import importlib
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -293,7 +294,7 @@ def test_1158_stop_run_sh_typed_from_a_linked_worktree_outside_the_primary_clone
     assert (code, err, stop_text(primary_run)) == (0, "", "at-ledger\n")
 
 
-@pytest.mark.process("a real detached session leader with a descendant in its group, sent a real TERM")
+@pytest.mark.process("a real detached group leader with a descendant and a member of the test's own in its group, sent a real TERM")
 def test_3375_stop_run_cli_mode_now_terms_the_whole_process_group_of_the_detached_command_in_fulltier_pid(
         tmp_path, run_cli, stop_run, started):
     repo = new_repo(tmp_path.resolve() / "repo")
@@ -301,8 +302,10 @@ def test_3375_stop_run_cli_mode_now_terms_the_whole_process_group_of_the_detache
     live_conductor(run, started)
     child_file = tmp_path / "child.pid"
     command = subprocess.Popen(["sh", "-c", 'sleep 60 & echo $! > "$0"; wait', str(child_file)],
-                               start_new_session=True)
+                               process_group=0)
     started.append(command)
+    member = subprocess.Popen(["sleep", "60"], process_group=command.pid)
+    started.append(member)
     (run / ".tdd" / "fulltier.pid").write_text(recorded(command.pid))
     for _ in range(200):
         if child_file.is_file() and child_file.read_text().strip():
@@ -316,6 +319,8 @@ def test_3375_stop_run_cli_mode_now_terms_the_whole_process_group_of_the_detache
 
         assert (code, out, err) == (0, str(run) + "\n", "")
         assert gone(command), "the detached command %d was not signalled" % command.pid
+        ended = member.wait(timeout=5)
+        assert ended == -signal.SIGTERM, "the group member ended by signal %d, not TERM (%d)" % (-ended, signal.SIGTERM)
         for _ in range(40):
             try:
                 os.kill(child, 0)
