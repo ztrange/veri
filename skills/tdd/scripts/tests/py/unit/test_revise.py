@@ -1112,6 +1112,32 @@ def test_a_revised_red_whose_report_names_its_moved_case_verifies_records_and_sa
         "src/a.test.ts", "src/a.test.ts::returns empty")
 
 
+def _revised_red_keeps_develop_red_outs_case(revise, lines):
+    """A revised red whose report carries <lines> verifies, records and saves develop-red.out's case."""
+    (revise.wt / ".tdd" / "issue-12-red-half-rejected-wait").write_text(
+        json.dumps({"conductor": None, "at": "verdict-red", "values": RED_VALUES, "step": STEP}))
+    (revise.wt / ".tdd" / "develop-red.out").write_text(
+        "TEST_PATH: src/a.test.ts\nTARGET_TEST: src/a.test.ts::outer > returns empty\nAGAINST_UNMODIFIED: FAILS\n")
+    (revise.wt / ".tdd" / "revise-red-1.out").write_text(
+        "OUTCOME: REWRITTEN\n" + lines + "AGAINST_UNMODIFIED: FAILS\nPREDICTION: AssertionError\n")
+    (revise.wt / ".tdd" / "verify-red.reason").write_text(REASON)
+    code, out, err, fake = revise(fake=Echo({("red-divergence.sh", None): (3, "")}), argv=("12", "red"),
+                                  missing=("red-half",))
+
+    assert code == 0, out
+    verdict = [c for c in fake.calls if c[0] == "detach-leaf.sh"][1]
+    assert _short(verdict[1])[-2:] == ("src/a.test.ts", "src/a.test.ts::outer > returns empty")
+    assert fake.call("tests-frozen.sh", "record")[1][-2:] == ("src/a.test.ts::outer > returns empty", "src/a.test.ts")
+    record = json.loads((revise.wt / ".tdd" / "issue-12-red-half-wait").read_text())
+    assert (record["values"]["test_path"], record["values"]["target_test"]) == (
+        "src/a.test.ts", "src/a.test.ts::outer > returns empty")
+
+
+def test_a_revised_red_whose_report_names_test_path_and_target_test_none_keeps_develop_red_outs_case_4870(revise):
+    """#4870 criterion 5: `NONE` names no moved case, so develop-red.out's id is the one verified and recorded."""
+    _revised_red_keeps_develop_red_outs_case(revise, "TEST_PATH: NONE\nTARGET_TEST: NONE\n")
+
+
 @pytest.mark.parametrize("phase", ["red", "green", "refactor"])
 def test_4500_with_no_veri_issue_exported_it_builds_the_revise_prompt_with_the_runs_issue_and_step_and_launches(
         revise, phase):
