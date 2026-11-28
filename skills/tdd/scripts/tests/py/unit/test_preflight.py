@@ -200,12 +200,12 @@ def test_3771_h_after_the_claim_step_3_runs_setup_body_detect_fast_baseline_full
     assert calls.index(merge_base[0]) < calls.index(tail[3])
     assert tail[3][1][4:] == ("--at", "b45e", str(wt))
     fast_start, fast_wait = tail[4], tail[5]
-    assert fast_start[0] == "detach-command.sh" and fast_start[1][0] == "start" and fast_start[1][2:] == ("make", "unit")
+    assert fast_start[0] == "detach-command.sh" and fast_start[1][0] == "start" and fast_start[1][2:] == ("sh", "-c", "make unit")
     assert fast_wait[0] == "detach-command.sh" and fast_wait[1] == ("wait", fast_start[1][1])
     assert tail[6][:2] == ["detect-test-command.sh", ("--tier", "all", "--issue", body, str(wt))]
     assert tail[7][:2] == ["baseline-full-tier.sh", ("12", "make test")]
     full_start, full_wait = tail[8], tail[9]
-    assert full_start[0] == "detach-command.sh" and full_start[1][0] == "start" and full_start[1][2:] == ("make", "test")
+    assert full_start[0] == "detach-command.sh" and full_start[1][0] == "start" and full_start[1][2:] == ("sh", "-c", "make test")
     assert full_wait[0] == "detach-command.sh" and full_wait[1] == ("wait", full_start[1][1])
     assert tail[10][0] == "full-tier-time.sh" and tail[10][1][0] == "--record" and tail[10][1][1].isdigit()
     assert tail[10][1][2:] == ("make test",)
@@ -1509,7 +1509,7 @@ def test_4337_a_ci_answer_that_is_not_success_on_the_sha_under_test_runs_the_bas
         monkeypatch, run_cli, tmp_path, ci, gh_code):
     code, out, starts, calls = _ci_run_4337(monkeypatch, run_cli, tmp_path, ci=ci, gh_code=gh_code)
 
-    assert [s[2:] for s in starts] == [("make", "unit")]
+    assert [s[2:] for s in starts] == [("sh", "-c", "make unit")]
     assert code == 0
 
 
@@ -1609,3 +1609,30 @@ def test_4835_a_skipped_baseline_pins_0_seconds_and_hands_0_to_leaf_timeout_not_
     pinned = [line for line in written if line.startswith("baseline=")]
     timeouts = [a for b, a in calls if b == "leaf-timeout.sh"]
     assert (code, starts, pinned, timeouts) == (0, [], ["baseline=0"], [("0", "--full", "55", "--reused")])
+
+
+def test_4856_a_compound_fast_and_full_command_starts_through_sh_c_so_and_and_never_reaches_the_tool(
+        monkeypatch, run_cli, tmp_path):
+    preflight = importlib.import_module("veri.preflight")
+    wt = tmp_path / "wt"
+    (wt / ".tdd").mkdir(parents=True)
+    starts = []
+
+    def run_script(name, *args, **kwargs):
+        base = os.path.basename(name)
+        if base == "issue-worktree.sh":
+            return 0, str(wt) + "\n", ""
+        if base == "detect-test-command.sh":
+            return 0, ("npm run lint && npm test\n" if args[1] == "fast" else "npm run lint && npm run all\n"), ""
+        if base == "baseline-full-tier.sh":
+            return 0, "run\n", ""
+        if base == "detach-command.sh" and args[0] == "start":
+            starts.append(args[1:])
+        return 0, "", ""
+
+    monkeypatch.setattr(preflight, "run_script", run_script)
+
+    run_cli(preflight, ["12", "my-slug"])
+
+    assert starts == [("preflight-fast-12", "sh", "-c", "npm run lint && npm test"),
+                      ("preflight-full-12", "sh", "-c", "npm run lint && npm run all")]
