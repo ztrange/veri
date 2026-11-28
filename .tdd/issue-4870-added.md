@@ -1,0 +1,1 @@
+- [ ] a revised red whose revise-red-<k>.out names TEST_PATH and TARGET_TEST records, verifies and saves that id, not develop-red.out's ⟦added⟧ ⟦criterion 5⟧
