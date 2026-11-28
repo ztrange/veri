@@ -4,3 +4,4 @@
 - [x] record --red-case resolves two nested describes '<a> > <b> > <it title>' ⟦criterion 2⟧
 - [x] record --red-case resolves an it title holding ' > ' and '::', bare and describe-qualified ⟦criterion 3⟧
 - [x] record --red-case still exits 1 with 'no longer exists' for a describe-qualified id whose it title is absent ⟦criterion 4⟧
+- [ ] a revised red whose revise-red-<k>.out names TEST_PATH and TARGET_TEST records, verifies and saves that id, not develop-red.out's ⟦added⟧ ⟦criterion 5⟧
