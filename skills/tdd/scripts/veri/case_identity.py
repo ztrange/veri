@@ -77,7 +77,7 @@ import re
 
 import case_history
 import renamed_case
-from case_reader import cut_cases
+from case_reader import CASE_HEAD, cut_cases
 from frozen_record import body_digest
 
 
@@ -120,12 +120,21 @@ def _named_helpers(text, body, legacy=False):
     rest = re.compile(r"(?:(?!%s\b).*\n?)*" % stop)
     for head in re.finditer(_HELPER_NAME + r"[^\n]*\n", text, re.M):
         definition = head.group() + rest.match(text, head.end()).group()
+        definition = definition if legacy else _scoped(definition)
         name = head.group(1) or head.group(2)
         keyword = definition.split(None, 1)[0]
         collected = (keyword == "def" and name.startswith("test")) or (keyword == "func" and name.startswith("Test"))
         if not collected and re.search(r"\b%s\(" % name, body):
             helpers.append((name, definition))
     return helpers
+
+
+def _scoped(definition):
+    """`definition` cut at the first case head after its own lines (#4868): a helper above a describe or a test
+    class otherwise runs on through every sibling case, so adding one would change the helper digest."""
+    own = _own_lines(definition)
+    case = CASE_HEAD.search(definition, len(own))
+    return definition[:case.start()] if case else definition
 
 
 def _own_lines(definition):

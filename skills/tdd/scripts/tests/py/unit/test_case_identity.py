@@ -372,3 +372,19 @@ def test_helpers_in_without_transitive_keeps_only_the_helpers_the_body_calls_464
     found = case_identity.helpers_in(text, "outer(t)\n", transitive=False)
 
     assert (found.count('"o"'), found.count('"i"')) == (1, 0)
+
+
+JS_HELPER = 'const folios = async (t) => {\n  expect(t).toBeDefined();\n  return t.query("DEAL");\n};\n\n'
+JS_CASES = 'describe("d", () => {\n  it("a", async () => {\n    expect(await folios(t)).toEqual([]);\n  });\n});\n'
+JS_SIBLING = '  it("b", () => {\n    expect(1).toBe(1);\n  });\n'
+
+
+def test_helper_digest_of_a_js_case_ignores_a_sibling_case_added_below_its_helper_but_sees_its_helper_edited_4868(
+        case_identity):
+    body = case_identity.bodies_of(JS_HELPER + JS_CASES, "a")[0]
+    sibling = JS_HELPER + JS_CASES[:-4] + JS_SIBLING + "});\n"
+    edited = JS_HELPER.replace("toBeDefined()", "toBeTruthy()") + JS_CASES
+
+    before, after, changed = (case_identity.helper_digest(text, body) for text in (JS_HELPER + JS_CASES, sibling, edited))
+
+    assert (before == after, before == changed) == (True, False)
