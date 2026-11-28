@@ -148,6 +148,21 @@ def test_record_accepts_a_red_case_whose_it_title_holds_an_arrow_and_a_double_co
     assert (result, (tmp_path / ".tdd" / "x.record").is_file()) == ((0, "", ""), True)
 
 
+def test_record_refuses_a_describe_qualified_red_case_whose_it_title_is_absent_and_keeps_the_old_record_4870(
+        tmp_path, run_cli, tests_frozen):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / "a.test.ts").write_text(
+        "describe('outer', () => {\n  it('kept case', () => {\n    expect(1).toBe(1)\n  })\n})\n")
+    record = tmp_path / ".tdd" / "x.record"
+    record.write_text("old record\n")
+
+    code, out, err = run_cli(
+        tests_frozen, ["record", ".tdd/x.record", "--red-case", "a.test.ts::outer > gone case", "a.test.ts"],
+        cwd=tmp_path)
+
+    assert (code, "a.test.ts::outer > gone case no longer exists" in out, record.read_text()) == (1, True, "old record\n")
+
+
 def test_record_step_with_a_red_case_whose_test_file_is_gone_exits_1_naming_it_and_writes_no_record_2269(
         tmp_path, run_cli, tests_frozen):
     (tmp_path / "test_b.py").write_text("def test_b():\n    assert 1\n")
